@@ -13,18 +13,15 @@
 #include <Wire.h>
 #include <TickTwo.h>
 #include <AiEsp32RotaryEncoder.h>
+#include <pinout.h>
 
 bool buttonPressed = false;
 int encoderPosition = 0;
 bool drawcolorstate = true;
 
-//Pinout
-#define buzzer 23
+
 
 //Encoder
-  #define ROTARY_ENCODER_A_PIN 34
-  #define ROTARY_ENCODER_B_PIN 35
-  #define ROTARY_ENCODER_BUTTON_PIN 32
   //depending on your encoder - try 1,2 or 4 to get expected behaviour
   #define ROTARY_ENCODER_STEPS 2
   #define ROTARY_ENCODER_VCC_PIN -1 /* 27 put -1 of Rotary encoder Vcc is connected directly to 3,3V; else you can use declared output pin for powering rotary encoder */
@@ -85,7 +82,20 @@ void setup() {
   Serial.begin(115200);
   debugln("setup started");
   pinMode(buzzer, OUTPUT);
-  digitalWrite(buzzer, LOW);
+  pinMode(wsLED, OUTPUT);
+  pinMode(CH1_5V, OUTPUT);
+  pinMode(CH2_5V, OUTPUT);
+  pinMode(CH1_12V, OUTPUT);
+  pinMode(CH2_12V, OUTPUT);
+  pinMode(PIR, INPUT);
+  pinMode(RF_433, OUTPUT);
+  pinMode(button1, INPUT);
+  pinMode(button2, INPUT);
+  digitalWrite(CH1_5V, LOW);
+  digitalWrite(CH2_5V, LOW);
+  digitalWrite(CH1_12V, LOW);
+  digitalWrite(CH2_12V, LOW);
+  digitalWrite(RF_433, LOW);
 
    //Encoder
   //we must initialize rotary encoder
