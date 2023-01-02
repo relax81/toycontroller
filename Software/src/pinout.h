@@ -37,6 +37,6 @@
 #define CH1_5V 16
 #define CH2_5V 17
 
-//12V Mosfet
-#define CH1_12V 18
-#define CH2_12V 19
+//30V Max Mosfet
+#define CH1_30VMax 18
+#define CH2_30VMax 19

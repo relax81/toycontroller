@@ -85,16 +85,16 @@ void setup() {
   pinMode(wsLED, OUTPUT);
   pinMode(CH1_5V, OUTPUT);
   pinMode(CH2_5V, OUTPUT);
-  pinMode(CH1_12V, OUTPUT);
-  pinMode(CH2_12V, OUTPUT);
+  pinMode(CH1_30VMax, OUTPUT);
+  pinMode(CH2_30VMax, OUTPUT);
   pinMode(PIR, INPUT);
   pinMode(RF_433, OUTPUT);
   pinMode(button1, INPUT);
   pinMode(button2, INPUT);
   digitalWrite(CH1_5V, LOW);
   digitalWrite(CH2_5V, LOW);
-  digitalWrite(CH1_12V, LOW);
-  digitalWrite(CH2_12V, LOW);
+  digitalWrite(CH1_30VMax, LOW);
+  digitalWrite(CH2_30VMax, LOW);
   digitalWrite(RF_433, LOW);
 
    //Encoder
