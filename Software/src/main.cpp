@@ -19,6 +19,20 @@ bool buttonPressed = false;
 int encoderPosition = 0;
 bool drawcolorstate = true;
 
+int Ch15vOn = 0;
+int Ch15vOff = 0;
+int Ch15vPause = 0;
+int Ch25vOn = 0;
+int Ch25vOff = 0;
+int Ch25vPause = 0;
+int Ch130vOn = 0;
+int Ch130vOff = 0;
+int Ch130vPause = 0;
+int Ch230vOn = 0;
+int Ch230vOff = 0;
+int Ch230vPause = 0;
+
+
 
 
 //Encoder
@@ -70,14 +84,52 @@ void blinktext()
     drawcolorstate = !drawcolorstate;
   }  
 
-void displayLayout()
+
+void displayMenu()
   {
-  u8g2.setFont(u8g2_font_ncenB08_tr);	// choose a suitable font
-  u8g2.drawStr(22,10,"Toy Controller");
+  u8g2.setFont(u8g2_font_ncenB08_tr);
+  u8g2.drawStr(1,8,"5v1");
+  u8g2.drawStr(30,8,"5v2");
+  u8g2.drawStr(60,8,"30v1");
+  u8g2.drawStr(95,8,"30v2");
   u8g2.drawHLine(0,13,128);
+  u8g2.drawVLine(24,0,64);
+  u8g2.drawVLine(54,0,64);
+  u8g2.drawVLine(89,0,64);
   }
 
+void displayValues()
+  {
+  // 1st line  
+  u8g2.setCursor(1,25);
+  u8g2.print(Ch15vOn);
+  u8g2.setCursor(30,25);
+  u8g2.print(Ch25vOn);
+  u8g2.setCursor(62,25);
+  u8g2.print(Ch130vOn);
+  u8g2.setCursor(98,25);
+  u8g2.print(Ch230vOn);
+  // 2nd line
+  u8g2.setCursor(1, 40);
+  u8g2.print(Ch15vOff);
+  u8g2.setCursor(30,40);
+  u8g2.print(Ch15vOff);
+  u8g2.setCursor(62,40);
+  u8g2.print(Ch15vOff);
+  u8g2.setCursor(98,40);
+  u8g2.print(Ch15vOff);
+  // 3rd line
+  u8g2.setCursor(1, 55);
+  u8g2.print(Ch15vPause);
+  u8g2.setCursor(30,55);
+  u8g2.print(Ch15vPause);
+  u8g2.setCursor(62,55);
+  u8g2.print(Ch15vPause);
+  u8g2.setCursor(98,55);
+  u8g2.print(Ch15vPause);
+  }
 
+  
 void setup() {
   Serial.begin(115200);
   debugln("setup started");
@@ -120,7 +172,8 @@ void setup() {
   u8g2.clearBuffer();
   u8g2.clearDisplay();
   u8g2.setFontMode(1);
-  displayLayout();
+  displayMenu();
+  displayValues();
   u8g2.sendBuffer();
 }
 
