@@ -41,6 +41,14 @@ const int PWMOUT_1 = 1; // max 30v ch1
 const int PWMOUT_2 = 2; // max 30v ch2
 const int PWMOUT_3 = 3; // 5v ch1
 const int PWMOUT_4 = 4; // 5v ch2
+unsigned long pwm1_previousMillis = 0;
+unsigned long pwm2_previousMillis = 0;
+unsigned long pwm3_previousMillis = 0;
+unsigned long pwm4_previousMillis = 0;
+bool pwm1_enabled = false;
+bool pwm2_enabled = false;
+bool pwm3_enabled = false;
+bool pwm4_enabled = false;
 
 
 //Encoder
@@ -389,10 +397,6 @@ void displayValues()
 
 
 
-
-
-
-  
 void setup() {
   Serial.begin(115200);
   debugln("setup started");
@@ -449,8 +453,23 @@ void setup() {
   u8g2.sendBuffer();
 }
 
+
 void loop() {
+  unsigned long currentMillis = millis();
   timer1.update(); // flash display text timer
+
+  if ((currentMillis - pwm3_previousMillis >= Ch15vOff*1000) && (!pwm3_enabled) && (Ch15vOn > 0)) {
+    ledcWrite(PWMOUT_3,Ch15vPWM);
+    pwm3_enabled = true;
+    pwm3_previousMillis = currentMillis;
+  }
+  else if ((currentMillis - pwm3_previousMillis >= Ch15vOn*1000) && (pwm3_enabled))
+  {
+    ledcWrite(PWMOUT_3,0);
+    pwm3_enabled = false;
+    pwm3_previousMillis = currentMillis;
+  }
+
   
   // Encoder
   rotary_loop();
@@ -465,7 +484,6 @@ void loop() {
   // PWM Output
   ledcWrite(PWMOUT_1,Ch130vPWM);
   ledcWrite(PWMOUT_2,Ch230vPWM);
-  ledcWrite(PWMOUT_3,Ch15vPWM);
   ledcWrite(PWMOUT_4,Ch25vPWM);
   
 }
