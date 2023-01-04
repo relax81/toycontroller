@@ -99,14 +99,14 @@ void blinktext()
 void displayMenu()
   {
   u8g2.setFont(u8g2_font_ncenB08_tr);
-  u8g2.drawStr(1,8,"5v1");
-  u8g2.drawStr(30,8,"5v2");
-  u8g2.drawStr(60,8,"30v1");
-  u8g2.drawStr(95,8,"30v2");
+  u8g2.drawStr(1,8,"30v1");
+  u8g2.drawStr(34,8,"30v2");
+  u8g2.drawStr(69,8,"5v1");
+  u8g2.drawStr(102,8,"5v2");
   u8g2.drawHLine(0,13,128);
-  u8g2.drawVLine(24,0,64);
-  u8g2.drawVLine(54,0,64);
-  u8g2.drawVLine(89,0,64);
+  u8g2.drawVLine(30,0,64);
+  u8g2.drawVLine(61,0,64);
+  u8g2.drawVLine(95,0,64);
   }
 
 void displayValues()
@@ -114,29 +114,29 @@ void displayValues()
   // 1st line  
   u8g2.setCursor(1,25);
   u8g2.print(Ch15vOn);
-  u8g2.setCursor(30,25);
+  u8g2.setCursor(36,25);
   u8g2.print(Ch25vOn);
-  u8g2.setCursor(62,25);
+  u8g2.setCursor(69,25);
   u8g2.print(Ch130vOn);
-  u8g2.setCursor(98,25);
+  u8g2.setCursor(102,25);
   u8g2.print(Ch230vOn);
   // 2nd line
   u8g2.setCursor(1, 40);
   u8g2.print(Ch15vOff);
-  u8g2.setCursor(30,40);
+  u8g2.setCursor(36,40);
   u8g2.print(Ch25vOff);
-  u8g2.setCursor(62,40);
+  u8g2.setCursor(69,40);
   u8g2.print(Ch130vOff);
-  u8g2.setCursor(98,40);
+  u8g2.setCursor(102,40);
   u8g2.print(Ch230vOff);
   // 3rd line
   u8g2.setCursor(1, 55);
   u8g2.print(Ch15vPWM);
-  u8g2.setCursor(30,55);
+  u8g2.setCursor(36,55);
   u8g2.print(Ch25vPWM);
-  u8g2.setCursor(62,55);
+  u8g2.setCursor(69,55);
   u8g2.print(Ch130vPWM);
-  u8g2.setCursor(98,55);
+  u8g2.setCursor(102,55);
   u8g2.print(Ch230vPWM);
   }
 
@@ -144,98 +144,8 @@ void displayValues()
   switch (menu) {
     case 1: // 
       rotaryEncoder.setBoundaries(0, 100, false); //0-99 
-      Ch15vOn = encoderPosition;
-      u8g2.setCursor(1,25);
-      u8g2.setDrawColor(drawcolorstate);
-      u8g2.print(Ch15vOn);
-      u8g2.setDrawColor(1);
-      if (buttonPressed == true) {
-          buttonPressed = false;
-          rotaryEncoder.setEncoderValue(Ch15vOff);
-          encoderPosition = Ch15vOff;
-          menu++;
-          }
-      break;
-
-    case 2: // 
-      rotaryEncoder.setBoundaries(0, 100, false); //0-99 
-      Ch15vOff = encoderPosition;
-      u8g2.setCursor(1,40);
-      u8g2.setDrawColor(drawcolorstate);
-      u8g2.print(Ch15vOff);
-      u8g2.setDrawColor(1);
-      if (buttonPressed == true) {
-          buttonPressed = false;
-          rotaryEncoder.setEncoderValue(Ch15vPWM);
-          encoderPosition = Ch15vPWM;
-          menu++;
-          }
-      break;
-
-    case 3: // 
-      rotaryEncoder.setBoundaries(0, 255, true); //0-99 
-      Ch15vPWM = encoderPosition;
-      u8g2.setCursor(1,55);
-      u8g2.setDrawColor(drawcolorstate);
-      u8g2.print(Ch15vPWM);
-      u8g2.setDrawColor(1);
-      if (buttonPressed == true) {
-          buttonPressed = false;
-          rotaryEncoder.setEncoderValue(Ch25vOn);
-          encoderPosition = Ch25vOn;
-          menu++;
-          }
-      break;
-
-    case 4: // 
-      rotaryEncoder.setBoundaries(0, 100, false); //0-99 
-      Ch25vOn = encoderPosition;
-      u8g2.setCursor(30,25);
-      u8g2.setDrawColor(drawcolorstate);
-      u8g2.print(Ch25vOn);
-      u8g2.setDrawColor(1);
-      if (buttonPressed == true) {
-          buttonPressed = false;
-          rotaryEncoder.setEncoderValue(Ch25vOff);
-          encoderPosition = Ch25vOff;
-          menu++;
-          }
-      break;
-
-    case 5: // 
-      rotaryEncoder.setBoundaries(0, 100, false); //0-99 
-      Ch25vOff = encoderPosition;
-      u8g2.setCursor(30,40);
-      u8g2.setDrawColor(drawcolorstate);
-      u8g2.print(Ch25vOff);
-      u8g2.setDrawColor(1);
-      if (buttonPressed == true) {
-          buttonPressed = false;
-          rotaryEncoder.setEncoderValue(Ch25vPWM);
-          encoderPosition = Ch25vPWM;
-          menu++;
-          }
-      break;
-
-    case 6: // 
-      rotaryEncoder.setBoundaries(0, 255, true); //0-99 
-      Ch25vPWM = encoderPosition;
-      u8g2.setCursor(30,55);
-      u8g2.setDrawColor(drawcolorstate);
-      u8g2.print(Ch25vPWM);
-      u8g2.setDrawColor(1);
-      if (buttonPressed == true) {
-          buttonPressed = false;
-          rotaryEncoder.setEncoderValue(Ch130vOn);
-          encoderPosition = Ch130vOn;
-          menu++;
-          }
-      break;
-    
-    case 7: // 
-      rotaryEncoder.setBoundaries(0, 100, false); //0-99 
       Ch130vOn = encoderPosition;
-      u8g2.setCursor(62,25);
+      u8g2.setCursor(1,25);
       u8g2.setDrawColor(drawcolorstate);
       u8g2.print(Ch130vOn);
       u8g2.setDrawColor(1);
@@ -247,10 +157,10 @@ void displayValues()
           }
       break;
 
-    case 8: // 
+    case 2: // 
       rotaryEncoder.setBoundaries(0, 100, false); //0-99 
       Ch130vOff = encoderPosition;
-      u8g2.setCursor(62,40);
+      u8g2.setCursor(1,40);
       u8g2.setDrawColor(drawcolorstate);
       u8g2.print(Ch130vOff);
       u8g2.setDrawColor(1);
@@ -262,10 +172,10 @@ void displayValues()
           }
       break;
 
-    case 9: // 
+    case 3: // 
       rotaryEncoder.setBoundaries(0, 255, true); //0-99 
       Ch130vPWM = encoderPosition;
-      u8g2.setCursor(62,55);
+      u8g2.setCursor(1,55);
       u8g2.setDrawColor(drawcolorstate);
       u8g2.print(Ch130vPWM);
       u8g2.setDrawColor(1);
@@ -277,10 +187,10 @@ void displayValues()
           }
       break;
 
-      case 10: // 
+    case 4: // 
       rotaryEncoder.setBoundaries(0, 100, false); //0-99 
       Ch230vOn = encoderPosition;
-      u8g2.setCursor(98,25);
+      u8g2.setCursor(36,25);
       u8g2.setDrawColor(drawcolorstate);
       u8g2.print(Ch230vOn);
       u8g2.setDrawColor(1);
@@ -292,10 +202,10 @@ void displayValues()
           }
       break;
 
-    case 11: // 
+    case 5: // 
       rotaryEncoder.setBoundaries(0, 100, false); //0-99 
       Ch230vOff = encoderPosition;
-      u8g2.setCursor(98,40);
+      u8g2.setCursor(36,40);
       u8g2.setDrawColor(drawcolorstate);
       u8g2.print(Ch230vOff);
       u8g2.setDrawColor(1);
@@ -307,10 +217,10 @@ void displayValues()
           }
       break;
 
-    case 12: // 
+    case 6: // 
       rotaryEncoder.setBoundaries(0, 255, true); //0-99 
       Ch230vPWM = encoderPosition;
-      u8g2.setCursor(98,55);
+      u8g2.setCursor(36,55);
       u8g2.setDrawColor(drawcolorstate);
       u8g2.print(Ch230vPWM);
       u8g2.setDrawColor(1);
@@ -318,6 +228,96 @@ void displayValues()
           buttonPressed = false;
           rotaryEncoder.setEncoderValue(Ch15vOn);
           encoderPosition = Ch15vOn;
+          menu++;
+          }
+      break;
+    
+    case 7: // 
+      rotaryEncoder.setBoundaries(0, 100, false); //0-99 
+      Ch15vOn = encoderPosition;
+      u8g2.setCursor(62,25);
+      u8g2.setDrawColor(drawcolorstate);
+      u8g2.print(Ch15vOn);
+      u8g2.setDrawColor(1);
+      if (buttonPressed == true) {
+          buttonPressed = false;
+          rotaryEncoder.setEncoderValue(Ch15vOff);
+          encoderPosition = Ch15vOff;
+          menu++;
+          }
+      break;
+
+    case 8: // 
+      rotaryEncoder.setBoundaries(0, 100, false); //0-99 
+      Ch15vOff = encoderPosition;
+      u8g2.setCursor(62,40);
+      u8g2.setDrawColor(drawcolorstate);
+      u8g2.print(Ch15vOff);
+      u8g2.setDrawColor(1);
+      if (buttonPressed == true) {
+          buttonPressed = false;
+          rotaryEncoder.setEncoderValue(Ch15vPWM);
+          encoderPosition = Ch15vPWM;
+          menu++;
+          }
+      break;
+
+    case 9: // 
+      rotaryEncoder.setBoundaries(0, 255, true); //0-99 
+      Ch15vPWM = encoderPosition;
+      u8g2.setCursor(62,55);
+      u8g2.setDrawColor(drawcolorstate);
+      u8g2.print(Ch15vPWM);
+      u8g2.setDrawColor(1);
+      if (buttonPressed == true) {
+          buttonPressed = false;
+          rotaryEncoder.setEncoderValue(Ch25vOn);
+          encoderPosition = Ch25vOn;
+          menu++;
+          }
+      break;
+
+      case 10: // 
+      rotaryEncoder.setBoundaries(0, 100, false); //0-99 
+      Ch25vOn = encoderPosition;
+      u8g2.setCursor(98,25);
+      u8g2.setDrawColor(drawcolorstate);
+      u8g2.print(Ch25vOn);
+      u8g2.setDrawColor(1);
+      if (buttonPressed == true) {
+          buttonPressed = false;
+          rotaryEncoder.setEncoderValue(Ch25vOff);
+          encoderPosition = Ch25vOff;
+          menu++;
+          }
+      break;
+
+    case 11: // 
+      rotaryEncoder.setBoundaries(0, 100, false); //0-99 
+      Ch25vOff = encoderPosition;
+      u8g2.setCursor(98,40);
+      u8g2.setDrawColor(drawcolorstate);
+      u8g2.print(Ch25vOff);
+      u8g2.setDrawColor(1);
+      if (buttonPressed == true) {
+          buttonPressed = false;
+          rotaryEncoder.setEncoderValue(Ch25vPWM);
+          encoderPosition = Ch25vPWM;
+          menu++;
+          }
+      break;
+
+    case 12: // 
+      rotaryEncoder.setBoundaries(0, 255, true); //0-99 
+      Ch25vPWM = encoderPosition;
+      u8g2.setCursor(98,55);
+      u8g2.setDrawColor(drawcolorstate);
+      u8g2.print(Ch25vPWM);
+      u8g2.setDrawColor(1);
+      if (buttonPressed == true) {
+          buttonPressed = false;
+          rotaryEncoder.setEncoderValue(Ch130vOn);
+          encoderPosition = Ch130vOn;
           menu = 1;
           }
       break;
