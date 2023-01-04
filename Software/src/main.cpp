@@ -23,18 +23,21 @@ int menu = 1;
 
 int Ch15vOn = 0;
 int Ch15vOff = 0;
-int Ch15vPause = 0;
+int Ch15vPWM = 0;
 int Ch25vOn = 0;
 int Ch25vOff = 0;
-int Ch25vPause = 0;
+int Ch25vPWM = 0;
 int Ch130vOn = 0;
 int Ch130vOff = 0;
-int Ch130vPause = 0;
+int Ch130vPWM = 0;
 int Ch230vOn = 0;
 int Ch230vOff = 0;
-int Ch230vPause = 0;
+int Ch230vPWM = 0;
 
-
+// PWM settings
+const int freq = 5000;
+const int resolution = 8;
+const int ledChannel = 0;
 
 
 //Encoder
@@ -125,13 +128,13 @@ void displayValues()
   u8g2.print(Ch230vOff);
   // 3rd line
   u8g2.setCursor(1, 55);
-  u8g2.print(Ch15vPause);
+  u8g2.print(Ch15vPWM);
   u8g2.setCursor(30,55);
-  u8g2.print(Ch25vPause);
+  u8g2.print(Ch25vPWM);
   u8g2.setCursor(62,55);
-  u8g2.print(Ch130vPause);
+  u8g2.print(Ch130vPWM);
   u8g2.setCursor(98,55);
-  u8g2.print(Ch230vPause);
+  u8g2.print(Ch230vPWM);
   }
 
   void menuSystem() {
@@ -160,18 +163,18 @@ void displayValues()
       u8g2.setDrawColor(1);
       if (buttonPressed == true) {
           buttonPressed = false;
-          rotaryEncoder.setEncoderValue(Ch15vPause);
-          encoderPosition = Ch15vPause;
+          rotaryEncoder.setEncoderValue(Ch15vPWM);
+          encoderPosition = Ch15vPWM;
           menu++;
           }
       break;
 
     case 3: // 
-      rotaryEncoder.setBoundaries(0, 100, false); //0-99 
-      Ch15vPause = encoderPosition;
+      rotaryEncoder.setBoundaries(0, 255, true); //0-99 
+      Ch15vPWM = encoderPosition;
       u8g2.setCursor(1,55);
       u8g2.setDrawColor(drawcolorstate);
-      u8g2.print(Ch15vPause);
+      u8g2.print(Ch15vPWM);
       u8g2.setDrawColor(1);
       if (buttonPressed == true) {
           buttonPressed = false;
@@ -205,18 +208,18 @@ void displayValues()
       u8g2.setDrawColor(1);
       if (buttonPressed == true) {
           buttonPressed = false;
-          rotaryEncoder.setEncoderValue(Ch25vPause);
-          encoderPosition = Ch25vPause;
+          rotaryEncoder.setEncoderValue(Ch25vPWM);
+          encoderPosition = Ch25vPWM;
           menu++;
           }
       break;
 
     case 6: // 
       rotaryEncoder.setBoundaries(0, 100, false); //0-99 
-      Ch25vPause = encoderPosition;
+      Ch25vPWM = encoderPosition;
       u8g2.setCursor(30,55);
       u8g2.setDrawColor(drawcolorstate);
-      u8g2.print(Ch25vPause);
+      u8g2.print(Ch25vPWM);
       u8g2.setDrawColor(1);
       if (buttonPressed == true) {
           buttonPressed = false;
@@ -250,18 +253,18 @@ void displayValues()
       u8g2.setDrawColor(1);
       if (buttonPressed == true) {
           buttonPressed = false;
-          rotaryEncoder.setEncoderValue(Ch130vPause);
-          encoderPosition = Ch130vPause;
+          rotaryEncoder.setEncoderValue(Ch130vPWM);
+          encoderPosition = Ch130vPWM;
           menu++;
           }
       break;
 
     case 9: // 
       rotaryEncoder.setBoundaries(0, 100, false); //0-99 
-      Ch130vPause = encoderPosition;
+      Ch130vPWM = encoderPosition;
       u8g2.setCursor(62,55);
       u8g2.setDrawColor(drawcolorstate);
-      u8g2.print(Ch130vPause);
+      u8g2.print(Ch130vPWM);
       u8g2.setDrawColor(1);
       if (buttonPressed == true) {
           buttonPressed = false;
@@ -295,18 +298,18 @@ void displayValues()
       u8g2.setDrawColor(1);
       if (buttonPressed == true) {
           buttonPressed = false;
-          rotaryEncoder.setEncoderValue(Ch230vPause);
-          encoderPosition = Ch230vPause;
+          rotaryEncoder.setEncoderValue(Ch230vPWM);
+          encoderPosition = Ch230vPWM;
           menu++;
           }
       break;
 
     case 12: // 
       rotaryEncoder.setBoundaries(0, 100, false); //0-99 
-      Ch230vPause = encoderPosition;
+      Ch230vPWM = encoderPosition;
       u8g2.setCursor(98,55);
       u8g2.setDrawColor(drawcolorstate);
-      u8g2.print(Ch230vPause);
+      u8g2.print(Ch230vPWM);
       u8g2.setDrawColor(1);
       if (buttonPressed == true) {
           buttonPressed = false;
@@ -332,6 +335,8 @@ void displayValues()
 void setup() {
   Serial.begin(115200);
   debugln("setup started");
+
+  // Pins
   pinMode(buzzer, OUTPUT);
   pinMode(wsLED, OUTPUT);
   pinMode(CH1_5V, OUTPUT);
@@ -342,11 +347,15 @@ void setup() {
   pinMode(RF_433, OUTPUT);
   pinMode(button1, INPUT);
   pinMode(button2, INPUT);
-  digitalWrite(CH1_5V, LOW);
+  // digitalWrite(CH1_5V, LOW);
   digitalWrite(CH2_5V, LOW);
   digitalWrite(CH1_30VMax, LOW);
   digitalWrite(CH2_30VMax, LOW);
   digitalWrite(RF_433, LOW);
+
+  // PWM
+  ledcSetup(ledChannel, freq, resolution);
+  ledcAttachPin(CH1_5V, ledChannel);
 
    //Encoder
   //we must initialize rotary encoder
@@ -378,11 +387,17 @@ void setup() {
 
 void loop() {
   timer1.update(); // flash display text timer
-  //Encoder
+  
+  // Encoder
   rotary_loop();
+
+  // Display
   u8g2.clearBuffer();
   displayMenu();
   displayValues();
   menuSystem();
   u8g2.sendBuffer();
+
+  // PWM Output
+  ledcWrite(ledChannel,255);
 }
