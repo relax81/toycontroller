@@ -2,8 +2,8 @@
 #define buzzer 23
 
 // Rotary Encoder
-#define ROTARY_ENCODER_A_PIN 34
-#define ROTARY_ENCODER_B_PIN 35
+#define ROTARY_ENCODER_A_PIN 35
+#define ROTARY_ENCODER_B_PIN 34
 #define ROTARY_ENCODER_BUTTON_PIN 32
 
 //PIR
