@@ -34,8 +34,8 @@
 #define espRX 34
 
 //5V Mosfet
-#define CH1_5V 16
-#define CH2_5V 17
+#define CH1_5V 17
+#define CH2_5V 16
 
 //30V Max Mosfet
 #define CH1_30VMax 18

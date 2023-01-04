@@ -399,5 +399,5 @@ void loop() {
   u8g2.sendBuffer();
 
   // PWM Output
-  ledcWrite(ledChannel,255);
+  ledcWrite(ledChannel,Ch15vPWM);
 }
