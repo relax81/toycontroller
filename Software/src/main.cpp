@@ -458,17 +458,58 @@ void loop() {
   unsigned long currentMillis = millis();
   timer1.update(); // flash display text timer
 
-  if ((currentMillis - pwm3_previousMillis >= Ch15vOff*1000) && (!pwm3_enabled) && (Ch15vOn > 0)) {
-    ledcWrite(PWMOUT_3,Ch15vPWM);
-    pwm3_enabled = true;
-    pwm3_previousMillis = currentMillis;
-  }
+// PWM Output 1
+  if ((currentMillis - pwm1_previousMillis >= Ch130vOff*1000) && (!pwm1_enabled) && (Ch130vOn > 0)) 
+    {
+      ledcWrite(PWMOUT_1,Ch130vPWM);
+      pwm1_enabled = true;
+      pwm1_previousMillis = currentMillis;
+    }
+  else if ((currentMillis - pwm1_previousMillis >= Ch130vOn*1000) && (pwm1_enabled))
+    {
+      ledcWrite(PWMOUT_1,0);
+      pwm1_enabled = false;
+      pwm1_previousMillis = currentMillis;
+    }
+  // PWM Output 2
+  else if ((currentMillis - pwm2_previousMillis >= Ch230vOff*1000) && (!pwm2_enabled) && (Ch230vOn > 0)) 
+    {
+      ledcWrite(PWMOUT_2,Ch230vPWM);
+      pwm2_enabled = true;
+      pwm2_previousMillis = currentMillis;
+    }
+  else if ((currentMillis - pwm2_previousMillis >= Ch230vOn*1000) && (pwm2_enabled))
+    {
+      ledcWrite(PWMOUT_2,0);
+      pwm2_enabled = false;
+      pwm2_previousMillis = currentMillis;
+    }
+  // PWM Output 3
+  else if ((currentMillis - pwm3_previousMillis >= Ch15vOff*1000) && (!pwm3_enabled) && (Ch15vOn > 0)) 
+    {
+      ledcWrite(PWMOUT_3,Ch15vPWM);
+      pwm3_enabled = true;
+      pwm3_previousMillis = currentMillis;
+    }
   else if ((currentMillis - pwm3_previousMillis >= Ch15vOn*1000) && (pwm3_enabled))
-  {
-    ledcWrite(PWMOUT_3,0);
-    pwm3_enabled = false;
-    pwm3_previousMillis = currentMillis;
-  }
+    {
+      ledcWrite(PWMOUT_3,0);
+      pwm3_enabled = false;
+      pwm3_previousMillis = currentMillis;
+    }
+  // PWM Output 4
+   else if ((currentMillis - pwm4_previousMillis >= Ch25vOff*1000) && (!pwm4_enabled) && (Ch25vOn > 0)) 
+    {
+      ledcWrite(PWMOUT_4,Ch25vPWM);
+      pwm4_enabled = true;
+      pwm4_previousMillis = currentMillis;
+    }
+  else if ((currentMillis - pwm4_previousMillis >= Ch25vOn*1000) && (pwm4_enabled))
+    {
+      ledcWrite(PWMOUT_4,0);
+      pwm4_enabled = false;
+      pwm4_previousMillis = currentMillis;
+    }
 
   
   // Encoder
@@ -480,10 +521,4 @@ void loop() {
   displayValues();
   menuSystem();
   u8g2.sendBuffer();
-
-  // PWM Output
-  ledcWrite(PWMOUT_1,Ch130vPWM);
-  ledcWrite(PWMOUT_2,Ch230vPWM);
-  ledcWrite(PWMOUT_4,Ch25vPWM);
-  
 }
