@@ -37,7 +37,10 @@ int Ch230vPWM = 0;
 // PWM settings
 const int freq = 5000;
 const int resolution = 8;
-const int ledChannel = 0;
+const int PWMOUT_1 = 1; // max 30v ch1
+const int PWMOUT_2 = 2; // max 30v ch2
+const int PWMOUT_3 = 3; // 5v ch1
+const int PWMOUT_4 = 4; // 5v ch2
 
 
 //Encoder
@@ -215,7 +218,7 @@ void displayValues()
       break;
 
     case 6: // 
-      rotaryEncoder.setBoundaries(0, 100, false); //0-99 
+      rotaryEncoder.setBoundaries(0, 255, true); //0-99 
       Ch25vPWM = encoderPosition;
       u8g2.setCursor(30,55);
       u8g2.setDrawColor(drawcolorstate);
@@ -260,7 +263,7 @@ void displayValues()
       break;
 
     case 9: // 
-      rotaryEncoder.setBoundaries(0, 100, false); //0-99 
+      rotaryEncoder.setBoundaries(0, 255, true); //0-99 
       Ch130vPWM = encoderPosition;
       u8g2.setCursor(62,55);
       u8g2.setDrawColor(drawcolorstate);
@@ -305,7 +308,7 @@ void displayValues()
       break;
 
     case 12: // 
-      rotaryEncoder.setBoundaries(0, 100, false); //0-99 
+      rotaryEncoder.setBoundaries(0, 255, true); //0-99 
       Ch230vPWM = encoderPosition;
       u8g2.setCursor(98,55);
       u8g2.setDrawColor(drawcolorstate);
@@ -347,15 +350,17 @@ void setup() {
   pinMode(RF_433, OUTPUT);
   pinMode(button1, INPUT);
   pinMode(button2, INPUT);
-  // digitalWrite(CH1_5V, LOW);
-  digitalWrite(CH2_5V, LOW);
-  digitalWrite(CH1_30VMax, LOW);
-  digitalWrite(CH2_30VMax, LOW);
   digitalWrite(RF_433, LOW);
 
   // PWM
-  ledcSetup(ledChannel, freq, resolution);
-  ledcAttachPin(CH1_5V, ledChannel);
+  ledcSetup(PWMOUT_1, freq, resolution);
+  ledcSetup(PWMOUT_2, freq, resolution);
+  ledcSetup(PWMOUT_3, freq, resolution);
+  ledcSetup(PWMOUT_4, freq, resolution);
+  ledcAttachPin(CH1_30VMax, PWMOUT_1);
+  ledcAttachPin(CH2_30VMax, PWMOUT_2);
+  ledcAttachPin(CH1_5V, PWMOUT_3);
+  ledcAttachPin(CH2_5V, PWMOUT_4);
 
    //Encoder
   //we must initialize rotary encoder
@@ -399,5 +404,8 @@ void loop() {
   u8g2.sendBuffer();
 
   // PWM Output
-  ledcWrite(ledChannel,Ch15vPWM);
+  ledcWrite(PWMOUT_1,Ch130vPWM);
+  ledcWrite(PWMOUT_2,Ch230vPWM);
+  ledcWrite(PWMOUT_3,Ch15vPWM);
+  ledcWrite(PWMOUT_4,Ch25vPWM);
 }
