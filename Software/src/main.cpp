@@ -41,6 +41,7 @@ const int PWMOUT_1 = 1; // max 30v ch1
 const int PWMOUT_2 = 2; // max 30v ch2
 const int PWMOUT_3 = 3; // 5v ch1
 const int PWMOUT_4 = 4; // 5v ch2
+const int buzzer = 5;
 unsigned long pwm1_previousMillis = 0;
 unsigned long pwm2_previousMillis = 0;
 unsigned long pwm3_previousMillis = 0;
@@ -49,6 +50,7 @@ bool pwm1_enabled = false;
 bool pwm2_enabled = false;
 bool pwm3_enabled = false;
 bool pwm4_enabled = false;
+bool buzzer_enabled = true;
 
 
 //Encoder
@@ -63,10 +65,9 @@ bool pwm4_enabled = false;
 
 // Timer
   void blinktext();
-  void buzzerOn();
+  void buzzing();
   TickTwo timer1(blinktext, 400); // flash the display text every second
-
-
+ 
 
 // Encoder Functions
   void rotary_onButtonClick()
@@ -148,7 +149,7 @@ void displayValues()
   u8g2.print(Ch25vPWM);
   }
 
-  void menuSystem() {
+void menuSystem() {
   switch (menu) {
 
     case 1: //
@@ -396,13 +397,12 @@ void displayValues()
 }
 
 
-
 void setup() {
   Serial.begin(115200);
   debugln("setup started");
 
   // Pins
-  pinMode(buzzer, OUTPUT);
+  pinMode(buzzerPin, OUTPUT);
   pinMode(wsLED, OUTPUT);
   pinMode(CH1_5V, OUTPUT);
   pinMode(CH2_5V, OUTPUT);
@@ -419,12 +419,14 @@ void setup() {
   ledcSetup(PWMOUT_2, freq, resolution);
   ledcSetup(PWMOUT_3, freq, resolution);
   ledcSetup(PWMOUT_4, freq, resolution);
+  ledcSetup(buzzer, freq, resolution);
   ledcAttachPin(CH1_30VMax, PWMOUT_1);
   ledcAttachPin(CH2_30VMax, PWMOUT_2);
   ledcAttachPin(CH1_5V, PWMOUT_3);
   ledcAttachPin(CH2_5V, PWMOUT_4);
+  ledcAttachPin(buzzerPin, buzzer);
 
-   //Encoder
+  //Encoder
   //we must initialize rotary encoder
 	rotaryEncoder.begin();
 	rotaryEncoder.setup(readEncoderISR);
@@ -453,21 +455,22 @@ void setup() {
   u8g2.sendBuffer();
 }
 
-
 void loop() {
   unsigned long currentMillis = millis();
-  timer1.update(); // flash display text timer
+  timer1.update(); // display blinking text timer
 
 // PWM Output 1
   if ((currentMillis - pwm1_previousMillis >= Ch130vOff*1000) && (!pwm1_enabled) && (Ch130vOn > 0)) 
     {
       ledcWrite(PWMOUT_1,Ch130vPWM);
+      buzzer_enabled = true;
       pwm1_enabled = true;
       pwm1_previousMillis = currentMillis;
     }
   else if ((currentMillis - pwm1_previousMillis >= Ch130vOn*1000) && (pwm1_enabled))
     {
       ledcWrite(PWMOUT_1,0);
+      buzzer_enabled = false;
       pwm1_enabled = false;
       pwm1_previousMillis = currentMillis;
     }
@@ -521,4 +524,7 @@ void loop() {
   displayValues();
   menuSystem();
   u8g2.sendBuffer();
+
+  // Buzzer test
+  // ledcWriteTone(buzzer,4000);
 }

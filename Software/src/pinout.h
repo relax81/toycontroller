@@ -1,5 +1,5 @@
 //Buzzer
-#define buzzer 23
+#define buzzerPin 23
 
 // Rotary Encoder
 #define ROTARY_ENCODER_A_PIN 35
