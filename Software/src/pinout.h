@@ -1,9 +1,9 @@
 //Buzzer
-#define buzzer 23
+#define buzzerPin 23
 
 // Rotary Encoder
-#define ROTARY_ENCODER_A_PIN 34
-#define ROTARY_ENCODER_B_PIN 35
+#define ROTARY_ENCODER_A_PIN 35
+#define ROTARY_ENCODER_B_PIN 34
 #define ROTARY_ENCODER_BUTTON_PIN 32
 
 //PIR
@@ -34,9 +34,9 @@
 #define espRX 34
 
 //5V Mosfet
-#define CH1_5V 16
-#define CH2_5V 17
+#define CH1_5V 17
+#define CH2_5V 16
 
 //30V Max Mosfet
-#define CH1_30VMax 18
-#define CH2_30VMax 19
+#define CH1_30VMax 19
+#define CH2_30VMax 18
