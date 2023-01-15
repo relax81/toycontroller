@@ -10,10 +10,19 @@
 </head>
 <body>
     <div class="topnav">
-        <h1>Toy Controller</h1>
+        <h1>Universal Controller</h1>
     </div>
     <div class="content">
         <div class="card-grid">
+            <!-- First Row -->
+            <div class="card">
+            <p class="card-title">Ch1 Enable</p>
+            <!-- Rounded switch -->
+            <label class="switch2">
+                <input type="checkbox">
+                <span class="slider2 round"></span>
+            </label>
+          </div>
             <div class="card">
                 <p class="card-title">Ch1 30V On Time</p>
                 <p class="switch">
@@ -31,9 +40,108 @@
             <div class="card">
                 <p class="card-title">Ch1 30V Power</p>
                 <p class="switch">
-                    <input type="range" onchange="updateSliderPWM(this)" id="slider3" min="0" max="255" step="1" value ="0" class="slider">
+                    <input type="range" onchange="updateSliderPWM(this)" id="slider3" min="0" max="100" step="1" value ="0" class="slider">
                 </p>
                 <p class="state">Power: <span id="sliderValue3"></span></p>
+            </div>
+            <!-- Second Row -->
+            <div class="card">
+                <p class="card-title">Ch2 Enable</p>
+                <!-- Rounded switch -->
+                <label class="switch2">
+                    <input type="checkbox">
+                    <span class="slider2 round"></span>
+                </label>
+              </div>
+                <div class="card">
+                    <p class="card-title">Ch2 30V On Time</p>
+                    <p class="switch">
+                        <input type="range" onchange="updateSliderPWM(this)" id="slider4" min="0" max="100" step="1" value ="0" class="slider">
+                    </p>
+                    <p class="state">On Time: <span id="sliderValue4"></span> seconds</p>
+                </div>
+                <div class="card">
+                    <p class="card-title">Ch2 30V Off Time</p>
+                    <p class="switch">
+                        <input type="range" onchange="updateSliderPWM(this)" id="slider5" min="0" max="100" step="1" value ="0" class="slider">
+                    </p>
+                    <p class="state">Off Time: <span id="sliderValue5"></span> seconds</p>
+                </div>
+                <div class="card">
+                    <p class="card-title">Ch2 30V Power</p>
+                    <p class="switch">
+                        <input type="range" onchange="updateSliderPWM(this)" id="slider6" min="0" max="100" step="1" value ="0" class="slider">
+                    </p>
+                    <p class="state">Power: <span id="sliderValue6"></span></p>
+                </div>
+                <!-- Third Row -->
+                <div class="card">
+                    <p class="card-title">Ch1 5V Enable</p>
+                    <!-- Rounded switch -->
+                    <label class="switch2">
+                        <input type="checkbox">
+                        <span class="slider2 round"></span>
+                    </label>
+                  </div>
+                    <div class="card">
+                        <p class="card-title">Ch1 5V On Time</p>
+                        <p class="switch">
+                            <input type="range" onchange="updateSliderPWM(this)" id="slider7" min="0" max="100" step="1" value ="0" class="slider">
+                        </p>
+                        <p class="state">On Time: <span id="sliderValue7"></span> seconds</p>
+                    </div>
+                    <div class="card">
+                        <p class="card-title">Ch1 5V Off Time</p>
+                        <p class="switch">
+                            <input type="range" onchange="updateSliderPWM(this)" id="slider8" min="0" max="100" step="1" value ="0" class="slider">
+                        </p>
+                        <p class="state">Off Time: <span id="sliderValue8"></span> seconds</p>
+                    </div>
+                    <div class="card">
+                        <p class="card-title">Ch1 5V Power</p>
+                        <p class="switch">
+                            <input type="range" onchange="updateSliderPWM(this)" id="slider9" min="0" max="100" step="1" value ="0" class="slider">
+                        </p>
+                        <p class="state">Power: <span id="sliderValue9"></span></p>
+                    </div>
+                <!-- Fourth Row -->
+                <div class="card">
+                    <p class="card-title">Ch2 5V Enable</p>
+                    <!-- Rounded switch -->
+                    <label class="switch2">
+                        <input type="checkbox">
+                        <span class="slider2 round"></span>
+                    </label>
+                  </div>
+                    <div class="card">
+                        <p class="card-title">Ch2 5V On Time</p>
+                        <p class="switch">
+                            <input type="range" onchange="updateSliderPWM(this)" id="slider10" min="0" max="100" step="1" value ="0" class="slider">
+                        </p>
+                        <p class="state">On Time: <span id="sliderValue10"></span> seconds</p>
+                    </div>
+                    <div class="card">
+                        <p class="card-title">Ch2 5V Off Time</p>
+                        <p class="switch">
+                            <input type="range" onchange="updateSliderPWM(this)" id="slider11" min="0" max="100" step="1" value ="0" class="slider">
+                        </p>
+                        <p class="state">Off Time: <span id="sliderValue11"></span> seconds</p>
+                    </div>
+                    <div class="card">
+                        <p class="card-title">Ch2 5V Power</p>
+                        <p class="switch">
+                            <input type="range" onchange="updateSliderPWM(this)" id="slider12" min="0" max="100" step="1" value ="0" class="slider">
+                        </p>
+                        <p class="state">Power: <span id="sliderValue12"></span></p>
+                    </div>
+
+            
+            <div class="card">
+                <p class="card-title">Radio Button Test</p>
+                <p class="switch">
+                    <input type="radio" onclick="updateSwitch(this)" name="adc" id="adc_on" value="on" checked><label for="adc_on">Input enabled</label><br>
+                    <input type="radio" onclick="updateSwitch(this)" name="adc" id="adc_off" value="off"><label for="adc_off">Input disabled</label><br>
+                </p>
             </div>
         </div>
     </div>

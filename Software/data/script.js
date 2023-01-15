@@ -38,6 +38,22 @@ function updateSliderPWM(element) {
     websocket.send(sliderNumber+"s"+sliderValue.toString());
 }
 
+function updateSliderPWM(element) {
+    var sliderNumber = element.id.match(/\d+$/)[0];
+    var sliderValue = document.getElementById(element.id).value;
+    document.getElementById("sliderValue"+sliderNumber).innerHTML = sliderValue;
+    console.log(sliderValue);
+    websocket.send(sliderNumber+"s"+sliderValue.toString());
+}
+
+function updateSwitch(element) {
+    var switchNumber = element.id.charAt(element.id.length-1);
+    var switchValue = document.getElementById(element.id).value;
+    document.getElementById("switchValue"+switchNumber).innerHTML = switchValue;
+    console.log(switchValue);
+    websocket.send(switchNumber+"t"+switchValue.toString());
+}
+
 function onMessage(event) {
     console.log(event.data);
     var myObj = JSON.parse(event.data);

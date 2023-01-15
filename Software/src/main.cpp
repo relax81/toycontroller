@@ -39,6 +39,7 @@ int Ch25vPWM = 0;
 int Ch130vOn = 0;
 int Ch130vOff = 0;
 int Ch130vPWM = 0;
+int Ch130vSwitch = 0;
 int Ch230vOn = 0;
 int Ch230vOff = 0;
 int Ch230vPWM = 0;
@@ -67,18 +68,43 @@ AsyncWebServer server(80);
 // Create a WebSocket object
 AsyncWebSocket ws("/ws");
 String message = "";
+String switchValue1 = "0";
 String sliderValue1 = "0";
 String sliderValue2 = "0";
 String sliderValue3 = "0";
+String sliderValue4 = "0";
+String sliderValue5 = "0";
+String sliderValue6 = "0";
+String sliderValue7 = "0";
+String sliderValue8 = "0";
+String sliderValue9 = "0";
+String sliderValue10 = "0";
+String sliderValue11 = "0";
+String sliderValue12 = "0";
 //Json Variable to Hold Slider Values
 JSONVar sliderValues;
+JSONVar switchValues;
 //Get Slider Values
 String getSliderValues(){
   sliderValues["sliderValue1"] = String(sliderValue1);
   sliderValues["sliderValue2"] = String(sliderValue2);
   sliderValues["sliderValue3"] = String(sliderValue3);
-
+  sliderValues["sliderValue4"] = String(sliderValue4);
+  sliderValues["sliderValue5"] = String(sliderValue5);
+  sliderValues["sliderValue6"] = String(sliderValue6);
+  sliderValues["sliderValue7"] = String(sliderValue7);
+  sliderValues["sliderValue8"] = String(sliderValue8);
+  sliderValues["sliderValue9"] = String(sliderValue9);
+  sliderValues["sliderValue10"] = String(sliderValue10);
+  sliderValues["sliderValue11"] = String(sliderValue11);
+  sliderValues["sliderValue12"] = String(sliderValue12);
   String jsonString = JSON.stringify(sliderValues);
+  return jsonString;
+}
+//Get Switch Values
+String getSwitchValues(){
+  switchValues["switchValue1"] = String(switchValue1);
+  String jsonString = JSON.stringify(switchValues);
   return jsonString;
 }
 // Initialize SPIFFS
@@ -125,16 +151,86 @@ void handleWebSocketMessage(void *arg, uint8_t *data, size_t len) {
     }    
     if (message.indexOf("3s") >= 0) {
       sliderValue3 = message.substring(2);
-      Ch130vPWM = sliderValue3.toInt();
+      Ch130vPWM = map(sliderValue3.toInt(), 0, 100, 0, 255);
       Serial.println(Ch130vPWM);
       Serial.print(getSliderValues());
       notifyClients(getSliderValues());
     }
-    if (strcmp((char*)data, "getValues") == 0) {
+    if (message.indexOf("4s") >= 0) {
+      sliderValue4 = message.substring(2);
+      Ch230vOn =sliderValue4.toInt();
+      Serial.println(Ch230vOn);
+      Serial.print(getSliderValues());
       notifyClients(getSliderValues());
     }
+    if (message.indexOf("5s") >= 0) {
+      sliderValue5 = message.substring(2);
+      Ch230vOff = sliderValue5.toInt();
+      Serial.println(Ch230vOff);
+      Serial.print(getSliderValues());
+      notifyClients(getSliderValues());
+    }    
+    if (message.indexOf("6s") >= 0) {
+      sliderValue6 = message.substring(2);
+      Ch230vPWM = map(sliderValue6.toInt(), 0, 100, 0, 255);
+      Serial.println(Ch230vPWM);
+      Serial.print(getSliderValues());
+      notifyClients(getSliderValues());
+    }
+    if (message.indexOf("7s") >= 0) {
+      sliderValue7 = message.substring(2);
+      Ch15vOn =sliderValue7.toInt();
+      Serial.println(Ch15vOn);
+      Serial.print(getSliderValues());
+      notifyClients(getSliderValues());
+    }
+    if (message.indexOf("8s") >= 0) {
+      sliderValue8 = message.substring(2);
+      Ch15vOff = sliderValue8.toInt();
+      Serial.println(Ch15vOff);
+      Serial.print(getSliderValues());
+      notifyClients(getSliderValues());
+    }    
+    if (message.indexOf("9s") >= 0) {
+      sliderValue9 = message.substring(2);
+      Ch15vPWM = map(sliderValue9.toInt(), 0, 100, 0, 255);
+      Serial.println(Ch15vPWM);
+      Serial.print(getSliderValues());
+      notifyClients(getSliderValues());
+    }
+    if (message.indexOf("10s") >= 0) {
+      sliderValue10 = message.substring(2);
+      Ch25vOn =sliderValue10.toInt();
+      Serial.println(Ch25vOn);
+      Serial.print(getSliderValues());
+      notifyClients(getSliderValues());
+    }
+    if (message.indexOf("11s") >= 0) {
+      sliderValue11 = message.substring(2);
+      Ch25vOff = sliderValue11.toInt();
+      Serial.println(Ch25vOff);
+      Serial.print(getSliderValues());
+      notifyClients(getSliderValues());
+    }    
+    if (message.indexOf("12s") >= 0) {
+      sliderValue12 = message.substring(2);
+      Ch25vPWM = map(sliderValue12.toInt(), 0, 100, 0, 255);
+      Serial.println(Ch25vPWM);
+      Serial.print(getSliderValues());
+      notifyClients(getSliderValues());
+    }
+    if (message.indexOf("1t") >= 0) {
+      switchValue1 = message.substring(2);
+      Ch130vSwitch = switchValue1.toInt();
+      Serial.println(Ch130vSwitch);
+      Serial.print(getSwitchValues());
+      notifyClients(getSwitchValues());
+    }
+    if (strcmp((char*)data, "getValues") == 0) {
+      notifyClients(getSliderValues());
+      notifyClients(getSwitchValues());
   }
-}
+}}
 void onEvent(AsyncWebSocket *server, AsyncWebSocketClient *client, AwsEventType type, void *arg, uint8_t *data, size_t len) {
   switch (type) {
     case WS_EVT_CONNECT:
@@ -581,7 +677,7 @@ void loop() {
   timer1.update(); // display blinking text timer
 
 // PWM Output 1
-  if ((currentMillis - pwm1_previousMillis >= Ch130vOff*1000) && (!pwm1_enabled) && (Ch130vOn > 0)) 
+  if ((currentMillis - pwm1_previousMillis >= Ch130vOff*1000) && (!pwm1_enabled) && (Ch130vSwitch != 0)) 
     {
       ledcWrite(PWMOUT_1,Ch130vPWM);
       buzzer_enabled = true;
