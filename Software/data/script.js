@@ -30,16 +30,10 @@ function onClose(event) {
     setTimeout(initWebSocket, 2000);
 }
 
-function updateSliderPWM(element) {
-    var sliderNumber = element.id.charAt(element.id.length-1);
-    var sliderValue = document.getElementById(element.id).value;
-    document.getElementById("sliderValue"+sliderNumber).innerHTML = sliderValue;
-    console.log(sliderValue);
-    websocket.send(sliderNumber+"s"+sliderValue.toString());
-}
 
 function updateSliderPWM(element) {
-    var sliderNumber = element.id.match(/\d+$/)[0];
+    // var sliderNumber = element.id.charAt(element.id.length-2);
+    var sliderNumber = element.id.slice(-2);
     var sliderValue = document.getElementById(element.id).value;
     document.getElementById("sliderValue"+sliderNumber).innerHTML = sliderValue;
     console.log(sliderValue);
