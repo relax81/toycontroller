@@ -32,13 +32,14 @@ function onClose(event) {
 
 
 function updateSliderPWM(element) {
-    // var sliderNumber = element.id.charAt(element.id.length-2);
-    var sliderNumber = element.id.slice(-2);
-    var sliderValue = document.getElementById(element.id).value;
-    document.getElementById("sliderValue"+sliderNumber).innerHTML = sliderValue;
+    var id = element.id;
+    var match = id.match(/\d{1,2}$/);
+    var sliderNumber = match[0];
+    var sliderValue = document.getElementById(id).value;
+    document.getElementById("sliderValue" + sliderNumber).innerHTML = sliderValue;
     console.log(sliderValue);
-    websocket.send(sliderNumber+"s"+sliderValue.toString());
-}
+    websocket.send(sliderNumber + "s" + sliderValue.toString());
+  }
 
 function updateSwitch(element) {
     var switchNumber = element.id.charAt(element.id.length-1);
@@ -47,6 +48,19 @@ function updateSwitch(element) {
     console.log(switchValue);
     websocket.send(switchNumber+"t"+switchValue.toString());
 }
+
+
+// switch test start
+const buzzerSwitch = document.getElementById("buzzer-switch");
+
+buzzerSwitch.addEventListener('change', function() {
+    if(buzzerSwitch.checked) {
+        websocket.send('on');
+    } else {
+       websocket.send('off');
+    }
+});
+// switch test end
 
 function onMessage(event) {
     console.log(event.data);
@@ -59,3 +73,4 @@ function onMessage(event) {
         document.getElementById("slider"+ (i+1).toString()).value = myObj[key];
     }
 }
+
