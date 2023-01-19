@@ -8,10 +8,6 @@ function onload(event) {
     initWebSocket();
 }
 
-function getValues(){
-    websocket.send("getValues");
-}
-
 function initWebSocket() {
     console.log('Trying to open a WebSocket connection…');
     websocket = new WebSocket(gateway);
@@ -20,9 +16,10 @@ function initWebSocket() {
     websocket.onmessage = onMessage;
 }
 
+
 function onOpen(event) {
     console.log('Connection opened');
-    getValues();
+    websocket.send("getValues");
 }
 
 function onClose(event) {
@@ -30,47 +27,45 @@ function onClose(event) {
     setTimeout(initWebSocket, 2000);
 }
 
-
-function updateSliderPWM(element) {
-    var id = element.id;
-    var match = id.match(/\d{1,2}$/);
-    var sliderNumber = match[0];
-    var sliderValue = document.getElementById(id).value;
-    document.getElementById("sliderValue" + sliderNumber).innerHTML = sliderValue;
-    console.log(sliderValue);
-    websocket.send(sliderNumber + "s" + sliderValue.toString());
-  }
-
-function updateSwitch(element) {
-    var switchNumber = element.id.charAt(element.id.length-1);
-    var switchValue = document.getElementById(element.id).value;
-    document.getElementById("switchValue"+switchNumber).innerHTML = switchValue;
-    console.log(switchValue);
-    websocket.send(switchNumber+"t"+switchValue.toString());
+function update_slider(element) {
+    var value = document.getElementById(element.id).value;
+    document.getElementById(element.id + "_value").innerHTML = value;
+    websocket.send(element.id + "?" + value.toString());
 }
 
+function update_radio(element) {
+    var value = document.getElementById(element.id).value;
+    websocket.send(element.name + "?" + value.toString());
+}
 
-// switch test start
-const buzzerSwitch = document.getElementById("buzzer-switch");
+function update_button(element) {
+    websocket.send(element.name);
+}
 
-buzzerSwitch.addEventListener('change', function() {
-    if(buzzerSwitch.checked) {
-        websocket.send('on');
-    } else {
-       websocket.send('off');
-    }
-});
-// switch test end
-
-function onMessage(event) {
+function onMessage(event) 
+{
     console.log(event.data);
-    var myObj = JSON.parse(event.data);
-    var keys = Object.keys(myObj);
+    var values = JSON.parse(event.data);
 
-    for (var i = 0; i < keys.length; i++){
-        var key = keys[i];
-        document.getElementById(key).innerHTML = myObj[key];
-        document.getElementById("slider"+ (i+1).toString()).value = myObj[key];
+    for (const key in values) 
+	{
+		if (key === "mode")
+		{
+			document.getElementById(key+"_"+values[key]).checked = true;
+			continue;
+		}
+		if (key === "adc")
+		{
+			document.getElementById(key+"_"+values[key]).checked = true;
+			continue;
+		}
+		if (key === "battery")
+		{
+		    document.getElementById(key+"_value").innerHTML = values[key];
+            continue;	
+		}
+		
+        document.getElementById(key+"_value").innerHTML = values[key];
+        document.getElementById(key).value = values[key];
     }
 }
-
