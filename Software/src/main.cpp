@@ -60,7 +60,7 @@ bool pwm1_enabled = false;
 bool pwm2_enabled = false;
 bool pwm3_enabled = false;
 bool pwm4_enabled = false;
-bool buzzer_enabled = true;
+bool buzzer_enabled = false;
 
 
 // Create AsyncWebServer object on port 80
@@ -139,9 +139,11 @@ void handleWebSocketMessage(void *arg, uint8_t *data, size_t len) {
     Serial.println(message);
     if (message == "on") {
       Serial.println("Button on");
+      buzzer_enabled = true;
     }
     if (message == "off") {
       Serial.println("Button off");
+      buzzer_enabled = false;
     }
     if (message.indexOf("1s") >= 0) {
       sliderValue1 = message.substring(2);
@@ -688,14 +690,12 @@ void loop() {
   if ((currentMillis - pwm1_previousMillis >= Ch130vOff*1000) && (!pwm1_enabled) && (Ch130vSwitch != 0)) 
     {
       ledcWrite(PWMOUT_1,Ch130vPWM);
-      buzzer_enabled = true;
       pwm1_enabled = true;
       pwm1_previousMillis = currentMillis;
     }
   else if ((currentMillis - pwm1_previousMillis >= Ch130vOn*1000) && (pwm1_enabled))
     {
       ledcWrite(PWMOUT_1,0);
-      buzzer_enabled = false;
       pwm1_enabled = false;
       pwm1_previousMillis = currentMillis;
     }
@@ -751,6 +751,12 @@ void loop() {
   u8g2.sendBuffer();
 
   // Buzzer test
-  // ledcWriteTone(buzzer,4000);
+  if (buzzer_enabled == true) {
+    ledcWrite(buzzer,50);
+  }
+  else {
+    ledcWrite(buzzer,0);
+  }
+
   ws.cleanupClients();
 }
