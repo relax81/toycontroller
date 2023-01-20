@@ -53,26 +53,53 @@ function onMessage(event)
 	{
 		if (key === "mode")
 		{
-			document.getElementById(key+"_"+values[key]).checked = true;
+            if(!SetValueToElementChecked(key+"_"+values[key], true))
+                console.log("irgendwastollesmachenhier");
+            
 			continue;
 		}
 		if (key === "adc")
 		{
-			document.getElementById(key+"_"+values[key]).checked = true;
+            SetValueToElementChecked(key+"_"+values[key], true);
 			continue;
 		}
 		
-        document.getElementById(key+"_value").innerHTML = values[key];
-        document.getElementById(key).value = values[key];
-        if (values["adc"] === "on")
-        {
-			console.log("adc is on");
-            document.getElementById('adc_on').checked = true;
-		}
-		else
-		{
-			console.log("adc is off");
-            document.getElementById('adc_off').checked = true;
-		}
+        SetValueToElementInnerHTML(key+"_value", values[key]);
+        SetValueToElementValue(key+"_value", values[key]);
     }
+}
+
+function SetValueToElementChecked(id, value)
+{
+    if(!DoesElementExistsById(id))
+        return false;
+    document.getElementById(id).checked = value;
+    return true;
+}
+
+function SetValueToElementInnerHTML(id, value)
+{
+    if(!DoesElementExistsById(id))
+        return false;
+    document.getElementById(id).innerHTML = value;
+    return true;
+}
+
+function SetValueToElementValue(id, value)
+{
+    if(!DoesElementExistsById(id))
+        return false;
+    document.getElementById(id).value = value;
+    return true;
+}
+
+function DoesElementExistsById(id)
+{
+    if(document.getElementById(id) == null)
+    {
+        console.log("Coud not find Element Id: " + id);
+        return false;
+    }
+
+    return true;
 }
