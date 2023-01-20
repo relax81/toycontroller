@@ -578,6 +578,7 @@ void handleWebSocketMessage_ws(void *arg, uint8_t *data, size_t len)
   AwsFrameInfo *info = (AwsFrameInfo*)arg;
   int slider;
   char* message;
+  byte newmode;
 
   if (info->final && info->index == 0 && info->len == len && info->opcode == WS_TEXT)
   {
@@ -676,16 +677,23 @@ void handleWebSocketMessage_ws(void *arg, uint8_t *data, size_t len)
       case 'a'://adc
         if (message[5] == 'n')//on
         {
-          // mk312_enable_adc();
+          buzzer_enabled = true;
         }
         else
         {
-          // mk312_disable_adc();
+          buzzer_enabled = false;
         }
-        // values["adc"] = mk312_get_adc_disabled() ? "off" : "on";
-        // update_knobs();
+        values["adc"] = buzzer_enabled ? "on" : "off";
+        Serial.println("adc output");
+        Serial.println(values["adc"]);
         break;
-    }
+
+       case 'm'://mode
+        newmode = strtol(message + 5, NULL, 16);
+        values["mode"] = newmode;
+        break;
+
+        }
 
     json_string = JSON.stringify(values);
     ws.textAll(json_string);
@@ -802,7 +810,7 @@ void setup() {
   values["toggle_b"] = "off";
   values["toggle_c"] = "off";
   values["toggle_d"] = "off";
-
+  values["mode"] = "0x76";
   values["adc"] = "off";
 
   json_string = JSON.stringify(values);

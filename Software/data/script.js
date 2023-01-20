@@ -35,6 +35,8 @@ function update_slider(element) {
 
 function update_radio(element) {
     var value = document.getElementById(element.id).value;
+    console.log("update radio output");
+    console.log(value);
     websocket.send(element.name + "?" + value.toString());
 }
 
@@ -59,13 +61,18 @@ function onMessage(event)
 			document.getElementById(key+"_"+values[key]).checked = true;
 			continue;
 		}
-		if (key === "battery")
-		{
-		    document.getElementById(key+"_value").innerHTML = values[key];
-            continue;	
-		}
 		
         document.getElementById(key+"_value").innerHTML = values[key];
         document.getElementById(key).value = values[key];
+        if (values["adc"] === "on")
+        {
+			console.log("adc is on");
+            document.getElementById('adc_on').checked = true;
+		}
+		else
+		{
+			console.log("adc is off");
+            document.getElementById('adc_off').checked = true;
+		}
     }
 }
