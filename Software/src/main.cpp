@@ -100,132 +100,6 @@ void notifyClients(String sliderValues) {
   ws.textAll(sliderValues);
 }
 
-// old ws
-//void handleWebSocketMessage(void *arg, uint8_t *data, size_t len) {
-  // AwsFrameInfo *info = (AwsFrameInfo*)arg;
-  // if (info->final && info->index == 0 && info->len == len && info->opcode == WS_TEXT) {
-  //   data[len] = 0;
-  //   message = (char*)data;
-  //   Serial.println(message);
-  //   if (message == "on") {
-  //     Serial.println("Button on");
-  //     buzzer_enabled = true;
-  //   }
-  //   if (message == "off") {
-  //     Serial.println("Button off");
-  //     buzzer_enabled = false;
-  //   }
-  //   if (message.indexOf("1s") >= 0) {
-  //     sliderValue1 = message.substring(2);
-  //     _sliderValue1.toInt();
-  //     Serial.println(_  //     Serial.print(getSliderValues());
-  //     notifyClients(getSliderValues());
-  //   }
-  //   if (message.indexOf("2s") >= 0) {
-  //     sliderValue2 = message.substring(2);
-  //     Ch1_Off = sliderValue2.toInt();
-  //     Serial.println(Ch1_Off);
-  //     Serial.print(getSliderValues());
-  //     notifyClients(getSliderValues());
-  //   }    
-  //   if (message.indexOf("3s") >= 0) {
-  //     sliderValue3 = message.substring(2);
-  //     Ch1_PWM = map(sliderValue3.toInt(), 0, 100, 0, 255);
-  //     Serial.println(Ch1_PWM);
-  //     Serial.print(getSliderValues());
-  //     notifyClients(getSliderValues());
-  //   }
-  //   if (message.indexOf("4s") >= 0) {
-  //     sliderValue4 = message.substring(2);
-  //     Ch2_On = sliderValue4.toInt();
-  //     Serial.println(Ch2_On);
-  //     Serial.print(getSliderValues());
-  //     notifyClients(getSliderValues());
-  //   }
-  //   if (message.indexOf("5s") >= 0) {
-  //     sliderValue5 = message.substring(2);
-  //     Ch_vOff = sliderValue5.toInt();
-  //     Serial.println(Ch_vOff);
-  //     Serial.print(getSliderValues());
-  //     notifyClients(getSliderValues());
-  //   }    
-  //   if (message.indexOf("6s") >= 0) {
-  //     sliderValue6 = message.substring(2);
-  //     Ch2_PWM = map(sliderValue6.toInt(), 0, 100, 0, 255);
-  //     Serial.println(Ch2_PWM);
-  //     Serial.print(getSliderValues());
-  //     notifyClients(getSliderValues());
-  //   }
-  //   if (message.indexOf("7s") >= 0) {
-  //     sliderValue7 = message.substring(2);
-  //     Ch3_On = sliderValue7.toInt();
-  //     Serial.println(Ch3_On);
-  //     Serial.print(getSliderValues());
-  //     notifyClients(getSliderValues());
-  //   }
-  //   if (message.indexOf("8s") >= 0) {
-  //     sliderValue8 = message.substring(2);
-  //     Ch3_Off = sliderValue8.toInt();
-  //     Serial.println(Ch3_Off);
-  //     Serial.print(getSliderValues());
-  //     notifyClients(getSliderValues());
-  //   }    
-  //   if (message.indexOf("9s") >= 0) {
-  //     sliderValue9 = message.substring(2);
-  //     3_ map(sliderValue9.toInt(), 0, 100, 0, 255);
-  //     Serial.println(3_
-  //     Serial.print(getSliderValues());
-  //     notifyClients(getSliderValues());
-  //   }
-  //   if (message.indexOf("10s") >= 0) {
-  //     sliderValue10 = message.substring(3);
-  //     Ch25vOn = sliderValue10.toInt();
-  //     Serial.println(Ch25vOn);
-  //     Serial.print(getSliderValues());
-  //     notifyClients(getSliderValues());
-  //   }
-  //   if (message.indexOf("11s") >= 0) {
-  //     sliderValue11 = message.substring(3);
-  //     Ch4_Off = sliderValue11.toInt();
-  //     Serial.println(Ch4_Off);
-  //     Serial.print(getSliderValues());
-  //     notifyClients(getSliderValues());
-  //   }    
-  //   if (message.indexOf("12s") >= 0) {
-  //     sliderValue12 = message.substring(3);
-  //     4_map(sliderValue12.toInt(), 0, 100, 0, 255);
-  //     Serial.println(4_  //     Serial.print(getSliderValues());
-  //     notifyClients(getSliderValues());
-  //   }
-  //   if (message.indexOf("1t") >= 0) {
-  //     switchValue1 = message.substring(3);
-  //     Ch130vSwitch = switchValue1.toInt();
-  //     Serial.println(Ch130vSwitch);
-  //     Serial.print(getSwitchValues());
-  //     notifyClients(getSwitchValues());
-  //   }
-  //   if (strcmp((char*)data, "getValues") == 0) {
-  //     notifyClients(getSliderValues());
-      // notifyClients(getSwitchValues());
-//   }
-// }}
-// void onEvent(AsyncWebSocket *server, AsyncWebSocketClient *client, AwsEventType type, void *arg, uint8_t *data, size_t len) {
-//   switch (type) {
-//     case WS_EVT_CONNECT:
-//       Serial.printf("WebSocket client #%u connected from %s\n", client->id(), client->remoteIP().toString().c_str());
-//       break;
-//     case WS_EVT_DISCONNECT:
-//       Serial.printf("WebSocket client #%u disconnected\n", client->id());
-//       break;
-//     case WS_EVT_DATA:
-//       handleWebSocketMessage(arg, data, len);
-//       break;
-//     case WS_EVT_PONG:
-//     case WS_EVT_ERROR:
-//       break;
-//   }
-// }
-// old ws end
 
 //Encoder
   //depending on your encoder - try 1,2 or 4 to get expected behaviour
@@ -732,7 +606,6 @@ void setup() {
   Serial.begin(115200);
   debugln("setup started");
 
-
   // Pins
   pinMode(buzzerPin, OUTPUT);
   pinMode(wsLED, OUTPUT);
@@ -741,7 +614,7 @@ void setup() {
   pinMode(CH1_30VMax, OUTPUT);
   pinMode(CH2_30VMax, OUTPUT);
   pinMode(PIR, INPUT);
-  pinMode(RF_433, OUTPUT);
+  pinMode(RF_433, OUTPUT); // uncomment if jtag debugging is used
   pinMode(button1, INPUT);
   pinMode(button2, INPUT);
   digitalWrite(RF_433, LOW);
@@ -789,7 +662,6 @@ void setup() {
   initFS();
   initWiFi();
   init_ws();
-
 
   // Websocket stuff
   values["slider_a"] = 0;
