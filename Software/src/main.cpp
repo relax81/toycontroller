@@ -452,7 +452,6 @@ void handleWebSocketMessage_ws(void *arg, uint8_t *data, size_t len)
   AwsFrameInfo *info = (AwsFrameInfo*)arg;
   int slider;
   char* message;
-  byte newmode;
 
   if (info->final && info->index == 0 && info->len == len && info->opcode == WS_TEXT)
   {
@@ -562,10 +561,10 @@ void handleWebSocketMessage_ws(void *arg, uint8_t *data, size_t len)
         Serial.println(values["adc"]);
         break;
 
-       case 'm'://mode
-        newmode = strtol(message + 5, NULL, 16);
-        values["mode"] = newmode;
-        break;
+      //  case 'm'://mode
+      //   newmode = strtol(message + 5, NULL, 16);
+      //   values["mode"] = newmode;
+      //   break;
 
         }
 
@@ -676,13 +675,11 @@ void setup() {
   values["slider_j"] = 0;
   values["slider_k"] = 0;
   values["slider_l"] = 0;
-  values["slider_m"] = 0;
 
   values["toggle_a"] = "off";
   values["toggle_b"] = "off";
   values["toggle_c"] = "off";
   values["toggle_d"] = "off";
-  values["mode"] = "0x76";
   values["adc"] = "off";
 
   json_string = JSON.stringify(values);
