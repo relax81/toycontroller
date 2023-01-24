@@ -65,7 +65,8 @@ function onMessage(event)
 		}
 		
         SetValueToElementInnerHTML(key+"_value", values[key]);
-        SetValueToElementValue(key+"_value", values[key]);
+        document.getElementById(key).value = values[key];
+        // SetValueToElementValue(key+"_value", values[key]);  //buggy
     }
 }
 
