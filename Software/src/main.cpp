@@ -33,7 +33,10 @@ int menu = 1;
 int Ch1_On = 0;
 int Ch1_Off = 0;
 int Ch1_PWM = 0;
-int Ch1_Toggle = 0;
+bool Ch1_Enable = false;
+bool Ch2_Enable = false;
+bool Ch3_Enable = false;
+bool Ch4_Enable = false;
 int Ch2_On = 0;
 int Ch2_Off = 0;
 int Ch2_PWM = 0;
@@ -455,12 +458,71 @@ void handleWebSocketMessage_ws(void *arg, uint8_t *data, size_t len)
 
   if (info->final && info->index == 0 && info->len == len && info->opcode == WS_TEXT)
   {
+
     data[len] = 0;
     message = (char*)data;
     debugln(message);
 
     switch (message[0])
     {
+
+      case 't':
+        switch(message[7])
+        {
+          case 'a':
+          if (message[9] == 't')//true
+            {
+            Ch1_Enable = true;
+            values["toggle_a"] = Ch1_Enable;
+            }
+          else if (message[9] == 'f')//false
+            {
+            Ch1_Enable = false;
+            values["toggle_a"] = Ch1_Enable;
+            } 
+          break;
+
+          case 'b':
+          if (message[9] == 't')//true
+            {
+            Ch2_Enable = true;
+            values["toggle_b"] = Ch2_Enable;
+            }
+          else if (message[9] == 'f')//false
+            {
+            Ch2_Enable = false;
+            values["toggle_b"] = Ch2_Enable;
+            } 
+          break;
+
+          case 'c':
+          if (message[9] == 't')//true
+            {
+            Ch3_Enable = true;
+            values["toggle_c"] = Ch3_Enable;
+            }
+          else if (message[9] == 'f')//false
+            {
+            Ch3_Enable = false;
+            values["toggle_c"] = Ch3_Enable;
+            } 
+          break;
+
+          case 'd':
+          if (message[9] == 't')//true
+            {
+            Ch4_Enable = true;
+            values["toggle_d"] = Ch4_Enable;
+            }
+          else if (message[9] == 'f')//false
+            {
+            Ch4_Enable = false;
+            values["toggle_d"] = Ch4_Enable;
+            } 
+          break;          
+        }
+        break;
+
       case 'r':
         switch (message[5])
         {
@@ -567,10 +629,10 @@ void handleWebSocketMessage_ws(void *arg, uint8_t *data, size_t len)
       //   break;
 
         }
-
     json_string = JSON.stringify(values);
     ws.textAll(json_string);
   }
+
 }
 
 void onEvent_ws(AsyncWebSocket *server, AsyncWebSocketClient *client, AwsEventType type, void *arg, uint8_t *data, size_t len) {
@@ -676,10 +738,10 @@ void setup() {
   values["slider_k"] = 0;
   values["slider_l"] = 0;
 
-  values["toggle_a"] = "off";
-  values["toggle_b"] = "off";
-  values["toggle_c"] = "off";
-  values["toggle_d"] = "off";
+  values["toggle_a"] = "false";
+  values["toggle_b"] = "false";
+  values["toggle_c"] = "false";
+  values["toggle_d"] = "false";
   values["adc"] = "off";
 
   json_string = JSON.stringify(values);
@@ -702,7 +764,7 @@ void loop() {
   timer1.update(); // display blinking text timer
 
 // PWM Output 1
-  if ((currentMillis - pwm1_previousMillis >= Ch1_Off*1000) && (!pwm1_enabled) && (Ch1_Toggle != 0)) 
+  if ((currentMillis - pwm1_previousMillis >= Ch1_Off*1000) && (!pwm1_enabled) && (Ch1_Enable != 0)) 
     {
       ledcWrite(PWMOUT_1,Ch1_PWM);
       pwm1_enabled = true;

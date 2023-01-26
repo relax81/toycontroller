@@ -2,6 +2,7 @@
 
 var gateway = `ws://${window.location.hostname}/ws`;
 var websocket;
+
 window.addEventListener('load', onload);
 
 function onload(event) {
@@ -40,33 +41,13 @@ function update_radio(element) {
     websocket.send(element.name + "?" + value.toString());
 }
 
-function update_button(element) {
-    websocket.send(element.name);
+function update_switch(element){
+    var value = document.getElementById(element.id).checked;
+    websocket.send(element.id + "?" + value.toString());
 }
 
-function onMessage(event) 
-{
-    console.log(event.data);
-    var values = JSON.parse(event.data);
-
-    for (const key in values) 
-	{
-		if (key === "mode")
-		{
-            if(!SetValueToElementChecked(key+"_"+values[key], true))
-                console.log("irgendwastollesmachenhier");
-            
-			continue;
-		}
-		if (key === "adc")
-		{
-            SetValueToElementChecked(key+"_"+values[key], true);
-			continue;
-		}
-		
-        SetValueToElementInnerHTML(key+"_value", values[key]);
-        SetValueToElementValue(key, values[key]); 
-    }
+function update_button(element) {
+    websocket.send(element.name);
 }
 
 function SetValueToElementChecked(id, value)
@@ -103,3 +84,55 @@ function DoesElementExistsById(id)
 
     return true;
 }
+
+function onMessage(event) 
+{
+    console.log(event.data);
+    var values = JSON.parse(event.data);
+
+    for (const key in values) 
+	{
+		if (key === "mode")
+		{
+            if(!SetValueToElementChecked(key+"_"+values[key],)
+                console.log("irgendwastollesmachenhier");
+            
+			continue;
+		}
+		if (key === "adc")
+		{
+            SetValueToElementChecked(key+"_"+values[key], true);
+			continue;
+		}
+
+        if (key === "toggle_a")
+        {
+            SetValueToElementChecked((key), values[key], false);
+            // document.getElementById(key).checked = values[key];
+            continue;
+        }
+
+        if (key === "toggle_b")
+        {
+            document.getElementById(key).checked = values[key];
+            continue;
+        }
+        if (key === "toggle_c")
+        {
+            // SetValueToElementChecked(key+"_"+values[key], true);
+            document.getElementById(key).checked = values[key];
+            continue;
+        }
+        if (key === "toggle_d")
+        {
+            // SetValueToElementChecked(key+"_"+values[key], true);
+            document.getElementById(key).checked = values[key];
+            continue;
+        }
+    
+
+        SetValueToElementInnerHTML(key+"_value", values[key]);
+        SetValueToElementValue(key, values[key]); 
+    }
+}
+
