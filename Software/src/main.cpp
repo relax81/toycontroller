@@ -738,10 +738,10 @@ void setup() {
   values["slider_k"] = 0;
   values["slider_l"] = 0;
 
-  values["toggle_a"] = "false";
-  values["toggle_b"] = "false";
-  values["toggle_c"] = "false";
-  values["toggle_d"] = "false";
+  values["toggle_a"] = false;
+  values["toggle_b"] = false;
+  values["toggle_c"] = false;
+  values["toggle_d"] = false;
   values["adc"] = "off";
 
   json_string = JSON.stringify(values);
