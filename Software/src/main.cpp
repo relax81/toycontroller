@@ -609,8 +609,8 @@ void handleWebSocketMessage_ws(void *arg, uint8_t *data, size_t len)
         }
         break;
 
-      case 'a'://adc
-        if (message[5] == 'n')//on
+      case 'b'://buzzer
+        if (message[8] == 'n')//on
         {
           buzzer_enabled = true;
         }
@@ -618,9 +618,9 @@ void handleWebSocketMessage_ws(void *arg, uint8_t *data, size_t len)
         {
           buzzer_enabled = false;
         }
-        values["adc"] = buzzer_enabled ? "on" : "off";
-        Serial.println("adc output");
-        Serial.println(values["adc"]);
+        values["buzzer"] = buzzer_enabled ? "on" : "off";
+        Serial.println("buzzer output");
+        Serial.println(values["buzzer"]);
         break;
 
       //  case 'm'://mode
@@ -742,7 +742,7 @@ void setup() {
   values["toggle_b"] = false;
   values["toggle_c"] = false;
   values["toggle_d"] = false;
-  values["adc"] = "off";
+  values["buzzer"] = "off";
 
   json_string = JSON.stringify(values);
 

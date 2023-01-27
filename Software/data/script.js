@@ -92,14 +92,12 @@ function onMessage(event)
 
     for (const key in values) 
 	{
-		if (key === "mode")
+		if (key === "mode") // unused placeholder
 		{
-            if(!SetValueToElementChecked(key+"_"+values[key],)
-                console.log("irgendwastollesmachenhier");
-            
-			continue;
+            SetValueToElementChecked(key+"_"+values[key]);
+            continue;
 		}
-		if (key === "adc")
+		if (key === "buzzer")
 		{
             SetValueToElementChecked(key+"_"+values[key], true);
 			continue;
