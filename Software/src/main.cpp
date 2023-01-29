@@ -1,5 +1,5 @@
 // activate deactivate serial output for debugging
-#define DEBUG 1
+#define DEBUG 0
 #if DEBUG == 1
 #define debug(x) Serial.print(x)
 #define debugln(x) Serial.println(x)
@@ -37,6 +37,7 @@ bool Ch1_Enable = false;
 bool Ch2_Enable = false;
 bool Ch3_Enable = false;
 bool Ch4_Enable = false;
+bool Pump_Enable = false;
 int Ch2_On = 0;
 int Ch2_Off = 0;
 int Ch2_PWM = 0;
@@ -46,6 +47,7 @@ int Ch3_PWM = 0;
 int Ch4_On = 0;
 int Ch4_Off = 0;
 int Ch4_PWM = 0;
+int pump_PWM = 0;
 
 // PWM settings
 const int freq = 5000;
@@ -55,6 +57,7 @@ const int PWMOUT_2 = 2; // max 30v ch2
 const int PWMOUT_3 = 3; // 5v ch1
 const int PWMOUT_4 = 4; // 5v ch2
 const int buzzer = 5;
+const int pumpOUT = 6; // Pump PWM Output
 unsigned long pwm1_previousMillis = 0;
 unsigned long pwm2_previousMillis = 0;
 unsigned long pwm3_previousMillis = 0;
@@ -520,6 +523,19 @@ void handleWebSocketMessage_ws(void *arg, uint8_t *data, size_t len)
             values["toggle_d"] = Ch4_Enable;
             } 
           break;          
+
+          case 'e':
+          if (message[9] == 't')//true
+            {
+            Pump_Enable = true;
+            values["toggle_e"] = Pump_Enable;
+            }
+          else if (message[9] == 'f')//false
+            {
+            Pump_Enable = false;
+            values["toggle_e"] = Pump_Enable;
+            } 
+          break; 
         }
         break;
 
@@ -606,6 +622,11 @@ void handleWebSocketMessage_ws(void *arg, uint8_t *data, size_t len)
             values["slider_l"] = Ch4_PWM;
             break;
 
+          case 'm':
+            pump_PWM = slider;
+            values["slider_m"] = pump_PWM;
+            break;
+
         }
         break;
 
@@ -622,6 +643,7 @@ void handleWebSocketMessage_ws(void *arg, uint8_t *data, size_t len)
         Serial.println("buzzer output");
         Serial.println(values["buzzer"]);
         break;
+
 
       //  case 'm'://mode
       //   newmode = strtol(message + 5, NULL, 16);
@@ -678,6 +700,7 @@ void setup() {
   pinMode(RF_433, OUTPUT); // uncomment if jtag debugging is used
   pinMode(button1, INPUT);
   pinMode(button2, INPUT);
+  pinMode(pumpPin, OUTPUT);
   digitalWrite(RF_433, LOW);
 
   // PWM
@@ -686,11 +709,13 @@ void setup() {
   ledcSetup(PWMOUT_3, freq, resolution);
   ledcSetup(PWMOUT_4, freq, resolution);
   ledcSetup(buzzer, freq, resolution);
+  ledcSetup(pumpOUT, 500, resolution);
   ledcAttachPin(CH1_30VMax, PWMOUT_1);
   ledcAttachPin(CH2_30VMax, PWMOUT_2);
   ledcAttachPin(CH1_5V, PWMOUT_3);
   ledcAttachPin(CH2_5V, PWMOUT_4);
   ledcAttachPin(buzzerPin, buzzer);
+  ledcAttachPin(pumpPin, pumpOUT);
 
   //Encoder
   //we must initialize rotary encoder
@@ -737,12 +762,16 @@ void setup() {
   values["slider_j"] = 0;
   values["slider_k"] = 0;
   values["slider_l"] = 0;
+  values["slider_m"] = 0; // pump
 
   values["toggle_a"] = false;
   values["toggle_b"] = false;
   values["toggle_c"] = false;
   values["toggle_d"] = false;
+  values["toggle_e"] = false; // pump
   values["buzzer"] = "off";
+
+
 
   json_string = JSON.stringify(values);
 
@@ -766,9 +795,13 @@ void loop() {
 // PWM Output 1
   if ((currentMillis - pwm1_previousMillis >= Ch1_Off*1000) && (!pwm1_enabled) && (Ch1_Enable != 0)) 
     {
-      ledcWrite(PWMOUT_1,Ch1_PWM);
+      int mapped_Ch1_PWM;
+      mapped_Ch1_PWM = map(Ch1_PWM, 0, 100, 0, 255);
+      ledcWrite(PWMOUT_1, mapped_Ch1_PWM);
       pwm1_enabled = true;
       pwm1_previousMillis = currentMillis;
+      debug("Ch1 PWM: ");
+      debugln(mapped_Ch1_PWM);
     }
   else if ((currentMillis - pwm1_previousMillis >= Ch1_On*1000) && (pwm1_enabled))
     {
@@ -777,11 +810,15 @@ void loop() {
       pwm1_previousMillis = currentMillis;
     }
   // PWM Output 2
-  else if ((currentMillis - pwm2_previousMillis >= Ch2_Off*1000) && (!pwm2_enabled) && (Ch2_On > 0)) 
+  else if ((currentMillis - pwm2_previousMillis >= Ch2_Off*1000) && (!pwm2_enabled) && (Ch2_Enable != 0)) 
     {
-      ledcWrite(PWMOUT_2,Ch2_PWM);
+      int mapped_Ch2_PWM;
+      mapped_Ch2_PWM = map(Ch2_PWM, 0, 100, 0, 255);
+      ledcWrite(PWMOUT_2, mapped_Ch2_PWM);
       pwm2_enabled = true;
       pwm2_previousMillis = currentMillis;
+      debug("Ch2 PWM: ");
+      debugln(mapped_Ch2_PWM);
     }
   else if ((currentMillis - pwm2_previousMillis >= Ch2_On*1000) && (pwm2_enabled))
     {
@@ -790,11 +827,15 @@ void loop() {
       pwm2_previousMillis = currentMillis;
     }
   // PWM Output 3
-  else if ((currentMillis - pwm3_previousMillis >= Ch3_Off*1000) && (!pwm3_enabled) && (Ch3_On > 0)) 
+  else if ((currentMillis - pwm3_previousMillis >= Ch3_Off*1000) && (!pwm3_enabled) && (Ch3_Enable != 0)) 
     {
-      ledcWrite(PWMOUT_3,Ch3_PWM);
+      int mapped_Ch3_PWM;
+      mapped_Ch3_PWM = map(Ch3_PWM, 0, 100, 0, 255);
+      ledcWrite(PWMOUT_3, mapped_Ch3_PWM);
       pwm3_enabled = true;
       pwm3_previousMillis = currentMillis;
+      debug("Ch3 PWM: ");
+      debugln(mapped_Ch3_PWM);
     }
   else if ((currentMillis - pwm3_previousMillis >= Ch3_On*1000) && (pwm3_enabled))
     {
@@ -803,11 +844,15 @@ void loop() {
       pwm3_previousMillis = currentMillis;
     }
   // PWM Output 4
-   else if ((currentMillis - pwm4_previousMillis >= Ch4_Off*1000) && (!pwm4_enabled) && (Ch4_On > 0)) 
+   else if ((currentMillis - pwm4_previousMillis >= Ch4_Off*1000) && (!pwm4_enabled) && (Ch4_Enable != 0)) 
     {
-      ledcWrite(PWMOUT_4,Ch4_PWM);      
+      int mapped_Ch4_PWM;
+      mapped_Ch4_PWM = map(Ch4_PWM, 0, 100, 0, 255);
+      ledcWrite(PWMOUT_4, mapped_Ch4_PWM);      
       pwm4_enabled = true;
       pwm4_previousMillis = currentMillis;
+      debug("Ch4 PWM: ");
+      debugln(mapped_Ch4_PWM);
     }
   else if ((currentMillis - pwm4_previousMillis >= Ch4_On*1000) && (pwm4_enabled))
     {
@@ -816,6 +861,16 @@ void loop() {
       pwm4_previousMillis = currentMillis;
     }
 
+  // Pump
+  if (Pump_Enable == true) 
+    {
+      int mapped_pump_PWM;
+      mapped_pump_PWM = map(pump_PWM, 0, 100, 0, 255);
+      ledcWrite(pumpOUT, mapped_pump_PWM);
+    }
+  else {
+    ledcWrite(pumpOUT, 0);
+    }
   
   // Encoder
   rotary_loop();

@@ -135,6 +135,24 @@
                         </p>
                         <p class="state">Power: <span id="slider_l_value"></span></p>
                     </div>
+
+                    <div class="card">
+                        <p class="card-title">Pump Enable</p>
+                        <!-- Rounded switch -->
+                        <label class="switch2">
+                            <input type="checkbox" onclick="update_switch(this)" id="toggle_e">
+                            <span class="slider2 round"></span>
+                        </label>
+                      </div>
+                    <div class="card">
+                        <p class="card-title">Pump Power</p>
+                        <p class="switch">
+                            <input type="range" onchange="update_slider(this)" id="slider_m" min="0" max="100" step="1" value ="0" class="slider">
+                        </p>
+                        <p class="state">Power: <span id="slider_m_value"></span></p>
+                    </div>
+
+
                     <div class="card">
                         <p class="card-title">Buzzer Button Test</p>
                         <p class="switch3">
