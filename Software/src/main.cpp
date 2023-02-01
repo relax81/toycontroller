@@ -1,5 +1,5 @@
 // activate deactivate serial output for debugging
-#define DEBUG 1
+#define DEBUG 0
 #if DEBUG == 1
 #define debug(x) Serial.print(x)
 #define debugln(x) Serial.println(x)
@@ -9,11 +9,20 @@
 #endif
 
 #include <Arduino.h>
+#include "true-credentials.h"
 #include <U8g2lib.h>
 #include <Wire.h>
 #include <TickTwo.h>
 #include <AiEsp32RotaryEncoder.h>
 #include <pinout.h>
+#include <DNSServer.h>
+#include <WiFi.h>
+#include <AsyncTCP.h>
+#include "ESPAsyncWebServer.h"
+#include "SPIFFS.h"
+#include <Arduino_JSON.h>
+
+
 
 bool buttonPressed = false;
 int encoderPosition = 0;
@@ -21,18 +30,24 @@ bool drawcolorstate = true;
 
 int menu = 1;
 
-int Ch15vOn = 0;
-int Ch15vOff = 0;
-int Ch15vPWM = 0;
-int Ch25vOn = 0;
-int Ch25vOff = 0;
-int Ch25vPWM = 0;
-int Ch130vOn = 0;
-int Ch130vOff = 0;
-int Ch130vPWM = 0;
-int Ch230vOn = 0;
-int Ch230vOff = 0;
-int Ch230vPWM = 0;
+int Ch1_On = 0;
+int Ch1_Off = 0;
+int Ch1_PWM = 0;
+bool Ch1_Enable = false;
+bool Ch2_Enable = false;
+bool Ch3_Enable = false;
+bool Ch4_Enable = false;
+bool Pump_Enable = false;
+int Ch2_On = 0;
+int Ch2_Off = 0;
+int Ch2_PWM = 0;
+int Ch3_On = 0;
+int Ch3_Off = 0;
+int Ch3_PWM = 0;
+int Ch4_On = 0;
+int Ch4_Off = 0;
+int Ch4_PWM = 0;
+int pump_PWM = 0;
 
 // PWM settings
 const int freq = 5000;
@@ -42,6 +57,7 @@ const int PWMOUT_2 = 2; // max 30v ch2
 const int PWMOUT_3 = 3; // 5v ch1
 const int PWMOUT_4 = 4; // 5v ch2
 const int buzzer = 5;
+const int pumpOUT = 6; // Pump PWM Output
 unsigned long pwm1_previousMillis = 0;
 unsigned long pwm2_previousMillis = 0;
 unsigned long pwm3_previousMillis = 0;
@@ -50,7 +66,45 @@ bool pwm1_enabled = false;
 bool pwm2_enabled = false;
 bool pwm3_enabled = false;
 bool pwm4_enabled = false;
-bool buzzer_enabled = true;
+bool buzzer_enabled = false;
+
+String tempString;
+
+// WebSocket
+// Create AsyncWebServer object on port 80
+AsyncWebServer server(80);
+// Create a WebSocket object
+AsyncWebSocket ws("/ws");
+//Json Variable to Hold Slider Values
+JSONVar values;
+String json_string;
+
+
+
+
+// Initialize SPIFFS
+void initFS() {
+  if (!SPIFFS.begin()) {
+    Serial.println("An error has occurred while mounting SPIFFS");
+  }
+  else{
+   Serial.println("SPIFFS mounted successfully");
+  }
+}
+// Initialize WiFi
+void initWiFi() {
+  WiFi.mode(WIFI_STA);
+  WiFi.begin(ssid, password);
+  Serial.print("Connecting to WiFi ..");
+  while (WiFi.status() != WL_CONNECTED) {
+    Serial.print('.');
+    delay(1000);
+  }
+  Serial.println(WiFi.localIP());
+}
+void notifyClients(String sliderValues) {
+  ws.textAll(sliderValues);
+}
 
 
 //Encoder
@@ -104,14 +158,15 @@ void blinktext()
     drawcolorstate = !drawcolorstate;
   }  
 
+void update_values_ws();
 
 void displayMenu()
   {
   u8g2.setFont(u8g2_font_ncenB08_tr);
-  u8g2.drawStr(1,8,"30v1");
-  u8g2.drawStr(34,8,"30v2");
-  u8g2.drawStr(69,8,"5v1");
-  u8g2.drawStr(102,8,"5v2");
+  u8g2.drawStr(1,8,"Ch1");
+  u8g2.drawStr(34,8,"Ch2");
+  u8g2.drawStr(69,8,"Ch3");
+  u8g2.drawStr(102,8,"Ch4");
   u8g2.drawHLine(0,13,128);
   u8g2.drawVLine(30,0,64);
   u8g2.drawVLine(61,0,64);
@@ -122,31 +177,31 @@ void displayValues()
   {
   // 1st line  
   u8g2.setCursor(1,25);
-  u8g2.print(Ch130vOn);
+  u8g2.print(Ch1_On);
   u8g2.setCursor(36,25);
-  u8g2.print(Ch230vOn);
+  u8g2.print(Ch2_On);
   u8g2.setCursor(69,25);
-  u8g2.print(Ch15vOn);
+  u8g2.print(Ch3_On);
   u8g2.setCursor(102,25);
-  u8g2.print(Ch25vOn);
+  u8g2.print(Ch4_On);
   // 2nd line
   u8g2.setCursor(1, 40);
-  u8g2.print(Ch130vOff);
+  u8g2.print(Ch1_Off);
   u8g2.setCursor(36,40);
-  u8g2.print(Ch230vOff);
+  u8g2.print(Ch2_Off);
   u8g2.setCursor(69,40);
-  u8g2.print(Ch15vOff);
+  u8g2.print(Ch3_Off);
   u8g2.setCursor(102,40);
-  u8g2.print(Ch25vOff);
+  u8g2.print(Ch4_Off);
   // 3rd line
   u8g2.setCursor(1, 55);
-  u8g2.print(Ch130vPWM);
+  u8g2.print(Ch1_PWM);
   u8g2.setCursor(36,55);
-  u8g2.print(Ch230vPWM);
+  u8g2.print(Ch2_PWM);
   u8g2.setCursor(69,55);
-  u8g2.print(Ch15vPWM);
+  u8g2.print(Ch3_PWM);
   u8g2.setCursor(102,55);
-  u8g2.print(Ch25vPWM);
+  u8g2.print(Ch4_PWM);
   }
 
 void menuSystem() {
@@ -156,12 +211,12 @@ void menuSystem() {
       rotaryEncoder.setBoundaries(1, 4, false); //0-4
       menu = encoderPosition;
       u8g2.setDrawColor(drawcolorstate);
-      u8g2.drawStr(1,8,"30v1");
+      u8g2.drawStr(1,8,"Ch1");
       u8g2.setDrawColor(1);
       if (buttonPressed == true) {
           buttonPressed = false;
-          rotaryEncoder.setEncoderValue(Ch130vOn);
-          encoderPosition = Ch130vOn;
+          rotaryEncoder.setEncoderValue(Ch1_On);
+          encoderPosition = Ch1_On;
           menu = menu * 10;
           }
       break;
@@ -170,12 +225,12 @@ void menuSystem() {
       rotaryEncoder.setBoundaries(1, 4, false); //0-4
       menu = encoderPosition;
       u8g2.setDrawColor(drawcolorstate);
-      u8g2.drawStr(34,8,"30v2");
+      u8g2.drawStr(34,8,"Ch2");
       u8g2.setDrawColor(1);
       if (buttonPressed == true) {
           buttonPressed = false;
-          rotaryEncoder.setEncoderValue(Ch230vOn);
-          encoderPosition = Ch230vOn;
+          rotaryEncoder.setEncoderValue(Ch2_On);
+          encoderPosition = Ch2_On;
           menu = menu * 10;
           }
       break;
@@ -184,12 +239,12 @@ void menuSystem() {
       rotaryEncoder.setBoundaries(1, 4, false); //0-4
       menu = encoderPosition;
       u8g2.setDrawColor(drawcolorstate);
-      u8g2.drawStr(69,8,"5v1");
+      u8g2.drawStr(69,8,"Ch3");
       u8g2.setDrawColor(1);
       if (buttonPressed == true) {
           buttonPressed = false;
-          rotaryEncoder.setEncoderValue(Ch15vOn);
-          encoderPosition = Ch15vOn;
+          rotaryEncoder.setEncoderValue(Ch3_On);
+          encoderPosition = Ch3_On;
           menu = menu * 10;
           }
       break;
@@ -198,12 +253,12 @@ void menuSystem() {
       rotaryEncoder.setBoundaries(1, 4, false); //0-4
       menu = encoderPosition;
       u8g2.setDrawColor(drawcolorstate);
-      u8g2.drawStr(102,8,"5v2");
+      u8g2.drawStr(102,8,"Ch4");
       u8g2.setDrawColor(1);
       if (buttonPressed == true) {
           buttonPressed = false;
-          rotaryEncoder.setEncoderValue(Ch25vOn);
-          encoderPosition = Ch25vOn;
+          rotaryEncoder.setEncoderValue(Ch4_On);
+          encoderPosition = Ch4_On;
           menu = menu * 10;
           }
       break;
@@ -211,40 +266,42 @@ void menuSystem() {
 
     case 10: // 
       rotaryEncoder.setBoundaries(0, 100, false); //0-99 
-      Ch130vOn = encoderPosition;
+      Ch1_On = encoderPosition;
       u8g2.setCursor(1,25);
       u8g2.setDrawColor(drawcolorstate);
-      u8g2.print(Ch130vOn);
+      u8g2.print(Ch1_On);  
       u8g2.setDrawColor(1);
       if (buttonPressed == true) {
+          values["slider_a"] = Ch1_On;
+          update_values_ws();
           buttonPressed = false;
-          rotaryEncoder.setEncoderValue(Ch130vOff);
-          encoderPosition = Ch130vOff;
+          rotaryEncoder.setEncoderValue(Ch1_Off);
+          encoderPosition = Ch1_Off;
           menu++;
           }
       break;
 
     case 11: // 
       rotaryEncoder.setBoundaries(0, 100, false); //0-99 
-      Ch130vOff = encoderPosition;
+      Ch1_Off = encoderPosition;
       u8g2.setCursor(1,40);
       u8g2.setDrawColor(drawcolorstate);
-      u8g2.print(Ch130vOff);
+      u8g2.print(Ch1_Off);
       u8g2.setDrawColor(1);
       if (buttonPressed == true) {
           buttonPressed = false;
-          rotaryEncoder.setEncoderValue(Ch130vPWM);
-          encoderPosition = Ch130vPWM;
+          rotaryEncoder.setEncoderValue(Ch1_PWM);
+          encoderPosition = Ch1_PWM;
           menu++;
           }
       break;
 
     case 12: // 
       rotaryEncoder.setBoundaries(0, 255, true); //0-99 
-      Ch130vPWM = encoderPosition;
+      Ch1_PWM = encoderPosition;
       u8g2.setCursor(1,55);
       u8g2.setDrawColor(drawcolorstate);
-      u8g2.print(Ch130vPWM);
+      u8g2.print(Ch1_PWM);
       u8g2.setDrawColor(1);
       if (buttonPressed == true) {
           buttonPressed = false;
@@ -256,40 +313,40 @@ void menuSystem() {
 
     case 20: // 
       rotaryEncoder.setBoundaries(0, 100, false); //0-99 
-      Ch230vOn = encoderPosition;
+      Ch2_On = encoderPosition;
       u8g2.setCursor(36,25);
       u8g2.setDrawColor(drawcolorstate);
-      u8g2.print(Ch230vOn);
+      u8g2.print(Ch2_On);
       u8g2.setDrawColor(1);
       if (buttonPressed == true) {
           buttonPressed = false;
-          rotaryEncoder.setEncoderValue(Ch230vOff);
-          encoderPosition = Ch230vOff;
+          rotaryEncoder.setEncoderValue(Ch2_Off);
+          encoderPosition = Ch2_Off;
           menu++;
           }
       break;
 
     case 21: // 
       rotaryEncoder.setBoundaries(0, 100, false); //0-99 
-      Ch230vOff = encoderPosition;
+      Ch2_Off = encoderPosition;
       u8g2.setCursor(36,40);
       u8g2.setDrawColor(drawcolorstate);
-      u8g2.print(Ch230vOff);
+      u8g2.print(Ch2_Off);
       u8g2.setDrawColor(1);
       if (buttonPressed == true) {
           buttonPressed = false;
-          rotaryEncoder.setEncoderValue(Ch230vPWM);
-          encoderPosition = Ch230vPWM;
+          rotaryEncoder.setEncoderValue(Ch2_PWM);
+          encoderPosition = Ch2_PWM;
           menu++;
           }
       break;
 
     case 22: // 
       rotaryEncoder.setBoundaries(0, 255, true); //0-99 
-      Ch230vPWM = encoderPosition;
+      Ch2_PWM = encoderPosition;
       u8g2.setCursor(36,55);
       u8g2.setDrawColor(drawcolorstate);
-      u8g2.print(Ch230vPWM);
+      u8g2.print(Ch2_PWM);
       u8g2.setDrawColor(1);
       if (buttonPressed == true) {
           buttonPressed = false;
@@ -301,40 +358,40 @@ void menuSystem() {
     
     case 30: // 
       rotaryEncoder.setBoundaries(0, 100, false); //0-99 
-      Ch15vOn = encoderPosition;
+      Ch3_On = encoderPosition;
       u8g2.setCursor(69,25);
       u8g2.setDrawColor(drawcolorstate);
-      u8g2.print(Ch15vOn);
+      u8g2.print(Ch3_On);
       u8g2.setDrawColor(1);
       if (buttonPressed == true) {
           buttonPressed = false;
-          rotaryEncoder.setEncoderValue(Ch15vOff);
-          encoderPosition = Ch15vOff;
+          rotaryEncoder.setEncoderValue(Ch3_Off);
+          encoderPosition = Ch3_Off;
           menu++;
           }
       break;
 
     case 31: // 
       rotaryEncoder.setBoundaries(0, 100, false); //0-99 
-      Ch15vOff = encoderPosition;
+      Ch3_Off = encoderPosition;
       u8g2.setCursor(69,40);
       u8g2.setDrawColor(drawcolorstate);
-      u8g2.print(Ch15vOff);
+      u8g2.print(Ch3_Off);
       u8g2.setDrawColor(1);
       if (buttonPressed == true) {
           buttonPressed = false;
-          rotaryEncoder.setEncoderValue(Ch15vPWM);
-          encoderPosition = Ch15vPWM;
+          rotaryEncoder.setEncoderValue(Ch3_PWM);
+          encoderPosition = Ch3_PWM;        
           menu++;
           }
       break;
 
     case 32: // 
       rotaryEncoder.setBoundaries(0, 255, true); //0-99 
-      Ch15vPWM = encoderPosition;
+      Ch3_PWM = encoderPosition;
       u8g2.setCursor(69,55);
       u8g2.setDrawColor(drawcolorstate);
-      u8g2.print(Ch15vPWM);
+      u8g2.print(Ch3_PWM);
       u8g2.setDrawColor(1);
       if (buttonPressed == true) {
           buttonPressed = false;
@@ -346,40 +403,40 @@ void menuSystem() {
 
       case 40: // 
       rotaryEncoder.setBoundaries(0, 100, false); //0-99 
-      Ch25vOn = encoderPosition;
+      Ch4_On = encoderPosition;
       u8g2.setCursor(102,25);
       u8g2.setDrawColor(drawcolorstate);
-      u8g2.print(Ch25vOn);
+      u8g2.print(Ch4_On);
       u8g2.setDrawColor(1);
       if (buttonPressed == true) {
           buttonPressed = false;
-          rotaryEncoder.setEncoderValue(Ch25vOff);
-          encoderPosition = Ch25vOff;
+          rotaryEncoder.setEncoderValue(Ch4_Off);
+          encoderPosition = Ch4_Off;
           menu++;
           }
       break;
 
     case 41: // 
       rotaryEncoder.setBoundaries(0, 100, false); //0-99 
-      Ch25vOff = encoderPosition;
+      Ch4_Off = encoderPosition;
       u8g2.setCursor(102,40);
       u8g2.setDrawColor(drawcolorstate);
-      u8g2.print(Ch25vOff);
+      u8g2.print(Ch4_Off);
       u8g2.setDrawColor(1);
       if (buttonPressed == true) {
           buttonPressed = false;
-          rotaryEncoder.setEncoderValue(Ch25vPWM);
-          encoderPosition = Ch25vPWM;
+          rotaryEncoder.setEncoderValue(Ch4_PWM);          
+          encoderPosition = Ch4_PWM;         
           menu++;
           }
       break;
 
     case 42: // 
       rotaryEncoder.setBoundaries(0, 255, true); //0-99 
-      Ch25vPWM = encoderPosition;
+      Ch4_PWM = encoderPosition;
       u8g2.setCursor(102,55);
       u8g2.setDrawColor(drawcolorstate);
-      u8g2.print(Ch25vPWM);
+      u8g2.print(Ch4_PWM);
       u8g2.setDrawColor(1);
       if (buttonPressed == true) {
           buttonPressed = false;
@@ -396,6 +453,237 @@ void menuSystem() {
   }
 }
 
+void handleWebSocketMessage_ws(void *arg, uint8_t *data, size_t len)
+{
+  AwsFrameInfo *info = (AwsFrameInfo*)arg;
+  int slider;
+  char* message;
+
+  if (info->final && info->index == 0 && info->len == len && info->opcode == WS_TEXT)
+  {
+
+    data[len] = 0;
+    message = (char*)data;
+    debugln(message);
+
+    switch (message[0])
+    {
+
+      case 't':
+        switch(message[7])
+        {
+          case 'a':
+          if (message[9] == 't')//true
+            {
+            Ch1_Enable = true;
+            values["toggle_a"] = Ch1_Enable;
+            }
+          else if (message[9] == 'f')//false
+            {
+            Ch1_Enable = false;
+            values["toggle_a"] = Ch1_Enable;
+            } 
+          break;
+
+          case 'b':
+          if (message[9] == 't')//true
+            {
+            Ch2_Enable = true;
+            values["toggle_b"] = Ch2_Enable;
+            }
+          else if (message[9] == 'f')//false
+            {
+            Ch2_Enable = false;
+            values["toggle_b"] = Ch2_Enable;
+            } 
+          break;
+
+          case 'c':
+          if (message[9] == 't')//true
+            {
+            Ch3_Enable = true;
+            values["toggle_c"] = Ch3_Enable;
+            }
+          else if (message[9] == 'f')//false
+            {
+            Ch3_Enable = false;
+            values["toggle_c"] = Ch3_Enable;
+            } 
+          break;
+
+          case 'd':
+          if (message[9] == 't')//true
+            {
+            Ch4_Enable = true;
+            values["toggle_d"] = Ch4_Enable;
+            }
+          else if (message[9] == 'f')//false
+            {
+            Ch4_Enable = false;
+            values["toggle_d"] = Ch4_Enable;
+            } 
+          break;          
+
+          case 'e':
+          if (message[9] == 't')//true
+            {
+            Pump_Enable = true;
+            values["toggle_e"] = Pump_Enable;
+            }
+          else if (message[9] == 'f')//false
+            {
+            Pump_Enable = false;
+            values["toggle_e"] = Pump_Enable;
+            } 
+          break; 
+        }
+        break;
+
+      case 'r':
+        switch (message[5])
+        {
+          case 'l':
+            //     values["ramp_level"] = mk312_get_ramp_level();
+
+            break;
+
+          case 't':
+            //   values["ramp_time"] = mk312_get_ramp_time();
+
+            break;
+          case 's':
+            // mk312_ramp_start();
+            break;
+        }
+        break;
+
+      case 's': //slider
+      debugln("slider triggered");
+        slider = atoi(message + 9);
+        switch (message[7])
+        {
+          case 'a':
+            Ch1_On = slider;
+            values["slider_a"] = Ch1_On;
+            break;
+
+          case 'b':
+            Ch1_Off = slider;
+            values["slider_b"] = Ch1_Off;
+            break;
+
+          case 'c':
+            Ch1_PWM = slider;
+            values["slider_c"] = Ch1_PWM;
+            break;
+          
+          case 'd':
+            Ch2_On = slider;
+            values["slider_d"] = Ch2_On;
+            break;
+
+          case 'e':
+            Ch2_Off = slider;
+            values["slider_e"] = Ch2_Off;
+            break;
+
+          case 'f':
+            Ch2_PWM = slider;
+            values["slider_f"] = Ch2_PWM;
+            break;
+          
+          case 'g':
+            Ch3_On = slider;
+            values["slider_g"] = Ch3_On;
+            break;
+
+          case 'h':
+            Ch3_Off = slider;
+            values["slider_h"] = Ch3_Off;
+            break;
+
+          case 'i':
+            Ch3_PWM = slider;
+            values["slider_i"] = Ch3_PWM;
+            break;
+          
+          case 'j':
+            Ch4_On = slider;
+            values["slider_j"] = Ch4_On;
+            break;
+
+          case 'k':
+            Ch4_Off = slider;
+            values["slider_k"] = Ch4_Off;
+            break;
+
+          case 'l':
+            Ch4_PWM = slider;
+            values["slider_l"] = Ch4_PWM;
+            break;
+
+          case 'm':
+            pump_PWM = slider;
+            values["slider_m"] = pump_PWM;
+            break;
+
+        }
+        break;
+
+      case 'b'://buzzer
+        if (message[8] == 'n')//on
+        {
+          buzzer_enabled = true;
+        }
+        else
+        {
+          buzzer_enabled = false;
+        }
+        values["buzzer"] = buzzer_enabled ? "on" : "off";
+        Serial.println("buzzer output");
+        Serial.println(values["buzzer"]);
+        break;
+
+
+      //  case 'm'://mode
+      //   newmode = strtol(message + 5, NULL, 16);
+      //   values["mode"] = newmode;
+      //   break;
+
+        }
+    json_string = JSON.stringify(values);
+    ws.textAll(json_string);
+  }
+
+}
+
+void onEvent_ws(AsyncWebSocket *server, AsyncWebSocketClient *client, AwsEventType type, void *arg, uint8_t *data, size_t len) {
+  switch (type)
+  {
+    case WS_EVT_CONNECT:
+      //serial.printf("WebSocket client #%u connected from %s\n", client->id(), client->remoteIP().toString().c_str());
+      break;
+    case WS_EVT_DISCONNECT:
+      //serial.printf("WebSocket client #%u disconnected\n", client->id());
+      break;
+    case WS_EVT_DATA:
+      handleWebSocketMessage_ws(arg, data, len);
+      break;
+    case WS_EVT_PONG:
+    case WS_EVT_ERROR:
+      break;
+  }
+}
+
+void update_values_ws(){
+    json_string = JSON.stringify(values);
+    ws.textAll(json_string);
+}
+
+void init_ws() {
+  ws.onEvent(onEvent_ws);
+  server.addHandler(&ws);
+}
 
 void setup() {
   Serial.begin(115200);
@@ -409,9 +697,10 @@ void setup() {
   pinMode(CH1_30VMax, OUTPUT);
   pinMode(CH2_30VMax, OUTPUT);
   pinMode(PIR, INPUT);
-  pinMode(RF_433, OUTPUT);
+  pinMode(RF_433, OUTPUT); // uncomment if jtag debugging is used
   pinMode(button1, INPUT);
   pinMode(button2, INPUT);
+  pinMode(pumpPin, OUTPUT);
   digitalWrite(RF_433, LOW);
 
   // PWM
@@ -420,11 +709,13 @@ void setup() {
   ledcSetup(PWMOUT_3, freq, resolution);
   ledcSetup(PWMOUT_4, freq, resolution);
   ledcSetup(buzzer, freq, resolution);
+  ledcSetup(pumpOUT, 500, resolution);
   ledcAttachPin(CH1_30VMax, PWMOUT_1);
   ledcAttachPin(CH2_30VMax, PWMOUT_2);
   ledcAttachPin(CH1_5V, PWMOUT_3);
   ledcAttachPin(CH2_5V, PWMOUT_4);
   ledcAttachPin(buzzerPin, buzzer);
+  ledcAttachPin(pumpPin, pumpOUT);
 
   //Encoder
   //we must initialize rotary encoder
@@ -453,67 +744,133 @@ void setup() {
   displayMenu();
   displayValues();
   u8g2.sendBuffer();
+
+  initFS();
+  initWiFi();
+  init_ws();
+
+  // Websocket stuff
+  values["slider_a"] = 0;
+  values["slider_b"] = 0;
+  values["slider_c"] = 0;
+  values["slider_d"] = 0;
+  values["slider_e"] = 0;
+  values["slider_f"] = 0;
+  values["slider_g"] = 0;
+  values["slider_h"] = 0;
+  values["slider_i"] = 0;
+  values["slider_j"] = 0;
+  values["slider_k"] = 0;
+  values["slider_l"] = 0;
+  values["slider_m"] = 0; // pump
+
+  values["toggle_a"] = false;
+  values["toggle_b"] = false;
+  values["toggle_c"] = false;
+  values["toggle_d"] = false;
+  values["toggle_e"] = false; // pump
+  values["buzzer"] = "off";
+
+
+
+  json_string = JSON.stringify(values);
+
+
+  // Web Server Root URL
+  server.on("/", HTTP_GET, [](AsyncWebServerRequest *request){
+    request->send(SPIFFS, "/index.html", "text/html");
+  });
+  
+  server.serveStatic("/", SPIFFS, "/");
+
+  // Start server
+  server.begin();
 }
 
 void loop() {
+  ws.cleanupClients();
   unsigned long currentMillis = millis();
   timer1.update(); // display blinking text timer
 
 // PWM Output 1
-  if ((currentMillis - pwm1_previousMillis >= Ch130vOff*1000) && (!pwm1_enabled) && (Ch130vOn > 0)) 
+  if ((currentMillis - pwm1_previousMillis >= Ch1_Off*1000) && (!pwm1_enabled) && (Ch1_Enable != 0)) 
     {
-      ledcWrite(PWMOUT_1,Ch130vPWM);
-      buzzer_enabled = true;
+      int mapped_Ch1_PWM;
+      mapped_Ch1_PWM = map(Ch1_PWM, 0, 100, 0, 255);
+      ledcWrite(PWMOUT_1, mapped_Ch1_PWM);
       pwm1_enabled = true;
       pwm1_previousMillis = currentMillis;
+      debug("Ch1 PWM: ");
+      debugln(mapped_Ch1_PWM);
     }
-  else if ((currentMillis - pwm1_previousMillis >= Ch130vOn*1000) && (pwm1_enabled))
+  else if ((currentMillis - pwm1_previousMillis >= Ch1_On*1000) && (pwm1_enabled))
     {
       ledcWrite(PWMOUT_1,0);
-      buzzer_enabled = false;
       pwm1_enabled = false;
       pwm1_previousMillis = currentMillis;
     }
   // PWM Output 2
-  else if ((currentMillis - pwm2_previousMillis >= Ch230vOff*1000) && (!pwm2_enabled) && (Ch230vOn > 0)) 
+  else if ((currentMillis - pwm2_previousMillis >= Ch2_Off*1000) && (!pwm2_enabled) && (Ch2_Enable != 0)) 
     {
-      ledcWrite(PWMOUT_2,Ch230vPWM);
+      int mapped_Ch2_PWM;
+      mapped_Ch2_PWM = map(Ch2_PWM, 0, 100, 0, 255);
+      ledcWrite(PWMOUT_2, mapped_Ch2_PWM);
       pwm2_enabled = true;
       pwm2_previousMillis = currentMillis;
+      debug("Ch2 PWM: ");
+      debugln(mapped_Ch2_PWM);
     }
-  else if ((currentMillis - pwm2_previousMillis >= Ch230vOn*1000) && (pwm2_enabled))
+  else if ((currentMillis - pwm2_previousMillis >= Ch2_On*1000) && (pwm2_enabled))
     {
       ledcWrite(PWMOUT_2,0);
       pwm2_enabled = false;
       pwm2_previousMillis = currentMillis;
     }
   // PWM Output 3
-  else if ((currentMillis - pwm3_previousMillis >= Ch15vOff*1000) && (!pwm3_enabled) && (Ch15vOn > 0)) 
+  else if ((currentMillis - pwm3_previousMillis >= Ch3_Off*1000) && (!pwm3_enabled) && (Ch3_Enable != 0)) 
     {
-      ledcWrite(PWMOUT_3,Ch15vPWM);
+      int mapped_Ch3_PWM;
+      mapped_Ch3_PWM = map(Ch3_PWM, 0, 100, 0, 255);
+      ledcWrite(PWMOUT_3, mapped_Ch3_PWM);
       pwm3_enabled = true;
       pwm3_previousMillis = currentMillis;
+      debug("Ch3 PWM: ");
+      debugln(mapped_Ch3_PWM);
     }
-  else if ((currentMillis - pwm3_previousMillis >= Ch15vOn*1000) && (pwm3_enabled))
+  else if ((currentMillis - pwm3_previousMillis >= Ch3_On*1000) && (pwm3_enabled))
     {
       ledcWrite(PWMOUT_3,0);
       pwm3_enabled = false;
       pwm3_previousMillis = currentMillis;
     }
   // PWM Output 4
-   else if ((currentMillis - pwm4_previousMillis >= Ch25vOff*1000) && (!pwm4_enabled) && (Ch25vOn > 0)) 
+   else if ((currentMillis - pwm4_previousMillis >= Ch4_Off*1000) && (!pwm4_enabled) && (Ch4_Enable != 0)) 
     {
-      ledcWrite(PWMOUT_4,Ch25vPWM);
+      int mapped_Ch4_PWM;
+      mapped_Ch4_PWM = map(Ch4_PWM, 0, 100, 0, 255);
+      ledcWrite(PWMOUT_4, mapped_Ch4_PWM);      
       pwm4_enabled = true;
       pwm4_previousMillis = currentMillis;
+      debug("Ch4 PWM: ");
+      debugln(mapped_Ch4_PWM);
     }
-  else if ((currentMillis - pwm4_previousMillis >= Ch25vOn*1000) && (pwm4_enabled))
+  else if ((currentMillis - pwm4_previousMillis >= Ch4_On*1000) && (pwm4_enabled))
     {
       ledcWrite(PWMOUT_4,0);
       pwm4_enabled = false;
       pwm4_previousMillis = currentMillis;
     }
 
+  // Pump
+  if (Pump_Enable == true) 
+    {
+      int mapped_pump_PWM;
+      mapped_pump_PWM = map(pump_PWM, 0, 100, 0, 255);
+      ledcWrite(pumpOUT, mapped_pump_PWM);
+    }
+  else {
+    ledcWrite(pumpOUT, 0);
+    }
   
   // Encoder
   rotary_loop();
@@ -526,5 +883,11 @@ void loop() {
   u8g2.sendBuffer();
 
   // Buzzer test
-  // ledcWriteTone(buzzer,4000);
+  if (buzzer_enabled == true) {
+    ledcWrite(buzzer,50);
+  }
+  else {
+    ledcWrite(buzzer,0);
+  }
+
 }

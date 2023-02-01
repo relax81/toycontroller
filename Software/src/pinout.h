@@ -14,7 +14,7 @@
 #define button2 33
 
 // Touch
-#define touch1 13
+#define pumpPin 13
 #define touch2 27
 #define touch3 12
 #define touch4 14

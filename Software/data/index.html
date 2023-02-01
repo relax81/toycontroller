@@ -1,0 +1,169 @@
+<!-- Complete project details: https://randomnerdtutorials.com/esp32-web-server-websocket-sliders/ -->
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Toycontroller Dashboard</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="icon" type="image/png" href="favicon.png">
+    <link rel="stylesheet" type="text/css" href="style.css">
+</head>
+<body>
+    <div class="topnav">
+        <h1>Universal Controller</h1>
+    </div>
+    <div class="content">
+        <div class="card-grid">
+            <!-- First Row -->
+            <div class="card">
+            <p class="card-title">Ch1 Enable</p>
+            <!-- Rounded switch -->
+            <label class="switch2"> 
+                <input type="checkbox" onclick="update_switch(this)" id="toggle_a"> 
+                <span class="slider2 round"></span>
+            </label>
+          </div>
+
+            <div class="card">
+                <p class="card-title">Ch1 On Time</p>
+                <p class="switch">
+                    <input type="range" onchange="update_slider(this)" id="slider_a" min="0" max="100" step="1" value ="0" class="slider">
+                </p>
+                <p class="state">On Time: <span id="slider_a_value"></span> seconds</p>
+            </div>
+            <div class="card">
+                <p class="card-title">Ch1 Off Time</p>
+                <p class="switch">
+                    <input type="range" onchange="update_slider(this)" id="slider_b" min="0" max="100" step="1" value ="0" class="slider">
+                </p>
+                <p class="state">Off Time: <span id="slider_b_value"></span> seconds</p>
+            </div>
+            <div class="card">
+                <p class="card-title">Ch1 Power</p>
+                <p class="switch">
+                    <input type="range" onchange="update_slider(this)" id="slider_c" min="0" max="100" step="1" value ="0" class="slider">
+                </p>
+                <p class="state">Power: <span id="slider_c_value"></span></p>
+            </div>
+            <!-- Second Row -->
+            <div class="card">
+                <p class="card-title">Ch2 Enable</p>
+                <!-- Rounded switch -->
+                <label class="switch2">
+                    <input type="checkbox" onclick="update_switch(this)" id="toggle_b">
+                    <span class="slider2 round"></span>
+                </label>
+              </div>
+                <div class="card">
+                    <p class="card-title">Ch2 On Time</p>
+                    <p class="switch">
+                        <input type="range" onchange="update_slider(this)" id="slider_d" min="0" max="100" step="1" value ="0" class="slider">
+                    </p>
+                    <p class="state">On Time: <span id="slider_d_value"></span> seconds</p>
+                </div>
+                <div class="card">
+                    <p class="card-title">Ch2 Off Time</p>
+                    <p class="switch">
+                        <input type="range" onchange="update_slider(this)" id="slider_e" min="0" max="100" step="1" value ="0" class="slider">
+                    </p>
+                    <p class="state">Off Time: <span id="slider_e_value"></span> seconds</p>
+                </div>
+                <div class="card">
+                    <p class="card-title">Ch2 Power</p>
+                    <p class="switch">
+                        <input type="range" onchange="update_slider(this)" id="slider_f" min="0" max="100" step="1" value ="0" class="slider">
+                    </p>
+                    <p class="state">Power: <span id="slider_f_value"></span></p>
+                </div>
+                <!-- Third Row -->
+                <div class="card">
+                    <p class="card-title">Ch3 Enable</p>
+                    <!-- Rounded switch -->
+                    <label class="switch2">
+                        <input type="checkbox" onclick="update_switch(this)" id="toggle_c">
+                        <span class="slider2 round"></span>
+                    </label>
+                  </div>
+                    <div class="card">
+                        <p class="card-title">Ch3 On Time</p>
+                        <p class="switch">
+                            <input type="range" onchange="update_slider(this)" id="slider_g" min="0" max="100" step="1" value ="0" class="slider">
+                        </p>
+                        <p class="state">On Time: <span id="slider_g_value"></span> seconds</p>
+                    </div>
+                    <div class="card">
+                        <p class="card-title">Ch3 Off Time</p>
+                        <p class="switch">
+                            <input type="range" onchange="update_slider(this)" id="slider_h" min="0" max="100" step="1" value ="0" class="slider">
+                        </p>
+                        <p class="state">Off Time: <span id="slider_h_value"></span> seconds</p>
+                    </div>
+                    <div class="card">
+                        <p class="card-title">Ch3 Power</p>
+                        <p class="switch">
+                            <input type="range" onchange="update_slider(this)" id="slider_i" min="0" max="100" step="1" value ="0" class="slider">
+                        </p>
+                        <p class="state">Power: <span id="slider_i_value"></span></p>
+                    </div>
+                <!-- Fourth Row -->
+                <div class="card">
+                    <p class="card-title">Ch4 Enable</p>
+                    <!-- Rounded switch -->
+                    <label class="switch2">
+                        <input type="checkbox" onclick="update_switch(this)" id="toggle_d">
+                        <span class="slider2 round"></span>
+                    </label>
+                  </div>
+                    <div class="card">
+                        <p class="card-title">Ch4 On Time</p>
+                        <p class="switch">
+                            <input type="range" onchange="update_slider(this)" id="slider_j" min="0" max="100" step="1" value ="0" class="slider">
+                        </p>
+                        <p class="state">On Time: <span id="slider_j_value"></span> seconds</p>
+                    </div>
+                    <div class="card">
+                        <p class="card-title">Ch4 Off Time</p>
+                        <p class="switch">
+                            <input type="range" onchange="update_slider(this)" id="slider_k" min="0" max="100" step="1" value ="0" class="slider">
+                        </p>
+                        <p class="state">Off Time: <span id="slider_k_value"></span> seconds</p>
+                    </div>
+                    <div class="card">
+                        <p class="card-title">Ch4 Power</p>
+                        <p class="switch">
+                            <input type="range" onchange="update_slider(this)" id="slider_l" min="0" max="100" step="1" value ="0" class="slider">
+                        </p>
+                        <p class="state">Power: <span id="slider_l_value"></span></p>
+                    </div>
+
+                    <div class="card">
+                        <p class="card-title">Pump Enable</p>
+                        <!-- Rounded switch -->
+                        <label class="switch2">
+                            <input type="checkbox" onclick="update_switch(this)" id="toggle_e">
+                            <span class="slider2 round"></span>
+                        </label>
+                      </div>
+                    <div class="card">
+                        <p class="card-title">Pump Power</p>
+                        <p class="switch">
+                            <input type="range" onchange="update_slider(this)" id="slider_m" min="0" max="100" step="1" value ="0" class="slider">
+                        </p>
+                        <p class="state">Power: <span id="slider_m_value"></span></p>
+                    </div>
+
+
+                    <div class="card">
+                        <p class="card-title">Buzzer Button Test</p>
+                        <p class="switch3">
+                            <input type="radio" onclick="update_radio(this)" name="buzzer" id="buzzer_on" value="on"><label for="buzzer_on">Buzzer enabled</label><br>
+                            <input type="radio" onclick="update_radio(this)" name="buzzer" id="buzzer_off" value="off" checked><label for="buzzer_off">Buzzer disabled</label><br>
+                        </p>
+                    </div>
+
+
+        </div>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>
