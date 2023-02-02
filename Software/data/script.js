@@ -102,6 +102,18 @@ function onMessage(event)
             SetValueToElementChecked(key+"_"+values[key], true);
 			continue;
 		}
+        if (key === "lb1")
+		{
+            console.log("key lb1 triggered");
+            SetValueToElementChecked(key+"_"+values[key], true);
+			continue;
+		}
+        if (key === "lb2")
+		{
+            console.log("key lb2 triggered");
+            SetValueToElementChecked(key+"_"+values[key], true);
+			continue;
+		}
 
         if (key === "toggle_a")
         {

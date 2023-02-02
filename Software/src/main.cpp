@@ -1,5 +1,5 @@
 // activate deactivate serial output for debugging
-#define DEBUG 0
+#define DEBUG 1
 #if DEBUG == 1
 #define debug(x) Serial.print(x)
 #define debugln(x) Serial.println(x)
@@ -67,6 +67,8 @@ bool pwm2_enabled = false;
 bool pwm3_enabled = false;
 bool pwm4_enabled = false;
 bool buzzer_enabled = false;
+String lb1_mode;
+String lb2_mode;
 
 String tempString;
 
@@ -640,22 +642,102 @@ void handleWebSocketMessage_ws(void *arg, uint8_t *data, size_t len)
           buzzer_enabled = false;
         }
         values["buzzer"] = buzzer_enabled ? "on" : "off";
-        Serial.println("buzzer output");
-        Serial.println(values["buzzer"]);
+        debugln("buzzer output");
+        debugln(values["buzzer"]);
         break;
 
+      case 'l'://L bluetooth ch1
 
-      //  case 'm'://mode
-      //   newmode = strtol(message + 5, NULL, 16);
-      //   values["mode"] = newmode;
-      //   break;
+        switch (message[2])
+        {
+          case '1': //lb1 
+            debugln("lb case 1 triggered");
+            if (message[6] == 'f')//off
+            {
+              lb1_mode = "off";
+              debugln("bluetooth ch1 off");
+            }
+            else if (message[6] == '1')
+            {
+              lb1_mode = "ch1";
+              debugln("BT Ch1 -> Output 1 Enabled");
+            }
+            else if (message[6] == '2')
+            {
+              lb1_mode = "ch2";
+              debugln("BT Ch1 -> Output 2 Enabled");
+            }
+            else if (message[6] == '3')
+            {
+              lb1_mode = "ch3";
+              debugln("BT Ch1 -> Output 3 Enabled");
+            }
+            else if (message[6] == '4')
+            {
+              lb1_mode = "ch4";
+              debugln("BT Ch1 -> Output 4 Enabled");
+            }
+            else if (message[6] == '5')
+            {
+              lb1_mode = "ch5";
+              debugln("BT Ch1 -> Pump Enabled");
+            }
+            else
+            {
+              debugln("unknown lb1");
+            }
+            values["lb1"] = lb1_mode;
+            debugln("Bluetooth Ch1 output");
+            debugln(values["lb1"]);
+            break;
 
-        }
+          case '2': //lb2 
+          debugln("lb case 2 triggered");
+            if (message[6] == 'f')//off
+            {
+              lb2_mode = "off";
+              debugln("BT Ch2 off");
+            }
+            else if (message[6] == '1')
+            {
+              lb2_mode = "ch1";
+              debugln("BT Ch2 -> Output 1 Enabled");
+            }
+            else if (message[6] == '2')
+            {
+              lb2_mode = "ch2";
+              debugln("BT Ch2 -> Output 2 Enabled");
+            }
+            else if (message[6] == '3')
+            {
+              lb2_mode = "ch3";
+              debugln("BT Ch2 -> Output 3 Enabled");
+            }
+            else if (message[6] == '4')
+            {
+              lb2_mode = "ch4";
+              debugln("BT Ch2 -> Output 4 Enabled");
+            }
+            else if (message[6] == '5')
+            {
+              lb2_mode = "ch5";
+              debugln("BT Ch2 -> Pump Enabled");
+            }
+            else
+            {
+              debugln("unknown lb2");
+            }
+            values["lb2"] = lb2_mode;
+            debugln("Bluetooth Ch2 output");
+            debugln(values["lb2"]);
+            break;
+          } // switch message[2] end
+    } // switch message[0] end
+
     json_string = JSON.stringify(values);
     ws.textAll(json_string);
   }
-
-}
+} // handleWebSocketMessage_ws end
 
 void onEvent_ws(AsyncWebSocket *server, AsyncWebSocketClient *client, AwsEventType type, void *arg, uint8_t *data, size_t len) {
   switch (type)
@@ -763,13 +845,14 @@ void setup() {
   values["slider_k"] = 0;
   values["slider_l"] = 0;
   values["slider_m"] = 0; // pump
-
   values["toggle_a"] = false;
   values["toggle_b"] = false;
   values["toggle_c"] = false;
   values["toggle_d"] = false;
   values["toggle_e"] = false; // pump
   values["buzzer"] = "off";
+  values["lb1"] = "off";
+  values["lb2"] = "off";
 
 
 
