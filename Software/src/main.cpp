@@ -169,6 +169,7 @@ void notifyClients(String sliderValues) {
       rotaryEncoder.readEncoder_ISR();
     }
 
+// display blink text
 void blinktext()
   {
     drawcolorstate = !drawcolorstate;
@@ -176,6 +177,7 @@ void blinktext()
 
 void update_values_ws();
 
+// menu manual display (old manual)
 void displayMenu()
   {
   u8g2.setFont(u8g2_font_ncenB08_tr);
@@ -189,6 +191,7 @@ void displayMenu()
   u8g2.drawVLine(95,0,64);
   }
 
+// menu manual display values (old manual)
 void displayValues()
   {
   // 1st line  
@@ -220,6 +223,7 @@ void displayValues()
   u8g2.print(Ch4_PWM);
   }
 
+// menu System controls (old manual)
 void menuSystem() {
   switch (menu) {
 
@@ -469,6 +473,7 @@ void menuSystem() {
   }
 }
 
+// handle websocket message
 void handleWebSocketMessage_ws(void *arg, uint8_t *data, size_t len)
 {
   AwsFrameInfo *info = (AwsFrameInfo*)arg;
@@ -753,6 +758,7 @@ void handleWebSocketMessage_ws(void *arg, uint8_t *data, size_t len)
   }
 } // handleWebSocketMessage_ws end
 
+// on websocket event
 void onEvent_ws(AsyncWebSocket *server, AsyncWebSocketClient *client, AwsEventType type, void *arg, uint8_t *data, size_t len) {
   switch (type)
   {
@@ -771,11 +777,13 @@ void onEvent_ws(AsyncWebSocket *server, AsyncWebSocketClient *client, AwsEventTy
   }
 }
 
+// update websocket values
 void update_values_ws(){
     json_string = JSON.stringify(values);
     ws.textAll(json_string);
 }
 
+// initialize Websocket
 void init_ws() {
   ws.onEvent(onEvent_ws);
   server.addHandler(&ws);
@@ -799,7 +807,7 @@ void setup() {
   pinMode(pumpPin, OUTPUT);
   digitalWrite(RF_433, LOW);
 
-  // PWM
+  // define PWM
   ledcSetup(PWMOUT_1, freq, resolution);
   ledcSetup(PWMOUT_2, freq, resolution);
   ledcSetup(PWMOUT_3, freq, resolution);
@@ -957,8 +965,7 @@ void loop() {
       pwm4_enabled = false;
       pwm4_previousMillis = currentMillis;
     }
-
-  // Pump
+  // Pump Output 5
   if (Pump_Enable == true) 
     {
       int mapped_pump_PWM;
@@ -972,13 +979,6 @@ void loop() {
   // Encoder
   rotary_loop();
 
-  // Display
-  u8g2.clearBuffer();
-  displayMenu();
-  displayValues();
-  menuSystem();
-  u8g2.sendBuffer();
-
   // Buzzer test
   if (buzzer_enabled == true) {
     ledcWrite(buzzer,50);
@@ -986,5 +986,12 @@ void loop() {
   else {
     ledcWrite(buzzer,0);
   }
+
+  // Display
+  u8g2.clearBuffer();
+  displayMenu();
+  displayValues();
+  menuSystem();
+  u8g2.sendBuffer();
 
 }
