@@ -191,7 +191,7 @@ void blinktext()
 void update_values_ws();
 
 // Main Menu New
-const int MainMenuNumItems = 4; // number of items in the list and also the number of screenshots and screenshots with QR codes (other screens)
+const int MainMenuNumItems = 4; // number of items in the list 
 const int MainMenuMaxItemLength = 20; // maximum characters for the item name
 char MainMenuItems [MainMenuNumItems] [MainMenuMaxItemLength] = {  // array with item names
   { "WiFi" }, 
@@ -202,13 +202,15 @@ char MainMenuItems [MainMenuNumItems] [MainMenuMaxItemLength] = {  // array with
 
 void displayMainMenu()
   {
+    item_selected = encoderPosition;
     u8g2.clearDisplay();
     if (current_screen == 0) {
+        rotaryEncoder.setBoundaries(0, 3, false);
         u8g2.setFont(u8g2_font_t0_13b_mf);
         u8g2.drawStr(25, 15, MainMenuItems[item_sel_previous]); 
-        u8g2.drawStr(25, 15+20+2, MainMenuItems[item_selected]);
-        u8g2.drawStr(25, 15+20+20+2+2, MainMenuItems[item_sel_next]);  
-        u8g2.drawFrame(6,17,112,18);
+        u8g2.drawStr(25, 35, MainMenuItems[item_selected]);
+        u8g2.drawStr(25, 55, MainMenuItems[item_sel_next]);  
+        u8g2.drawFrame(6,22,112,18);
     }
     u8g2.sendBuffer();
   }
@@ -263,7 +265,7 @@ void menuManual() {
   switch (menu) {
 
     case 1: //
-      rotaryEncoder.setBoundaries(1, 4, false); //0-4
+      rotaryEncoder.setBoundaries(1, 4, false); //0-3
       menu = encoderPosition;
       u8g2.setDrawColor(drawcolorstate);
       u8g2.drawStr(1,8,"Ch1");
@@ -863,7 +865,7 @@ void setup() {
 	//set boundaries and if values should cycle or not
 	//in this example we will set possible values between 0 and 60;
 	bool circleValues = true;
-	rotaryEncoder.setBoundaries(0, 60, circleValues); //minValue, maxValue, circleValues true|false (when max go to min and vice versa)
+	rotaryEncoder.setBoundaries(0, 3, false); //minValue, maxValue, circleValues true|false (when max go to min and vice versa)
   /*Rotary acceleration introduced 25.2.2021.
    * in case range to select is huge, for example - select a value between 0 and 1000 and we want 785
    * without accelerateion you need long time to get to that number
@@ -871,7 +873,7 @@ void setup() {
    * For fine tuning slow down.
    */
 	//rotaryEncoder.disableAcceleration(); //acceleration is now enabled by default - disable if you dont need it
-	rotaryEncoder.setAcceleration(50); //or set the value - larger number = more accelearation; 0 or 1 means disabled acceleration
+	rotaryEncoder.setAcceleration(0); //or set the value - larger number = more accelearation; 0 or 1 means disabled acceleration
   rotaryEncoder.setEncoderValue(1);
 
   //Display
@@ -1021,13 +1023,20 @@ void loop() {
     ledcWrite(buzzer,0);
   }
 
-  // Menu
-  if (encoderPosition != encoderPosition) {
-    debugln(encoderPosition);
+  if (encoderPosition != item_selected) 
+    {
     item_selected = encoderPosition;
-    item_sel_next = item_selected + 1;
+    // set correct values for the previous and next items
     item_sel_previous = item_selected - 1;
-    displayMainMenu();
-  }
+    if (item_sel_previous < 0) {item_sel_previous = MainMenuNumItems - 1;} // previous item would be below first = make it the last
+    item_sel_next = item_selected + 1;  
+    if (item_sel_next >= MainMenuNumItems) {item_sel_next = 0;} // next item would be after last = make it the first
+    // Update the main menu
+    if (current_screen == 0) 
+      {
+      displayMainMenu();
+      }
+    }
+
 
 }
