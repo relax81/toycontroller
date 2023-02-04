@@ -25,6 +25,7 @@
 
 
 bool buttonPressed = false;
+bool buttonLongPressed = false; // 1 second
 int encoderPosition = 0;
 bool drawcolorstate = true;
 
@@ -137,6 +138,15 @@ void notifyClients(String sliderValues) {
         lastTimePressed = millis();
         buttonPressed = true;
       }
+  void rotary_onButtonDown()
+      {
+        static unsigned long buttonDownPressed = 0;
+        if (millis() - buttonDownPressed > 1000)
+        {
+          buttonLongPressed = true;
+        }
+        buttonDownPressed = millis();
+      }
   void rotary_loop()
       {
         //dont print anything unless value changed
@@ -147,6 +157,10 @@ void notifyClients(String sliderValues) {
         if (rotaryEncoder.isEncoderButtonClicked())
         {
           rotary_onButtonClick();
+        }
+        if (rotaryEncoder.isEncoderButtonDown())
+        {
+          rotary_onButtonDown();
         }
 
       }
