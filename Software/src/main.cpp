@@ -28,8 +28,14 @@ bool buttonPressed = false;
 bool buttonLongPressed = false; // 1 second
 int encoderPosition = 0;
 bool drawcolorstate = true;
+unsigned long buttonDownPressed = 0;
+unsigned long lastTimePressed = 0;
 
-int menu = 1;
+int item_selected = 0; // which item in the menu is selected
+int item_sel_previous; // previous item - used in the menu screen to draw the item before the selected one
+int item_sel_next; // next item - used in the menu screen to draw next item after the selected one
+int current_screen = 0;   // 0 = main menu, 
+int menu = 1; // from old menu
 
 int Ch1_On = 0;
 int Ch1_Off = 0;
@@ -129,23 +135,30 @@ void notifyClients(String sliderValues) {
 // Encoder Functions
   void rotary_onButtonClick()
       {
-        static unsigned long lastTimePressed = 0;
+        lastTimePressed = 0;
         //ignore multiple press in that time milliseconds
         if (millis() - lastTimePressed < 200)
         {
           return;
         }
+        else if (buttonLongPressed == true) {
+          buttonLongPressed = false;
+          return;
+        }
         lastTimePressed = millis();
         buttonPressed = true;
+        debugln("button clicked");
       }
   void rotary_onButtonDown()
       {
-        static unsigned long buttonDownPressed = 0;
-        if (millis() - buttonDownPressed > 1000)
+        buttonDownPressed = 0;
+        if ((millis() - buttonDownPressed > 1000) && (millis() - lastTimePressed > 600))
         {
           buttonLongPressed = true;
+          debugln("button long press");
         }
         buttonDownPressed = millis();
+        lastTimePressed = millis();
       }
   void rotary_loop()
       {
@@ -153,7 +166,7 @@ void notifyClients(String sliderValues) {
         if (rotaryEncoder.encoderChanged())
         {
           encoderPosition = rotaryEncoder.readEncoder();
-                }
+        }
         if (rotaryEncoder.isEncoderButtonClicked())
         {
           rotary_onButtonClick();
@@ -177,8 +190,32 @@ void blinktext()
 
 void update_values_ws();
 
+// Main Menu New
+const int MainMenuNumItems = 4; // number of items in the list and also the number of screenshots and screenshots with QR codes (other screens)
+const int MainMenuMaxItemLength = 20; // maximum characters for the item name
+char MainMenuItems [MainMenuNumItems] [MainMenuMaxItemLength] = {  // array with item names
+  { "WiFi" }, 
+  { "Bluetooth" }, 
+  { "Manual" }, 
+  { "Info" }, 
+ };
+
+void displayMainMenu()
+  {
+    u8g2.clearDisplay();
+    if (current_screen == 0) {
+        u8g2.setFont(u8g2_font_t0_13b_mf);
+        u8g2.drawStr(25, 15, MainMenuItems[item_sel_previous]); 
+        u8g2.drawStr(25, 15+20+2, MainMenuItems[item_selected]);
+        u8g2.drawStr(25, 15+20+20+2+2, MainMenuItems[item_sel_next]);  
+        u8g2.drawFrame(6,17,112,18);
+    }
+    u8g2.sendBuffer();
+  }
+
+
 // menu manual display (old manual)
-void displayMenu()
+void displayMenuManual()
   {
   u8g2.setFont(u8g2_font_ncenB08_tr);
   u8g2.drawStr(1,8,"Ch1");
@@ -190,7 +227,6 @@ void displayMenu()
   u8g2.drawVLine(61,0,64);
   u8g2.drawVLine(95,0,64);
   }
-
 // menu manual display values (old manual)
 void displayValues()
   {
@@ -222,9 +258,8 @@ void displayValues()
   u8g2.setCursor(102,55);
   u8g2.print(Ch4_PWM);
   }
-
 // menu System controls (old manual)
-void menuSystem() {
+void menuManual() {
   switch (menu) {
 
     case 1: //
@@ -845,8 +880,7 @@ void setup() {
   u8g2.clearBuffer();
   u8g2.clearDisplay();
   u8g2.setFontMode(1);
-  displayMenu();
-  displayValues();
+  displayMainMenu();
   u8g2.sendBuffer();
 
   initFS();
@@ -987,11 +1021,13 @@ void loop() {
     ledcWrite(buzzer,0);
   }
 
-  // Display
-  u8g2.clearBuffer();
-  displayMenu();
-  displayValues();
-  menuSystem();
-  u8g2.sendBuffer();
+  // Menu
+  if (encoderPosition != encoderPosition) {
+    debugln(encoderPosition);
+    item_selected = encoderPosition;
+    item_sel_next = item_selected + 1;
+    item_sel_previous = item_selected - 1;
+    displayMainMenu();
+  }
 
 }
