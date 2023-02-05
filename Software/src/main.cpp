@@ -882,7 +882,9 @@ void setup() {
   u8g2.clearBuffer();
   u8g2.clearDisplay();
   u8g2.setFontMode(1);
-  displayMainMenu();
+  u8g2.setFont(u8g2_font_crox4hb_tr);
+  u8g2.drawStr(15,20,"Universal");
+  u8g2.drawStr(13,45,"Controller");
   u8g2.sendBuffer();
 
   initFS();
