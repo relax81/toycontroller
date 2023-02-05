@@ -22,10 +22,11 @@
 #include "SPIFFS.h"
 #include <Arduino_JSON.h>
 
-
+// software version
+String version = "0.1";
 
 bool buttonPressed = false;
-bool buttonLongPressed = false; // 1 second
+bool buttonLongPressed = false; // > 1 second
 int encoderPosition = 0;
 bool drawcolorstate = true;
 unsigned long buttonDownPressed = 0;
@@ -141,24 +142,17 @@ void notifyClients(String sliderValues) {
         {
           return;
         }
-        else if (buttonLongPressed == true) {
-          buttonLongPressed = false;
-          return;
+        else if ( (millis() - lastTimePressed > 200) && (buttonLongPressed == false) ){
+          buttonPressed = true;
+          debugln("button clicked");
         }
         lastTimePressed = millis();
-        buttonPressed = true;
-        debugln("button clicked");
+        buttonLongPressed = false; 
       }
   void rotary_onButtonDown()
       {
-        buttonDownPressed = 0;
-        if ((millis() - buttonDownPressed > 1000) && (millis() - lastTimePressed > 600))
-        {
-          buttonLongPressed = true;
-          debugln("button long press");
-        }
-        buttonDownPressed = millis();
-        lastTimePressed = millis();
+        debugln("button long press");
+        buttonLongPressed = true;
       }
   void rotary_loop()
       {
@@ -205,16 +199,60 @@ void displayMainMenu()
     item_selected = encoderPosition;
     u8g2.clearDisplay();
     if (current_screen == 0) {
-        rotaryEncoder.setBoundaries(0, 3, false);
+        rotaryEncoder.setBoundaries(0, 3, true);
         u8g2.setFont(u8g2_font_t0_13b_mf);
         u8g2.drawStr(25, 15, MainMenuItems[item_sel_previous]); 
         u8g2.drawStr(25, 35, MainMenuItems[item_selected]);
         u8g2.drawStr(25, 55, MainMenuItems[item_sel_next]);  
         u8g2.drawFrame(6,22,112,18);
     }
+    else if (current_screen == 13) {
+        u8g2.setFont(u8g2_font_t0_13b_mf);
+        u8g2.drawStr(30, 17, "Software"); 
+        u8g2.drawStr(31, 32, "Version");
+        u8g2.setCursor(45, 47);
+        u8g2.print(version);  
+    }
     u8g2.sendBuffer();
   }
 
+// actions on short and long button presses
+void menuButtonAction(){
+  if ( (buttonPressed == true) && (current_screen == 0) ) {
+    //start switch case
+    switch (item_selected) {
+      case 0:
+      // WiFi
+      break;
+
+      case 1:
+      // Bluetooth
+      break;
+
+      case 2:
+      // Manual
+      break;
+
+      case 3:
+      // Info
+      current_screen = 13;
+      displayMainMenu();
+      break;
+
+      default:
+      break;
+    } // end switch case
+  buttonPressed = false;
+  } // end button pressed
+
+  else if (buttonLongPressed == true) {
+    current_screen = 0;
+    item_selected = 1;
+    encoderPosition = 1;
+    rotaryEncoder.setEncoderValue(encoderPosition);
+    displayMainMenu();
+  }
+}
 
 // menu manual display (old manual)
 void displayMenuManual()
@@ -1040,5 +1078,12 @@ void loop() {
       }
     }
 
+  menuButtonAction();
 
+  // debugging help
+  // debugln("encoder position: " + String(encoderPosition));
+  // debugln("item selected: " + String(item_selected));
+  // debugln("current screen: " + String(current_screen));
+  // delay(500);
+ 
 }
