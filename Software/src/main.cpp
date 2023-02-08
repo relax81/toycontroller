@@ -26,8 +26,7 @@
 String version = "0.1";
 
 void displayMenuManual();
-void displayValues();
-void menuManual();
+void buttonMenuManual();
 
 bool buttonPressed = false;
 bool buttonLongPressed = false; // > 1 second
@@ -206,8 +205,7 @@ void displayMainMenu()
     }
     else if (current_screen == 10) {
       displayMenuManual();
-      displayValues();
-      menuManual();
+      buttonMenuManual();
       // rotaryEncoder.setBoundaries(0, 0, false);
       // u8g2.setFont(u8g2_font_t0_13b_mf);
       // u8g2.drawStr(30, 17, "Manual");
@@ -320,10 +318,6 @@ void displayMenuManual()
   u8g2.drawVLine(30,0,64);
   u8g2.drawVLine(61,0,64);
   u8g2.drawVLine(95,0,64);
-  }
-// menu manual display values (old manual)
-void displayValues()
-  {
   // 1st line  
   u8g2.setCursor(1,25);
   u8g2.print(Ch1_On);
@@ -353,7 +347,7 @@ void displayValues()
   u8g2.print(Ch4_PWM);
   }
 // menu System controls (old manual)
-void menuManual() {
+void buttonMenuManual() {
   switch (menu) {
 
     case 1: //
@@ -438,6 +432,8 @@ void menuManual() {
       u8g2.print(Ch1_Off);
       u8g2.setDrawColor(1);
       if (buttonPressed == true) {
+          values["slider_b"] = Ch1_Off;
+          update_values_ws();
           buttonPressed = false;
           rotaryEncoder.setEncoderValue(Ch1_PWM);
           encoderPosition = Ch1_PWM;
@@ -453,6 +449,8 @@ void menuManual() {
       u8g2.print(Ch1_PWM);
       u8g2.setDrawColor(1);
       if (buttonPressed == true) {
+          values["slider_c"] = Ch1_PWM;
+          update_values_ws();
           buttonPressed = false;
           rotaryEncoder.setEncoderValue(1);
           encoderPosition = 1;
@@ -468,6 +466,8 @@ void menuManual() {
       u8g2.print(Ch2_On);
       u8g2.setDrawColor(1);
       if (buttonPressed == true) {
+          values["slider_d"] = Ch2_On;
+          update_values_ws();
           buttonPressed = false;
           rotaryEncoder.setEncoderValue(Ch2_Off);
           encoderPosition = Ch2_Off;
@@ -483,6 +483,8 @@ void menuManual() {
       u8g2.print(Ch2_Off);
       u8g2.setDrawColor(1);
       if (buttonPressed == true) {
+          values["slider_e"] = Ch2_Off;
+          update_values_ws();
           buttonPressed = false;
           rotaryEncoder.setEncoderValue(Ch2_PWM);
           encoderPosition = Ch2_PWM;
@@ -498,6 +500,8 @@ void menuManual() {
       u8g2.print(Ch2_PWM);
       u8g2.setDrawColor(1);
       if (buttonPressed == true) {
+          values["slider_f"] = Ch2_PWM;
+          update_values_ws();
           buttonPressed = false;
           rotaryEncoder.setEncoderValue(2);
           encoderPosition = 2;
@@ -513,6 +517,8 @@ void menuManual() {
       u8g2.print(Ch3_On);
       u8g2.setDrawColor(1);
       if (buttonPressed == true) {
+          values["slider_g"] = Ch3_On;
+          update_values_ws();
           buttonPressed = false;
           rotaryEncoder.setEncoderValue(Ch3_Off);
           encoderPosition = Ch3_Off;
@@ -528,6 +534,8 @@ void menuManual() {
       u8g2.print(Ch3_Off);
       u8g2.setDrawColor(1);
       if (buttonPressed == true) {
+          values["slider_h"] = Ch3_Off;
+          update_values_ws();
           buttonPressed = false;
           rotaryEncoder.setEncoderValue(Ch3_PWM);
           encoderPosition = Ch3_PWM;        
@@ -543,6 +551,8 @@ void menuManual() {
       u8g2.print(Ch3_PWM);
       u8g2.setDrawColor(1);
       if (buttonPressed == true) {
+          values["slider_i"] = Ch3_PWM;
+          update_values_ws();
           buttonPressed = false;
           rotaryEncoder.setEncoderValue(3);
           encoderPosition = 3;
@@ -558,6 +568,8 @@ void menuManual() {
       u8g2.print(Ch4_On);
       u8g2.setDrawColor(1);
       if (buttonPressed == true) {
+          values["slider_j"] = Ch4_On;
+          update_values_ws();
           buttonPressed = false;
           rotaryEncoder.setEncoderValue(Ch4_Off);
           encoderPosition = Ch4_Off;
@@ -573,6 +585,8 @@ void menuManual() {
       u8g2.print(Ch4_Off);
       u8g2.setDrawColor(1);
       if (buttonPressed == true) {
+          values["slider_k"] = Ch4_Off;
+          update_values_ws();
           buttonPressed = false;
           rotaryEncoder.setEncoderValue(Ch4_PWM);          
           encoderPosition = Ch4_PWM;         
@@ -587,7 +601,9 @@ void menuManual() {
       u8g2.setDrawColor(drawcolorstate);
       u8g2.print(Ch4_PWM);
       u8g2.setDrawColor(1);
-      if (buttonPressed == true) {
+      if (buttonPressed == true) {  
+          values["slider_l"] = Ch4_PWM;
+          update_values_ws();
           buttonPressed = false;
           rotaryEncoder.setEncoderValue(4);
           encoderPosition = 4;
@@ -1138,8 +1154,7 @@ void loop() {
 
   if (current_screen == 10) {
     displayMenuManual();
-    displayValues();
-    menuManual();
+    buttonMenuManual();
   }
   u8g2.sendBuffer();
   
