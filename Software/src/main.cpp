@@ -25,6 +25,10 @@
 // software version
 String version = "0.1";
 
+void displayMenuManual();
+void displayValues();
+void menuManual();
+
 bool buttonPressed = false;
 bool buttonLongPressed = false; // > 1 second
 int encoderPosition = 0;
@@ -201,10 +205,13 @@ void displayMainMenu()
       u8g2.drawFrame(6,22,112,18);
     }
     else if (current_screen == 10) {
-      rotaryEncoder.setBoundaries(0, 0, false);
-      u8g2.setFont(u8g2_font_t0_13b_mf);
-      u8g2.drawStr(30, 17, "Manual");
-      u8g2.drawStr(31, 32, "Mode");
+      displayMenuManual();
+      displayValues();
+      menuManual();
+      // rotaryEncoder.setBoundaries(0, 0, false);
+      // u8g2.setFont(u8g2_font_t0_13b_mf);
+      // u8g2.drawStr(30, 17, "Manual");
+      // u8g2.drawStr(31, 32, "Mode");
       if (buttonLongPressed == true) {      
         current_screen = 0;
         item_selected = 0;
@@ -262,7 +269,10 @@ void menuButtonAction(){
       case 0:
       // Manual
       current_screen = 10;
-      displayMainMenu();
+      menu = 1;
+      encoderPosition = menu;
+      rotaryEncoder.setEncoderValue(encoderPosition);
+      // displayMainMenu();
       break;
 
       case 1:
@@ -1123,9 +1133,16 @@ void loop() {
     }
 
   u8g2.clearBuffer();
-  menuButtonAction();
-  displayMainMenu();
+    menuButtonAction();
+    displayMainMenu();
+
+  if (current_screen == 10) {
+    displayMenuManual();
+    displayValues();
+    menuManual();
+  }
   u8g2.sendBuffer();
   
-
+  debugln((String)"Encoder: " + encoderPosition);
+  debugln((String)"Menu Value: " + menu);
 }
