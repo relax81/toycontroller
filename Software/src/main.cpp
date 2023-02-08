@@ -39,16 +39,16 @@ int item_selected = 0; // which item in the menu is selected
 int item_sel_previous; // previous item - used in the menu screen to draw the item before the selected one
 int item_sel_next; // next item - used in the menu screen to draw next item after the selected one
 int current_screen = 0;   // 0 = main menu, 
-int menu = 1; // from old menu
+int manualMenuSelect = 1; // from Manual Mode Menu
 
-int Ch1_On = 0;
-int Ch1_Off = 0;
-int Ch1_PWM = 0;
 bool Ch1_Enable = false;
 bool Ch2_Enable = false;
 bool Ch3_Enable = false;
 bool Ch4_Enable = false;
 bool Pump_Enable = false;
+int Ch1_On = 0;
+int Ch1_Off = 0;
+int Ch1_PWM = 0;
 int Ch2_On = 0;
 int Ch2_Off = 0;
 int Ch2_PWM = 0;
@@ -267,8 +267,8 @@ void menuButtonAction(){
       case 0:
       // Manual
       current_screen = 10;
-      menu = 1;
-      encoderPosition = menu;
+      manualMenuSelect = 1;
+      encoderPosition = manualMenuSelect;
       rotaryEncoder.setEncoderValue(encoderPosition);
       // displayMainMenu();
       break;
@@ -348,11 +348,11 @@ void displayMenuManual()
   }
 // menu System controls (old manual)
 void buttonMenuManual() {
-  switch (menu) {
+  switch (manualMenuSelect) {
 
     case 1: //
-      rotaryEncoder.setBoundaries(1, 4, false); //0-3
-      menu = encoderPosition;
+      rotaryEncoder.setBoundaries(1, 4, false);
+      manualMenuSelect = encoderPosition;
       u8g2.setDrawColor(drawcolorstate);
       u8g2.drawStr(1,8,"Ch1");
       u8g2.setDrawColor(1);
@@ -360,13 +360,12 @@ void buttonMenuManual() {
           buttonPressed = false;
           rotaryEncoder.setEncoderValue(Ch1_On);
           encoderPosition = Ch1_On;
-          menu = menu * 10;
+          manualMenuSelect = manualMenuSelect * 10;
           }
       break;
 
       case 2: //
-      rotaryEncoder.setBoundaries(1, 4, false); //0-4
-      menu = encoderPosition;
+      manualMenuSelect = encoderPosition;
       u8g2.setDrawColor(drawcolorstate);
       u8g2.drawStr(34,8,"Ch2");
       u8g2.setDrawColor(1);
@@ -374,13 +373,13 @@ void buttonMenuManual() {
           buttonPressed = false;
           rotaryEncoder.setEncoderValue(Ch2_On);
           encoderPosition = Ch2_On;
-          menu = menu * 10;
+          manualMenuSelect = manualMenuSelect * 10;
           }
       break;
 
     case 3: //
-      rotaryEncoder.setBoundaries(1, 4, false); //0-4
-      menu = encoderPosition;
+      rotaryEncoder.setBoundaries(1, 4, false); 
+      manualMenuSelect = encoderPosition;
       u8g2.setDrawColor(drawcolorstate);
       u8g2.drawStr(69,8,"Ch3");
       u8g2.setDrawColor(1);
@@ -388,13 +387,13 @@ void buttonMenuManual() {
           buttonPressed = false;
           rotaryEncoder.setEncoderValue(Ch3_On);
           encoderPosition = Ch3_On;
-          menu = menu * 10;
+          manualMenuSelect = manualMenuSelect * 10;
           }
       break;
     
     case 4: //
-      rotaryEncoder.setBoundaries(1, 4, false); //0-4
-      menu = encoderPosition;
+      rotaryEncoder.setBoundaries(1, 4, false); 
+      manualMenuSelect = encoderPosition;
       u8g2.setDrawColor(drawcolorstate);
       u8g2.drawStr(102,8,"Ch4");
       u8g2.setDrawColor(1);
@@ -402,13 +401,13 @@ void buttonMenuManual() {
           buttonPressed = false;
           rotaryEncoder.setEncoderValue(Ch4_On);
           encoderPosition = Ch4_On;
-          menu = menu * 10;
+          manualMenuSelect = manualMenuSelect * 10;
           }
       break;
 
 
     case 10: // 
-      rotaryEncoder.setBoundaries(0, 100, false); //0-99 
+      rotaryEncoder.setBoundaries(0, 100, false);
       Ch1_On = encoderPosition;
       u8g2.setCursor(1,25);
       u8g2.setDrawColor(drawcolorstate);
@@ -420,12 +419,12 @@ void buttonMenuManual() {
           buttonPressed = false;
           rotaryEncoder.setEncoderValue(Ch1_Off);
           encoderPosition = Ch1_Off;
-          menu++;
+          manualMenuSelect++;
           }
       break;
 
     case 11: // 
-      rotaryEncoder.setBoundaries(0, 100, false); //0-99 
+      rotaryEncoder.setBoundaries(0, 100, false); 
       Ch1_Off = encoderPosition;
       u8g2.setCursor(1,40);
       u8g2.setDrawColor(drawcolorstate);
@@ -437,12 +436,12 @@ void buttonMenuManual() {
           buttonPressed = false;
           rotaryEncoder.setEncoderValue(Ch1_PWM);
           encoderPosition = Ch1_PWM;
-          menu++;
+          manualMenuSelect++;
           }
       break;
 
     case 12: // 
-      rotaryEncoder.setBoundaries(0, 255, true); //0-99 
+      rotaryEncoder.setBoundaries(0, 100, false);
       Ch1_PWM = encoderPosition;
       u8g2.setCursor(1,55);
       u8g2.setDrawColor(drawcolorstate);
@@ -454,12 +453,12 @@ void buttonMenuManual() {
           buttonPressed = false;
           rotaryEncoder.setEncoderValue(1);
           encoderPosition = 1;
-          menu = 1;
+          manualMenuSelect = 1;
           }
       break;
 
     case 20: // 
-      rotaryEncoder.setBoundaries(0, 100, false); //0-99 
+      rotaryEncoder.setBoundaries(0, 100, false); 
       Ch2_On = encoderPosition;
       u8g2.setCursor(36,25);
       u8g2.setDrawColor(drawcolorstate);
@@ -471,12 +470,12 @@ void buttonMenuManual() {
           buttonPressed = false;
           rotaryEncoder.setEncoderValue(Ch2_Off);
           encoderPosition = Ch2_Off;
-          menu++;
+          manualMenuSelect++;
           }
       break;
 
     case 21: // 
-      rotaryEncoder.setBoundaries(0, 100, false); //0-99 
+      rotaryEncoder.setBoundaries(0, 100, false); 
       Ch2_Off = encoderPosition;
       u8g2.setCursor(36,40);
       u8g2.setDrawColor(drawcolorstate);
@@ -488,12 +487,12 @@ void buttonMenuManual() {
           buttonPressed = false;
           rotaryEncoder.setEncoderValue(Ch2_PWM);
           encoderPosition = Ch2_PWM;
-          menu++;
+          manualMenuSelect++;
           }
       break;
 
     case 22: // 
-      rotaryEncoder.setBoundaries(0, 255, true); //0-99 
+      rotaryEncoder.setBoundaries(0, 100, false); 
       Ch2_PWM = encoderPosition;
       u8g2.setCursor(36,55);
       u8g2.setDrawColor(drawcolorstate);
@@ -505,12 +504,12 @@ void buttonMenuManual() {
           buttonPressed = false;
           rotaryEncoder.setEncoderValue(2);
           encoderPosition = 2;
-          menu = 2;
+          manualMenuSelect = 2;
           }
       break;
     
     case 30: // 
-      rotaryEncoder.setBoundaries(0, 100, false); //0-99 
+      rotaryEncoder.setBoundaries(0, 100, false); 
       Ch3_On = encoderPosition;
       u8g2.setCursor(69,25);
       u8g2.setDrawColor(drawcolorstate);
@@ -522,12 +521,12 @@ void buttonMenuManual() {
           buttonPressed = false;
           rotaryEncoder.setEncoderValue(Ch3_Off);
           encoderPosition = Ch3_Off;
-          menu++;
+          manualMenuSelect++;
           }
       break;
 
     case 31: // 
-      rotaryEncoder.setBoundaries(0, 100, false); //0-99 
+      rotaryEncoder.setBoundaries(0, 100, false); 
       Ch3_Off = encoderPosition;
       u8g2.setCursor(69,40);
       u8g2.setDrawColor(drawcolorstate);
@@ -539,12 +538,12 @@ void buttonMenuManual() {
           buttonPressed = false;
           rotaryEncoder.setEncoderValue(Ch3_PWM);
           encoderPosition = Ch3_PWM;        
-          menu++;
+          manualMenuSelect++;
           }
       break;
 
     case 32: // 
-      rotaryEncoder.setBoundaries(0, 255, true); //0-99 
+      rotaryEncoder.setBoundaries(0, 100, false); 
       Ch3_PWM = encoderPosition;
       u8g2.setCursor(69,55);
       u8g2.setDrawColor(drawcolorstate);
@@ -556,12 +555,12 @@ void buttonMenuManual() {
           buttonPressed = false;
           rotaryEncoder.setEncoderValue(3);
           encoderPosition = 3;
-          menu = 3;
+          manualMenuSelect = 3;
           }
       break;
 
       case 40: // 
-      rotaryEncoder.setBoundaries(0, 100, false); //0-99 
+      rotaryEncoder.setBoundaries(0, 100, false); 
       Ch4_On = encoderPosition;
       u8g2.setCursor(102,25);
       u8g2.setDrawColor(drawcolorstate);
@@ -573,12 +572,12 @@ void buttonMenuManual() {
           buttonPressed = false;
           rotaryEncoder.setEncoderValue(Ch4_Off);
           encoderPosition = Ch4_Off;
-          menu++;
+          manualMenuSelect++;
           }
       break;
 
     case 41: // 
-      rotaryEncoder.setBoundaries(0, 100, false); //0-99 
+      rotaryEncoder.setBoundaries(0, 100, false); 
       Ch4_Off = encoderPosition;
       u8g2.setCursor(102,40);
       u8g2.setDrawColor(drawcolorstate);
@@ -590,12 +589,12 @@ void buttonMenuManual() {
           buttonPressed = false;
           rotaryEncoder.setEncoderValue(Ch4_PWM);          
           encoderPosition = Ch4_PWM;         
-          menu++;
+          manualMenuSelect++;
           }
       break;
 
     case 42: // 
-      rotaryEncoder.setBoundaries(0, 255, true); //0-99 
+      rotaryEncoder.setBoundaries(0, 100, false); 
       Ch4_PWM = encoderPosition;
       u8g2.setCursor(102,55);
       u8g2.setDrawColor(drawcolorstate);
@@ -607,7 +606,7 @@ void buttonMenuManual() {
           buttonPressed = false;
           rotaryEncoder.setEncoderValue(4);
           encoderPosition = 4;
-          menu = 4;
+          manualMenuSelect = 4;
           }
       break;
 
@@ -1158,6 +1157,4 @@ void loop() {
   }
   u8g2.sendBuffer();
   
-  debugln((String)"Encoder: " + encoderPosition);
-  debugln((String)"Menu Value: " + menu);
 }
