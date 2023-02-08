@@ -28,6 +28,9 @@ String version = "0.1";
 void displayMenuManual();
 void buttonMenuManual();
 
+//test area
+//test area end
+
 bool buttonPressed = false;
 bool buttonLongPressed = false;
 int buttonDownCount = 0;
@@ -363,6 +366,7 @@ void buttonMenuManual() {
       u8g2.setDrawColor(1);
       if (buttonPressed == true) {
           buttonPressed = false;
+          rotaryEncoder.setBoundaries(0, 100, false);
           rotaryEncoder.setEncoderValue(Ch1_On);
           encoderPosition = Ch1_On;
           manualMenuSelect = manualMenuSelect * 10;
@@ -376,6 +380,7 @@ void buttonMenuManual() {
       u8g2.setDrawColor(1);
       if (buttonPressed == true) {
           buttonPressed = false;
+          rotaryEncoder.setBoundaries(0, 100, false);
           rotaryEncoder.setEncoderValue(Ch2_On);
           encoderPosition = Ch2_On;
           manualMenuSelect = manualMenuSelect * 10;
@@ -390,6 +395,7 @@ void buttonMenuManual() {
       u8g2.setDrawColor(1);
       if (buttonPressed == true) {
           buttonPressed = false;
+          rotaryEncoder.setBoundaries(0, 100, false);
           rotaryEncoder.setEncoderValue(Ch3_On);
           encoderPosition = Ch3_On;
           manualMenuSelect = manualMenuSelect * 10;
@@ -404,6 +410,7 @@ void buttonMenuManual() {
       u8g2.setDrawColor(1);
       if (buttonPressed == true) {
           buttonPressed = false;
+          rotaryEncoder.setBoundaries(0, 100, false);
           rotaryEncoder.setEncoderValue(Ch4_On);
           encoderPosition = Ch4_On;
           manualMenuSelect = manualMenuSelect * 10;
@@ -1072,7 +1079,7 @@ void loop() {
   timer1.update(); // display blinking text timer
 
 // PWM Output 1
-  if ((currentMillis - pwm1_previousMillis >= Ch1_Off*1000) && (!pwm1_enabled) && (Ch1_Enable != 0)) 
+  if ((currentMillis - pwm1_previousMillis >= Ch1_Off*1000) && (!pwm1_enabled) && (Ch1_Enable == true)) 
     {
       int mapped_Ch1_PWM;
       mapped_Ch1_PWM = map(Ch1_PWM, 0, 100, 0, 255);
@@ -1082,14 +1089,14 @@ void loop() {
       debug("Ch1 PWM: ");
       debugln(mapped_Ch1_PWM);
     }
-  else if ((currentMillis - pwm1_previousMillis >= Ch1_On*1000) && (pwm1_enabled))
+  else if ((currentMillis - pwm1_previousMillis >= Ch1_On*1000) && (Ch1_Off > 0) & (pwm1_enabled))
     {
       ledcWrite(PWMOUT_1,0);
       pwm1_enabled = false;
       pwm1_previousMillis = currentMillis;
     }
   // PWM Output 2
-  else if ((currentMillis - pwm2_previousMillis >= Ch2_Off*1000) && (!pwm2_enabled) && (Ch2_Enable != 0)) 
+  if ((currentMillis - pwm2_previousMillis >= Ch2_Off*1000) && (!pwm2_enabled) && (Ch2_Enable == true)) 
     {
       int mapped_Ch2_PWM;
       mapped_Ch2_PWM = map(Ch2_PWM, 0, 100, 0, 255);
@@ -1099,14 +1106,14 @@ void loop() {
       debug("Ch2 PWM: ");
       debugln(mapped_Ch2_PWM);
     }
-  else if ((currentMillis - pwm2_previousMillis >= Ch2_On*1000) && (pwm2_enabled))
+  else if ((currentMillis - pwm2_previousMillis >= Ch2_On*1000) && (Ch2_Off > 0) && (pwm2_enabled))
     {
       ledcWrite(PWMOUT_2,0);
       pwm2_enabled = false;
       pwm2_previousMillis = currentMillis;
     }
   // PWM Output 3
-  else if ((currentMillis - pwm3_previousMillis >= Ch3_Off*1000) && (!pwm3_enabled) && (Ch3_Enable != 0)) 
+  if ((currentMillis - pwm3_previousMillis >= Ch3_Off*1000) && (!pwm3_enabled) && (Ch3_Enable == true)) 
     {
       int mapped_Ch3_PWM;
       mapped_Ch3_PWM = map(Ch3_PWM, 0, 100, 0, 255);
@@ -1116,14 +1123,14 @@ void loop() {
       debug("Ch3 PWM: ");
       debugln(mapped_Ch3_PWM);
     }
-  else if ((currentMillis - pwm3_previousMillis >= Ch3_On*1000) && (pwm3_enabled))
+  else if ((currentMillis - pwm3_previousMillis >= Ch3_On*1000) && (Ch3_Off > 0) && (pwm3_enabled))
     {
       ledcWrite(PWMOUT_3,0);
       pwm3_enabled = false;
       pwm3_previousMillis = currentMillis;
     }
   // PWM Output 4
-  else if ((currentMillis - pwm4_previousMillis >= Ch4_Off*1000) && (!pwm4_enabled) && (Ch4_Enable)) 
+  if ((currentMillis - pwm4_previousMillis >= Ch4_Off*1000) && (!pwm4_enabled) && (Ch4_Enable == true)) 
     {
       debugln("ch4 on");
       int mapped_Ch4_PWM;
@@ -1134,7 +1141,7 @@ void loop() {
       debug("Ch4 PWM: ");
       debugln(mapped_Ch4_PWM);
     }
-  else if ((currentMillis - pwm4_previousMillis >= Ch4_On*1000) && (pwm4_enabled))
+  else if ((currentMillis - pwm4_previousMillis >= Ch4_On*1000) && (Ch4_Off > 0) && (pwm4_enabled))
     {
       debugln("ch4 off");
       ledcWrite(PWMOUT_4,0);
@@ -1181,6 +1188,14 @@ void loop() {
       }
     }
 
+  // Encoder Acceleration
+  if (current_screen == 0) {
+    rotaryEncoder.setAcceleration(0);
+  }
+  else if (current_screen == 10) {
+    rotaryEncoder.setAcceleration(50);
+  }
+  
   u8g2.clearBuffer();
   menuButtonAction();
   displayMainMenu();
