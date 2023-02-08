@@ -686,6 +686,8 @@ void handleWebSocketMessage_ws(void *arg, uint8_t *data, size_t len)
             {
             Ch4_Enable = false;
             values["toggle_d"] = Ch4_Enable;
+            debugln("ch4 disabled");
+            debugln((String)"Ch4_enable value: " + Ch4_Enable);
             } 
           break;          
 
@@ -933,6 +935,30 @@ void init_ws() {
   server.addHandler(&ws);
 }
 
+// disable Outputs
+void disable_Outputs()
+{
+  if (!Ch1_Enable) {
+    pwm1_enabled = false;
+    ledcWrite(PWMOUT_1, 0);
+  }
+  if (!Ch2_Enable) {
+    pwm2_enabled = false;
+    ledcWrite(PWMOUT_2, 0);
+  }
+  if (!Ch3_Enable) {
+    pwm3_enabled = false;
+    ledcWrite(PWMOUT_3, 0);
+  }
+ if (!Ch4_Enable) {
+    pwm4_enabled = false;
+    ledcWrite(PWMOUT_4,0);
+ }
+  if (!Pump_Enable){
+    ledcWrite(pumpOUT, 0);
+  }
+}
+
 void setup() {
   Serial.begin(115200);
   debugln("setup started");
@@ -1094,8 +1120,9 @@ void loop() {
       pwm3_previousMillis = currentMillis;
     }
   // PWM Output 4
-   else if ((currentMillis - pwm4_previousMillis >= Ch4_Off*1000) && (!pwm4_enabled) && (Ch4_Enable != 0)) 
+  else if ((currentMillis - pwm4_previousMillis >= Ch4_Off*1000) && (!pwm4_enabled) && (Ch4_Enable)) 
     {
+      debugln("ch4 on");
       int mapped_Ch4_PWM;
       mapped_Ch4_PWM = map(Ch4_PWM, 0, 100, 0, 255);
       ledcWrite(PWMOUT_4, mapped_Ch4_PWM);      
@@ -1106,6 +1133,7 @@ void loop() {
     }
   else if ((currentMillis - pwm4_previousMillis >= Ch4_On*1000) && (pwm4_enabled))
     {
+      debugln("ch4 off");
       ledcWrite(PWMOUT_4,0);
       pwm4_enabled = false;
       pwm4_previousMillis = currentMillis;
@@ -1121,6 +1149,9 @@ void loop() {
     ledcWrite(pumpOUT, 0);
     }
   
+  // disable Outputs
+  disable_Outputs();
+
   // Encoder
   rotary_loop();
 
@@ -1148,13 +1179,12 @@ void loop() {
     }
 
   u8g2.clearBuffer();
-    menuButtonAction();
-    displayMainMenu();
-
-  if (current_screen == 10) {
-    displayMenuManual();
-    buttonMenuManual();
-  }
+  menuButtonAction();
+  displayMainMenu();
+    if (current_screen == 10) {
+      displayMenuManual();
+      buttonMenuManual();
+    }
   u8g2.sendBuffer();
   
 }
