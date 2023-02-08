@@ -187,33 +187,71 @@ void update_values_ws();
 // Main Menu New
 const int MainMenuNumItems = 4; // number of items in the list 
 const int MainMenuMaxItemLength = 20; // maximum characters for the item name
-char MainMenuItems [MainMenuNumItems] [MainMenuMaxItemLength] = {  // array with item names
-  { "WiFi" }, 
-  { "Bluetooth" }, 
-  { "Manual" }, 
-  { "Info" }, 
- };
+char MainMenuItems [MainMenuNumItems] [MainMenuMaxItemLength] = {"Manual","WiFi","Bluetooth","Info"};
 
 void displayMainMenu()
   {
     item_selected = encoderPosition;
-    u8g2.clearDisplay();
     if (current_screen == 0) {
-        rotaryEncoder.setBoundaries(0, 3, true);
-        u8g2.setFont(u8g2_font_t0_13b_mf);
-        u8g2.drawStr(25, 15, MainMenuItems[item_sel_previous]); 
-        u8g2.drawStr(25, 35, MainMenuItems[item_selected]);
-        u8g2.drawStr(25, 55, MainMenuItems[item_sel_next]);  
-        u8g2.drawFrame(6,22,112,18);
+      rotaryEncoder.setBoundaries(0, 3, true);
+      u8g2.setFont(u8g2_font_t0_13b_mf);
+      u8g2.drawStr(25, 15, MainMenuItems[item_sel_previous]); 
+      u8g2.drawStr(25, 35, MainMenuItems[item_selected]);
+      u8g2.drawStr(25, 55, MainMenuItems[item_sel_next]);  
+      u8g2.drawFrame(6,22,112,18);
+    }
+    else if (current_screen == 10) {
+      rotaryEncoder.setBoundaries(0, 0, false);
+      u8g2.setFont(u8g2_font_t0_13b_mf);
+      u8g2.drawStr(30, 17, "Manual");
+      u8g2.drawStr(31, 32, "Mode");
+      if (buttonLongPressed == true) {      
+        current_screen = 0;
+        item_selected = 0;
+        encoderPosition = 0;
+        rotaryEncoder.setEncoderValue(encoderPosition);
+      }
+    }
+    else if (current_screen == 11) {
+      rotaryEncoder.setBoundaries(1, 1, false);
+      u8g2.setFont(u8g2_font_t0_13b_mf);
+      u8g2.drawStr(28, 17, "Local IP");
+      u8g2.setCursor(8, 32);
+      u8g2.print(WiFi.localIP());
+      if (buttonLongPressed == true) {      
+        current_screen = 0;
+        item_selected = 1;
+        encoderPosition = 1;
+        rotaryEncoder.setEncoderValue(encoderPosition);
+      }
+    }
+    else if (current_screen == 12) {
+      rotaryEncoder.setBoundaries(2, 2, false);
+      u8g2.setFont(u8g2_font_t0_13b_mf);
+      u8g2.drawStr(30, 17, "Bluetooth");
+      u8g2.drawStr(31, 32, "Enabled");
+      if (buttonLongPressed == true) {      
+        current_screen = 0;
+        item_selected = 2;
+        encoderPosition = 2;
+        rotaryEncoder.setEncoderValue(encoderPosition);
+      }
     }
     else if (current_screen == 13) {
-        u8g2.setFont(u8g2_font_t0_13b_mf);
-        u8g2.drawStr(30, 17, "Software"); 
-        u8g2.drawStr(31, 32, "Version");
-        u8g2.setCursor(45, 47);
-        u8g2.print(version);  
+      rotaryEncoder.setBoundaries(3, 3, false);
+      u8g2.setFont(u8g2_font_t0_13b_mf);
+      u8g2.drawStr(30, 17, "Software"); 
+      u8g2.drawStr(31, 32, "Version");
+      u8g2.setCursor(45, 47);
+      u8g2.print(version);  
+      if (buttonLongPressed == true) {      
+        current_screen = 0;
+        item_selected = 3;
+        encoderPosition = 3;
+        rotaryEncoder.setEncoderValue(encoderPosition);
+      }
     }
-    u8g2.sendBuffer();
+    // u8g2.sendBuffer();
   }
 
 // actions on short and long button presses
@@ -222,15 +260,21 @@ void menuButtonAction(){
     //start switch case
     switch (item_selected) {
       case 0:
-      // WiFi
+      // Manual
+      current_screen = 10;
+      displayMainMenu();
       break;
 
       case 1:
-      // Bluetooth
+      // WiFi
+      current_screen = 11;
+      displayMainMenu();
       break;
 
       case 2:
-      // Manual
+      // Bluetooth
+      current_screen = 12;
+      displayMainMenu();
       break;
 
       case 3:
@@ -246,11 +290,11 @@ void menuButtonAction(){
   } // end button pressed
 
   else if (buttonLongPressed == true) {
-    current_screen = 0;
-    item_selected = 1;
-    encoderPosition = 1;
-    rotaryEncoder.setEncoderValue(encoderPosition);
-    displayMainMenu();
+    // current_screen = 0;
+    // item_selected = 1;
+    // encoderPosition = 1;
+    // rotaryEncoder.setEncoderValue(encoderPosition);
+    // displayMainMenu();
   }
 }
 
@@ -902,7 +946,7 @@ void setup() {
 	rotaryEncoder.setup(readEncoderISR);
 	//set boundaries and if values should cycle or not
 	//in this example we will set possible values between 0 and 60;
-	bool circleValues = true;
+
 	rotaryEncoder.setBoundaries(0, 3, false); //minValue, maxValue, circleValues true|false (when max go to min and vice versa)
   /*Rotary acceleration introduced 25.2.2021.
    * in case range to select is huge, for example - select a value between 0 and 1000 and we want 785
@@ -1078,12 +1122,10 @@ void loop() {
       }
     }
 
+  u8g2.clearBuffer();
   menuButtonAction();
+  displayMainMenu();
+  u8g2.sendBuffer();
+  
 
-  // debugging help
-  // debugln("encoder position: " + String(encoderPosition));
-  // debugln("item selected: " + String(item_selected));
-  // debugln("current screen: " + String(current_screen));
-  // delay(500);
- 
 }
