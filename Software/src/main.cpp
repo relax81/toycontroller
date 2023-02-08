@@ -29,10 +29,10 @@ void displayMenuManual();
 void buttonMenuManual();
 
 bool buttonPressed = false;
-bool buttonLongPressed = false; // > 1 second
+bool buttonLongPressed = false;
+int buttonDownCount = 0;
 int encoderPosition = 0;
 bool drawcolorstate = true;
-unsigned long buttonDownPressed = 0;
 unsigned long lastTimePressed = 0;
 
 int item_selected = 0; // which item in the menu is selected
@@ -145,17 +145,22 @@ void notifyClients(String sliderValues) {
         {
           return;
         }
-        else if ( (millis() - lastTimePressed > 200) && (buttonLongPressed == false) ){
+        else if ( (millis() - lastTimePressed > 200) && (buttonDownCount == 0) ){
           buttonPressed = true;
           debugln("button clicked");
         }
         lastTimePressed = millis();
         buttonLongPressed = false; 
+        buttonDownCount = 0;
       }
   void rotary_onButtonDown()
       {
-        debugln("button long press");
-        buttonLongPressed = true;
+        // buttonLongPressed = true;
+        buttonDownCount++;
+        if (buttonDownCount >= 2) {
+          buttonLongPressed = true;
+          debugln("button long press");
+        }
       }
   void rotary_loop()
       {
@@ -686,8 +691,6 @@ void handleWebSocketMessage_ws(void *arg, uint8_t *data, size_t len)
             {
             Ch4_Enable = false;
             values["toggle_d"] = Ch4_Enable;
-            debugln("ch4 disabled");
-            debugln((String)"Ch4_enable value: " + Ch4_Enable);
             } 
           break;          
 
@@ -1125,7 +1128,7 @@ void loop() {
       debugln("ch4 on");
       int mapped_Ch4_PWM;
       mapped_Ch4_PWM = map(Ch4_PWM, 0, 100, 0, 255);
-      ledcWrite(PWMOUT_4, mapped_Ch4_PWM);      
+      ledcWrite(PWMOUT_4, mapped_Ch4_PWM);
       pwm4_enabled = true;
       pwm4_previousMillis = currentMillis;
       debug("Ch4 PWM: ");
@@ -1139,7 +1142,7 @@ void loop() {
       pwm4_previousMillis = currentMillis;
     }
   // Pump Output 5
-  if (Pump_Enable == true) 
+  if (Pump_Enable == true)
     {
       int mapped_pump_PWM;
       mapped_pump_PWM = map(pump_PWM, 0, 100, 0, 255);
