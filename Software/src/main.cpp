@@ -72,14 +72,18 @@ const int PWMOUT_3 = 3; // 5v ch1
 const int PWMOUT_4 = 4; // 5v ch2
 const int buzzer = 5;
 const int pumpOUT = 6; // Pump PWM Output
-unsigned long pwm1_previousMillis = 0;
-unsigned long pwm2_previousMillis = 0;
-unsigned long pwm3_previousMillis = 0;
-unsigned long pwm4_previousMillis = 0;
-bool pwm1_enabled = false;
-bool pwm2_enabled = false;
-bool pwm3_enabled = false;
-bool pwm4_enabled = false;
+bool pwm1_paused = false;
+bool pwm2_paused = false;
+bool pwm3_paused = false;
+bool pwm4_paused = false;
+unsigned long pwm1_timeStarted = 0;
+unsigned long pwm1_timeStopped = 0;
+unsigned long pwm2_timeStarted = 0;
+unsigned long pwm2_timeStopped = 0;
+unsigned long pwm3_timeStarted = 0;
+unsigned long pwm3_timeStopped = 0;
+unsigned long pwm4_timeStarted = 0;
+unsigned long pwm4_timeStopped = 0;
 bool buzzer_enabled = false;
 String lb1_mode;
 String lb2_mode;
@@ -306,11 +310,7 @@ void menuButtonAction(){
   } // end button pressed
 
   else if (buttonLongPressed == true) {
-    // current_screen = 0;
-    // item_selected = 1;
-    // encoderPosition = 1;
-    // rotaryEncoder.setEncoderValue(encoderPosition);
-    // displayMainMenu();
+    //
   }
 }
 
@@ -949,24 +949,117 @@ void init_ws() {
 void disable_Outputs()
 {
   if (!Ch1_Enable) {
-    pwm1_enabled = false;
+    pwm1_paused = false;
     ledcWrite(PWMOUT_1, 0);
   }
   if (!Ch2_Enable) {
-    pwm2_enabled = false;
+    pwm2_paused = false;
     ledcWrite(PWMOUT_2, 0);
   }
   if (!Ch3_Enable) {
-    pwm3_enabled = false;
+    pwm3_paused = false;
     ledcWrite(PWMOUT_3, 0);
   }
  if (!Ch4_Enable) {
-    pwm4_enabled = false;
+    pwm4_paused = false;
     ledcWrite(PWMOUT_4,0);
  }
   if (!Pump_Enable){
     ledcWrite(pumpOUT, 0);
   }
+}
+
+void PWM_Output(){
+  // Output 1
+  if ((pwm1_paused == false) && (Ch1_Enable == true))
+  {
+     int mapped_Ch1_PWM;
+     mapped_Ch1_PWM = map(Ch1_PWM, 0, 100, 0, 255);
+     ledcWrite(PWMOUT_1, mapped_Ch1_PWM);
+     if ((Ch1_Off > 0) && (millis() - pwm1_timeStarted >= Ch1_On * 1000)) {
+      pwm1_paused = true;
+      pwm1_timeStopped = millis();
+    }
+  }  
+  else if ((pwm1_paused == true) && (Ch1_Enable == true))
+  {
+    ledcWrite(PWMOUT_1, 0);
+    if (millis() - pwm1_timeStopped >= Ch1_Off * 1000)
+    {
+      pwm1_paused = false;
+      pwm1_timeStarted = millis();
+    }
+  }
+  // Output 2
+  if ((pwm2_paused == false) && (Ch2_Enable == true))
+  {
+     int mapped_Ch2_PWM;
+     mapped_Ch2_PWM = map(Ch2_PWM, 0, 100, 0, 255);
+     ledcWrite(PWMOUT_2, mapped_Ch2_PWM);
+     if ((Ch2_Off > 0) && (millis() - pwm2_timeStarted >= Ch2_On * 1000)) {
+      pwm2_paused = true;
+      pwm2_timeStopped = millis();
+    }
+  }  
+  else if ((pwm2_paused == true) && (Ch2_Enable == true))
+  {
+    ledcWrite(PWMOUT_2, 0);
+    if (millis() - pwm2_timeStopped >= Ch2_Off * 1000)
+    {
+      pwm2_paused = false;
+      pwm2_timeStarted = millis();
+    }
+  }
+  // Output 3
+  if ((pwm3_paused == false) && (Ch3_Enable == true))
+  {
+     int mapped_Ch3_PWM;
+     mapped_Ch3_PWM = map(Ch3_PWM, 0, 100, 0, 255);
+     ledcWrite(PWMOUT_3, mapped_Ch3_PWM);
+     if ((Ch3_Off > 0) && (millis() - pwm4_timeStarted >= Ch3_On * 1000)) {
+      pwm3_paused = true;
+      pwm3_timeStopped = millis();
+    }
+  }  
+  else if ((pwm3_paused == true) && (Ch3_Enable == true))
+  {
+    ledcWrite(PWMOUT_3, 0);
+    if (millis() - pwm3_timeStopped >= Ch3_Off * 1000)
+    {
+      pwm3_paused = false;
+      pwm3_timeStarted = millis();
+    }
+  }
+  // Output 4
+  if ((pwm4_paused == false) && (Ch4_Enable == true))
+  {
+     int mapped_Ch4_PWM;
+     mapped_Ch4_PWM = map(Ch4_PWM, 0, 100, 0, 255);
+     ledcWrite(PWMOUT_4, mapped_Ch4_PWM);
+     if ((Ch4_Off > 0) && (millis() - pwm4_timeStarted >= Ch4_On * 1000)) {
+      pwm4_paused = true;
+      pwm4_timeStopped = millis();
+    }
+  }  
+  else if ((pwm4_paused == true) && (Ch4_Enable == true))
+  {
+    ledcWrite(PWMOUT_4, 0);
+    if (millis() - pwm4_timeStopped >= Ch4_Off * 1000)
+    {
+      pwm4_paused = false;
+      pwm4_timeStarted = millis();
+    }
+  }
+  // Pump Output 5
+  if (Pump_Enable == true)
+    {
+      int mapped_pump_PWM;
+      mapped_pump_PWM = map(pump_PWM, 0, 100, 0, 255);
+      ledcWrite(pumpOUT, mapped_pump_PWM);
+    }
+  else {
+    ledcWrite(pumpOUT, 0);
+    }
 }
 
 void setup() {
@@ -1078,86 +1171,8 @@ void loop() {
   unsigned long currentMillis = millis();
   timer1.update(); // display blinking text timer
 
-// PWM Output 1
-  if ((currentMillis - pwm1_previousMillis >= Ch1_Off*1000) && (!pwm1_enabled) && (Ch1_Enable == true)) 
-    {
-      int mapped_Ch1_PWM;
-      mapped_Ch1_PWM = map(Ch1_PWM, 0, 100, 0, 255);
-      ledcWrite(PWMOUT_1, mapped_Ch1_PWM);
-      pwm1_enabled = true;
-      pwm1_previousMillis = currentMillis;
-      debug("Ch1 PWM: ");
-      debugln(mapped_Ch1_PWM);
-    }
-  else if ((currentMillis - pwm1_previousMillis >= Ch1_On*1000) && (Ch1_Off > 0) & (pwm1_enabled))
-    {
-      ledcWrite(PWMOUT_1,0);
-      pwm1_enabled = false;
-      pwm1_previousMillis = currentMillis;
-    }
-  // PWM Output 2
-  if ((currentMillis - pwm2_previousMillis >= Ch2_Off*1000) && (!pwm2_enabled) && (Ch2_Enable == true)) 
-    {
-      int mapped_Ch2_PWM;
-      mapped_Ch2_PWM = map(Ch2_PWM, 0, 100, 0, 255);
-      ledcWrite(PWMOUT_2, mapped_Ch2_PWM);
-      pwm2_enabled = true;
-      pwm2_previousMillis = currentMillis;
-      debug("Ch2 PWM: ");
-      debugln(mapped_Ch2_PWM);
-    }
-  else if ((currentMillis - pwm2_previousMillis >= Ch2_On*1000) && (Ch2_Off > 0) && (pwm2_enabled))
-    {
-      ledcWrite(PWMOUT_2,0);
-      pwm2_enabled = false;
-      pwm2_previousMillis = currentMillis;
-    }
-  // PWM Output 3
-  if ((currentMillis - pwm3_previousMillis >= Ch3_Off*1000) && (!pwm3_enabled) && (Ch3_Enable == true)) 
-    {
-      int mapped_Ch3_PWM;
-      mapped_Ch3_PWM = map(Ch3_PWM, 0, 100, 0, 255);
-      ledcWrite(PWMOUT_3, mapped_Ch3_PWM);
-      pwm3_enabled = true;
-      pwm3_previousMillis = currentMillis;
-      debug("Ch3 PWM: ");
-      debugln(mapped_Ch3_PWM);
-    }
-  else if ((currentMillis - pwm3_previousMillis >= Ch3_On*1000) && (Ch3_Off > 0) && (pwm3_enabled))
-    {
-      ledcWrite(PWMOUT_3,0);
-      pwm3_enabled = false;
-      pwm3_previousMillis = currentMillis;
-    }
-  // PWM Output 4
-  if ((currentMillis - pwm4_previousMillis >= Ch4_Off*1000) && (!pwm4_enabled) && (Ch4_Enable == true)) 
-    {
-      debugln("ch4 on");
-      int mapped_Ch4_PWM;
-      mapped_Ch4_PWM = map(Ch4_PWM, 0, 100, 0, 255);
-      ledcWrite(PWMOUT_4, mapped_Ch4_PWM);
-      pwm4_enabled = true;
-      pwm4_previousMillis = currentMillis;
-      debug("Ch4 PWM: ");
-      debugln(mapped_Ch4_PWM);
-    }
-  else if ((currentMillis - pwm4_previousMillis >= Ch4_On*1000) && (Ch4_Off > 0) && (pwm4_enabled))
-    {
-      debugln("ch4 off");
-      ledcWrite(PWMOUT_4,0);
-      pwm4_enabled = false;
-      pwm4_previousMillis = currentMillis;
-    }
-  // Pump Output 5
-  if (Pump_Enable == true)
-    {
-      int mapped_pump_PWM;
-      mapped_pump_PWM = map(pump_PWM, 0, 100, 0, 255);
-      ledcWrite(pumpOUT, mapped_pump_PWM);
-    }
-  else {
-    ledcWrite(pumpOUT, 0);
-    }
+  // control Outputs
+  PWM_Output();
   
   // disable Outputs
   disable_Outputs();
