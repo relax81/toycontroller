@@ -322,36 +322,46 @@ void displayMenuManual()
   u8g2.drawStr(34,8,"Ch2");
   u8g2.drawStr(69,8,"Ch3");
   u8g2.drawStr(102,8,"Ch4");
-  u8g2.drawHLine(0,13,128);
+  u8g2.drawHLine(0,11,128);
   u8g2.drawVLine(30,0,64);
   u8g2.drawVLine(61,0,64);
   u8g2.drawVLine(95,0,64);
-  // 1st line  
+  // 1st line
   u8g2.setCursor(1,25);
-  u8g2.print(Ch1_On);
+  u8g2.print(Ch1_Enable ? "ON" : "OFF");
   u8g2.setCursor(36,25);
-  u8g2.print(Ch2_On);
+  u8g2.print(Ch2_Enable ? "ON" : "OFF");
   u8g2.setCursor(69,25);
-  u8g2.print(Ch3_On);
+  u8g2.print(Ch3_Enable ? "ON" : "OFF");
   u8g2.setCursor(102,25);
+  u8g2.print(Ch4_Enable ? "ON" : "OFF");
+
+  // 2nd line  
+  u8g2.setCursor(1,37);
+  u8g2.print(Ch1_On);
+  u8g2.setCursor(36,37);
+  u8g2.print(Ch2_On);
+  u8g2.setCursor(69,37);
+  u8g2.print(Ch3_On);
+  u8g2.setCursor(102,37);
   u8g2.print(Ch4_On);
-  // 2nd line
-  u8g2.setCursor(1, 40);
-  u8g2.print(Ch1_Off);
-  u8g2.setCursor(36,40);
-  u8g2.print(Ch2_Off);
-  u8g2.setCursor(69,40);
-  u8g2.print(Ch3_Off);
-  u8g2.setCursor(102,40);
-  u8g2.print(Ch4_Off);
   // 3rd line
-  u8g2.setCursor(1, 55);
+  u8g2.setCursor(1, 49);
+  u8g2.print(Ch1_Off);
+  u8g2.setCursor(36,49);
+  u8g2.print(Ch2_Off);
+  u8g2.setCursor(69,49);
+  u8g2.print(Ch3_Off);
+  u8g2.setCursor(102,49);
+  u8g2.print(Ch4_Off);
+  // 4th line
+  u8g2.setCursor(1, 61);
   u8g2.print(Ch1_PWM);
-  u8g2.setCursor(36,55);
+  u8g2.setCursor(36,61);
   u8g2.print(Ch2_PWM);
-  u8g2.setCursor(69,55);
+  u8g2.setCursor(69,61);
   u8g2.print(Ch3_PWM);
-  u8g2.setCursor(102,55);
+  u8g2.setCursor(102,61);
   u8g2.print(Ch4_PWM);
   }
 // menu System controls (old manual)
@@ -1219,5 +1229,4 @@ void loop() {
       buttonMenuManual();
     }
   u8g2.sendBuffer();
-  
 }
