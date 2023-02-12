@@ -28,9 +28,6 @@ String version = "0.1";
 void displayMenuManual();
 void buttonMenuManual();
 
-//test area
-//test area end
-
 bool buttonPressed = false;
 bool buttonLongPressed = false;
 int buttonDownCount = 0;
@@ -99,9 +96,6 @@ AsyncWebSocket ws("/ws");
 JSONVar values;
 String json_string;
 
-
-
-
 // Initialize SPIFFS
 void initFS() {
   if (!SPIFFS.begin()) {
@@ -125,7 +119,6 @@ void initWiFi() {
 void notifyClients(String sliderValues) {
   ws.textAll(sliderValues);
 }
-
 
 //Encoder
   //depending on your encoder - try 1,2 or 4 to get expected behaviour
@@ -793,24 +786,6 @@ void handleWebSocketMessage_ws(void *arg, uint8_t *data, size_t len)
         }
         break;
 
-      case 'r':
-        switch (message[5])
-        {
-          case 'l':
-            //     values["ramp_level"] = mk312_get_ramp_level();
-
-            break;
-
-          case 't':
-            //   values["ramp_time"] = mk312_get_ramp_time();
-
-            break;
-          case 's':
-            // mk312_ramp_start();
-            break;
-        }
-        break;
-
       case 's': //slider
       debugln("slider triggered");
         slider = atoi(message + 9);
@@ -1227,10 +1202,7 @@ void setup() {
   values["lb1"] = "off";
   values["lb2"] = "off";
 
-
-
   json_string = JSON.stringify(values);
-
 
   // Web Server Root URL
   server.on("/", HTTP_GET, [](AsyncWebServerRequest *request){
