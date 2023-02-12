@@ -8,6 +8,8 @@
 #define debugln(x)
 #endif
 
+#define BT 1 // bluetooth
+
 #include <Arduino.h>
 #include "true-credentials.h"
 #include <U8g2lib.h>
@@ -22,11 +24,137 @@
 #include "SPIFFS.h"
 #include <Arduino_JSON.h>
 
+// bluetooth 
+#if BT == 1
+#include <BLEDevice.h>
+#include <BLEServer.h>
+#include <BLEUtils.h>
+#include <BLE2902.h>
+BLEServer* pServer = NULL;
+BLECharacteristic* pTxCharacteristic = NULL;
+BLECharacteristic* pRxCharacteristic = NULL;
+// String bleAddress = "C0:42:3D:01:28:34"; // CONFIGURATION: < Use the real device BLE address here.
+String bleAddress = "FF:FF:FF:FF:FF:FF"; // CONFIGURATION: < Use the real device BLE address here.
+bool deviceConnected = false;
+bool oldDeviceConnected = false;
+uint32_t value = 0;
+
+int rotation;
+int vibration;
+int vibration1;
+int vibration2;
+int airlevel;
+
+#define SERVICE_UUID           "6e400001-b5a3-f393-e0a9-e50e24dcca9e"
+#define CHARACTERISTIC_RX_UUID "6e400002-b5a3-f393-e0a9-e50e24dcca9e"
+#define CHARACTERISTIC_TX_UUID "6e400003-b5a3-f393-e0a9-e50e24dcca9e"
+// CONFIGURATION:                           ^ Replace X and Y with values that suit you.
+
+class MyServerCallbacks: public BLEServerCallbacks {
+    void onConnect(BLEServer* pServer) {
+      deviceConnected = true;
+      BLEDevice::startAdvertising();
+    };
+
+    void onDisconnect(BLEServer* pServer) {
+      deviceConnected = false;
+    }
+};
+
+class MySerialCallbacks: public BLECharacteristicCallbacks {
+    void onWrite(BLECharacteristic *pCharacteristic) {
+      static uint8_t messageBuf[64];
+      assert(pCharacteristic == pRxCharacteristic);
+      std::string rxValue = pRxCharacteristic->getValue();
+      debugln(("rxValue: " + rxValue).c_str()); // debugging
+      
+      // Uncomment for full serial output
+      // if (rxValue.length() > 0) {
+      //   debugln("*********");
+      //   debug("Received Value: ");
+      //   for (int i = 0; i < rxValue.length(); i++)
+      //     debug(rxValue[i]);
+
+      //   debugln();
+      //   debugln("*********");
+      // }
+
+      if (rxValue == "DeviceType;") {
+        // debugln("$Responding to Device Enquiry");
+         memmove(messageBuf, "J:40:C0423D012834;", 18);
+        // memmove(messageBuf, "EI:40:C0FFFFFFFFFF;", 18);
+        // CONFIGURATION:               ^ Use a BLE address of the Lovense device you're cloning.
+        pTxCharacteristic->setValue(messageBuf, 18);
+        pTxCharacteristic->notify();
+      } else if (rxValue == "Battery;") {
+        memmove(messageBuf, "90;", 3);
+        pTxCharacteristic->setValue(messageBuf, 3);
+        pTxCharacteristic->notify();
+      } else if (rxValue == "PowerOff;") {
+        memmove(messageBuf, "OK;", 3);
+        pTxCharacteristic->setValue(messageBuf, 3);
+        pTxCharacteristic->notify();
+      } else if (rxValue == "RotateChange;") {
+                memmove(messageBuf, "OK;", 3);
+        pTxCharacteristic->setValue(messageBuf, 3);
+        pTxCharacteristic->notify();
+      } else if (rxValue.rfind("Status:", 0) == 0) {
+        memmove(messageBuf, "2;", 2);
+        pTxCharacteristic->setValue(messageBuf, 3);
+        pTxCharacteristic->notify();
+      } else if (rxValue.rfind("Vibrate:", 0) == 0) {
+        vibration = std::atoi(rxValue.substr(8).c_str());
+        debug("V:");
+        debugln(vibration);
+        memmove(messageBuf, "OK;", 3);
+        pTxCharacteristic->setValue(messageBuf, 3);
+        pTxCharacteristic->notify();
+      } else if (rxValue.rfind("Rotate:", 0) == 0) {
+        rotation = std::atoi(rxValue.substr(7).c_str());
+        debug("R:");
+        debugln(rotation);
+        memmove(messageBuf, "OK;", 3);
+        pTxCharacteristic->setValue(messageBuf, 3);
+        pTxCharacteristic->notify();
+      } else if (rxValue.rfind("Vibrate1:", 0) == 0) {
+        vibration1 = std::atoi(rxValue.substr(9).c_str());
+        debug("V1:");
+        debugln(vibration1);
+        memmove(messageBuf, "OK;", 3);
+        pTxCharacteristic->setValue(messageBuf, 3);
+        pTxCharacteristic->notify();
+      } else if (rxValue.rfind("Vibrate2:", 0) == 0) {
+        vibration2 = std::atoi(rxValue.substr(9).c_str());
+        debug("V2:");
+        debugln(vibration2);
+        memmove(messageBuf, "OK;", 3);
+        pTxCharacteristic->setValue(messageBuf, 3);
+        pTxCharacteristic->notify();
+      } else if (rxValue.rfind("Air:Level:", 0) == 0) {
+        airlevel = std::atoi(rxValue.substr(10).c_str());
+        debug("AL:");
+        debugln(airlevel);
+        memmove(messageBuf, "OK;", 3);
+        pTxCharacteristic->setValue(messageBuf, 3);
+        pTxCharacteristic->notify();
+      } else {
+        // debugln("$Unknown request");        
+        memmove(messageBuf, "ERR;", 4);
+        pTxCharacteristic->setValue(messageBuf, 4);
+        pTxCharacteristic->notify();
+      }
+    }
+};
+#endif
+
 // software version
 String version = "0.1";
 
 void displayMenuManual();
 void buttonMenuManual();
+
+bool WiFi_Enabled = false;
+bool BT_Enabled = false;
 
 bool buttonPressed = false;
 bool buttonLongPressed = false;
@@ -114,8 +242,72 @@ void initWiFi() {
     Serial.print('.');
     delay(1000);
   }
+  WiFi_Enabled = true;
   Serial.println(WiFi.localIP());
 }
+
+void turn_OFF_WIFI() {
+    Serial.println("WIFI OFF");
+    WiFi.mode( WIFI_MODE_NULL );
+    WiFi_Enabled = false;
+    delay(1000);
+  }
+
+#if BT == 1
+void turn_ON_Bluetooth() {
+    // Bluetooth
+    // Create the BLE Device
+
+  debugln("ble init");  
+  BLEDevice::init("LVS-Z001"); // CONFIGURATION: The name doesn't actually matter, The app identifies it by the reported id.
+
+  // Create the BLE Server
+  debugln("create ble server");
+  pServer = BLEDevice::createServer();
+  pServer->setCallbacks(new MyServerCallbacks());
+
+  debugln("create ble service");
+  // Create the BLE Service
+  BLEService *pService = pServer->createService(SERVICE_UUID);
+
+  debugln("create ble characteristics");
+    // Create a BLE Characteristics
+  pTxCharacteristic = pService->createCharacteristic(
+                      CHARACTERISTIC_TX_UUID,
+                      BLECharacteristic::PROPERTY_NOTIFY
+                    );
+  pTxCharacteristic->addDescriptor(new BLE2902());
+
+  pRxCharacteristic = pService->createCharacteristic(
+                      CHARACTERISTIC_RX_UUID,
+                      BLECharacteristic::PROPERTY_WRITE  |
+                      BLECharacteristic::PROPERTY_WRITE_NR
+                    );
+  pRxCharacteristic->setCallbacks(new MySerialCallbacks());
+    // Create the BLE Service
+  // Start the service
+  debugln("start the service bt pService");
+  pService->start();
+
+  debugln("bt start advertising");
+  // Start advertising
+  BLEAdvertising *pAdvertising = BLEDevice::getAdvertising();
+  pAdvertising->addServiceUUID(SERVICE_UUID);
+  pAdvertising->setScanResponse(false);
+  pAdvertising->setMinPreferred(0x0);  // set value to 0x00 to not advertise this parameter
+  BLEDevice::startAdvertising();
+  debugln("Waiting a client connection to notify...");
+  BT_Enabled = true;
+}
+
+void turn_OFF_Bluetooth() {
+  BLEDevice::deinit(false);
+  BT_Enabled = false;
+  delay(2000);
+}
+#endif
+
+
 void notifyClients(String sliderValues) {
   ws.textAll(sliderValues);
 }
@@ -1217,7 +1409,6 @@ void setup() {
 
 void loop() {
   ws.cleanupClients();
-  unsigned long currentMillis = millis();
   timer1.update(); // display blinking text timer
 
   // control Outputs
@@ -1268,4 +1459,34 @@ void loop() {
       buttonMenuManual();
     }
   u8g2.sendBuffer();
+
+  if ((current_screen == 12) && (WiFi_Enabled == true)){
+    turn_OFF_WIFI();
+    WiFi_Enabled = false;
+    debugln("disabling WiFi");
+    delay(2000);
+    debugln("trying to start bluetooth again");
+        turn_ON_Bluetooth();
+  }
+
+  if ((WiFi_Enabled == false) && (current_screen != 12)) {
+    turn_OFF_Bluetooth();
+    debugln("enabling WiFi");
+    initWiFi();
+  }
+
+    #if BT == 1
+    // Bluetooth connection status
+    if (!deviceConnected && oldDeviceConnected && WiFi_Enabled == false) {
+          delay(500); // give the bluetooth stack the chance to get things ready
+          pServer->startAdvertising(); // restart advertising
+          debugln("start advertising");
+          oldDeviceConnected = deviceConnected;
+      }
+      // connecting
+    if (deviceConnected && !oldDeviceConnected && WiFi_Enabled == false) {
+          // do stuff here on connecting
+          oldDeviceConnected = deviceConnected;
+      }
+    #endif
 }
