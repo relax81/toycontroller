@@ -21,12 +21,12 @@
 #include "ESPAsyncWebServer.h"
 #include "SPIFFS.h"
 #include <Arduino_JSON.h>
-
-// bluetooth 
 #include <BLEDevice.h>
 #include <BLEServer.h>
 #include <BLEUtils.h>
 #include <BLE2902.h>
+
+// Bluetooth start
 BLEServer* pServer = NULL;
 BLECharacteristic* pTxCharacteristic = NULL;
 BLECharacteristic* pRxCharacteristic = NULL;
@@ -35,11 +35,11 @@ String bleAddress = "FF:FF:FF:FF:FF:FF"; // CONFIGURATION: < Use the real device
 bool deviceConnected = false;
 bool oldDeviceConnected = false;
 uint32_t value = 0;
-int rotation;
-int vibration;
-int vibration1;
-int vibration2;
-int airlevel;
+int bt_rotation;
+int bt_vibration;
+int bt_vibration1;
+int bt_vibration2;
+int bt_airlevel;
 #define SERVICE_UUID           "6e400001-b5a3-f393-e0a9-e50e24dcca9e"
 #define CHARACTERISTIC_RX_UUID "6e400002-b5a3-f393-e0a9-e50e24dcca9e"
 #define CHARACTERISTIC_TX_UUID "6e400003-b5a3-f393-e0a9-e50e24dcca9e"
@@ -95,37 +95,37 @@ class MySerialCallbacks: public BLECharacteristicCallbacks {
         pTxCharacteristic->setValue(messageBuf, 3);
         pTxCharacteristic->notify();
       } else if (rxValue.rfind("Vibrate:", 0) == 0) {
-        vibration = std::atoi(rxValue.substr(8).c_str());
+        bt_vibration = std::atoi(rxValue.substr(8).c_str());
         debug("V:");
-        debugln(vibration);
+        debugln(bt_vibration);
         memmove(messageBuf, "OK;", 3);
         pTxCharacteristic->setValue(messageBuf, 3);
         pTxCharacteristic->notify();
       } else if (rxValue.rfind("Rotate:", 0) == 0) {
-        rotation = std::atoi(rxValue.substr(7).c_str());
+        bt_rotation = std::atoi(rxValue.substr(7).c_str());
         debug("R:");
-        debugln(rotation);
+        debugln(bt_rotation);
         memmove(messageBuf, "OK;", 3);
         pTxCharacteristic->setValue(messageBuf, 3);
         pTxCharacteristic->notify();
       } else if (rxValue.rfind("Vibrate1:", 0) == 0) {
-        vibration1 = std::atoi(rxValue.substr(9).c_str());
+        bt_vibration1 = std::atoi(rxValue.substr(9).c_str());
         debug("V1:");
-        debugln(vibration1);
+        debugln(bt_vibration1);
         memmove(messageBuf, "OK;", 3);
         pTxCharacteristic->setValue(messageBuf, 3);
         pTxCharacteristic->notify();
       } else if (rxValue.rfind("Vibrate2:", 0) == 0) {
-        vibration2 = std::atoi(rxValue.substr(9).c_str());
+        bt_vibration2 = std::atoi(rxValue.substr(9).c_str());
         debug("V2:");
-        debugln(vibration2);
+        debugln(bt_vibration2);
         memmove(messageBuf, "OK;", 3);
         pTxCharacteristic->setValue(messageBuf, 3);
         pTxCharacteristic->notify();
       } else if (rxValue.rfind("Air:Level:", 0) == 0) {
-        airlevel = std::atoi(rxValue.substr(10).c_str());
+        bt_airlevel = std::atoi(rxValue.substr(10).c_str());
         debug("AL:");
-        debugln(airlevel);
+        debugln(bt_airlevel);
         memmove(messageBuf, "OK;", 3);
         pTxCharacteristic->setValue(messageBuf, 3);
         pTxCharacteristic->notify();
@@ -138,6 +138,16 @@ class MySerialCallbacks: public BLECharacteristicCallbacks {
     }
 };
 //bluetooth end
+
+//Encoder
+  //depending on your encoder - try 1,2 or 4 to get expected behaviour
+  #define ROTARY_ENCODER_STEPS 4
+  #define ROTARY_ENCODER_VCC_PIN -1 /* 27 put -1 of Rotary encoder Vcc is connected directly to 3,3V; else you can use declared output pin for powering rotary encoder */
+  //instead of changing here, rather change numbers above
+  AiEsp32RotaryEncoder rotaryEncoder = AiEsp32RotaryEncoder(ROTARY_ENCODER_A_PIN, ROTARY_ENCODER_B_PIN, ROTARY_ENCODER_BUTTON_PIN, ROTARY_ENCODER_VCC_PIN, ROTARY_ENCODER_STEPS);
+
+// Display Type
+  U8G2_SSD1306_128X64_NONAME_F_HW_I2C u8g2(U8G2_R0, /* reset=*/ U8X8_PIN_NONE);
 
 // software version
 String version = "0.1";
@@ -293,6 +303,10 @@ void turn_ON_Bluetooth() {
   BT_Enabled = true;
 }
 void turn_OFF_Bluetooth() {
+  u8g2.setFont(u8g2_font_t0_13b_mf);
+  u8g2.drawStr(30, 17, "Disabling");
+  u8g2.drawStr(31, 32, "Bluetooth");
+  u8g2.sendBuffer();
   BLEDevice::deinit(false);
   BT_Enabled = false;
   delay(2000);
@@ -304,15 +318,7 @@ void notifyClients(String sliderValues) {
   ws.textAll(sliderValues);
 }
 
-//Encoder
-  //depending on your encoder - try 1,2 or 4 to get expected behaviour
-  #define ROTARY_ENCODER_STEPS 4
-  #define ROTARY_ENCODER_VCC_PIN -1 /* 27 put -1 of Rotary encoder Vcc is connected directly to 3,3V; else you can use declared output pin for powering rotary encoder */
-  //instead of changing here, rather change numbers above
-  AiEsp32RotaryEncoder rotaryEncoder = AiEsp32RotaryEncoder(ROTARY_ENCODER_A_PIN, ROTARY_ENCODER_B_PIN, ROTARY_ENCODER_BUTTON_PIN, ROTARY_ENCODER_VCC_PIN, ROTARY_ENCODER_STEPS);
 
-// Display Type
-  U8G2_SSD1306_128X64_NONAME_F_HW_I2C u8g2(U8G2_R0, /* reset=*/ U8X8_PIN_NONE);
 
 // Timer
   void blinktext();
@@ -1450,9 +1456,11 @@ void loop() {
   timer1.update(); // display blinking text timer
 
   // control Outputs
+  if (BT_Enabled == false) {
   PWM_Output();
-  
-  // disable Outputs
+  }
+
+    // disable Outputs
   disable_Outputs();
 
   // Encoder
@@ -1529,4 +1537,12 @@ void loop() {
         oldDeviceConnected = deviceConnected;
     }
   // Bluetooth end
+
+  //Testing
+  if (BT_Enabled == true) {
+    Ch4_Enable = true;
+    int mapped_BT_Ch4_PWM;
+    mapped_BT_Ch4_PWM = map(bt_vibration1, 0, 20, 0, 255);
+    ledcWrite(PWMOUT_4, mapped_BT_Ch4_PWM);
+  }
 }
