@@ -8,8 +8,6 @@
 #define debugln(x)
 #endif
 
-#define BT 1 // bluetooth
-
 #include <Arduino.h>
 #include "true-credentials.h"
 #include <U8g2lib.h>
@@ -25,7 +23,6 @@
 #include <Arduino_JSON.h>
 
 // bluetooth 
-#if BT == 1
 #include <BLEDevice.h>
 #include <BLEServer.h>
 #include <BLEUtils.h>
@@ -38,18 +35,15 @@ String bleAddress = "FF:FF:FF:FF:FF:FF"; // CONFIGURATION: < Use the real device
 bool deviceConnected = false;
 bool oldDeviceConnected = false;
 uint32_t value = 0;
-
 int rotation;
 int vibration;
 int vibration1;
 int vibration2;
 int airlevel;
-
 #define SERVICE_UUID           "6e400001-b5a3-f393-e0a9-e50e24dcca9e"
 #define CHARACTERISTIC_RX_UUID "6e400002-b5a3-f393-e0a9-e50e24dcca9e"
 #define CHARACTERISTIC_TX_UUID "6e400003-b5a3-f393-e0a9-e50e24dcca9e"
 // CONFIGURATION:                           ^ Replace X and Y with values that suit you.
-
 class MyServerCallbacks: public BLEServerCallbacks {
     void onConnect(BLEServer* pServer) {
       deviceConnected = true;
@@ -60,7 +54,6 @@ class MyServerCallbacks: public BLEServerCallbacks {
       deviceConnected = false;
     }
 };
-
 class MySerialCallbacks: public BLECharacteristicCallbacks {
     void onWrite(BLECharacteristic *pCharacteristic) {
       static uint8_t messageBuf[64];
@@ -78,7 +71,6 @@ class MySerialCallbacks: public BLECharacteristicCallbacks {
       //   debugln();
       //   debugln("*********");
       // }
-
       if (rxValue == "DeviceType;") {
         // debugln("$Responding to Device Enquiry");
          memmove(messageBuf, "J:40:C0423D012834;", 18);
@@ -145,13 +137,15 @@ class MySerialCallbacks: public BLECharacteristicCallbacks {
       }
     }
 };
-#endif
+//bluetooth end
 
 // software version
 String version = "0.1";
 
 void displayMenuManual();
 void buttonMenuManual();
+void reset_Outputs();
+void update_values_ws();
 
 bool WiFi_Enabled = false;
 bool BT_Enabled = false;
@@ -253,23 +247,23 @@ void turn_OFF_WIFI() {
     delay(1000);
   }
 
-#if BT == 1
+// Bluetooth/WiFi Switching start
 void turn_ON_Bluetooth() {
+  if (BT_Enabled == false)
+    {
+      reset_Outputs();
+    }
     // Bluetooth
     // Create the BLE Device
-
   debugln("ble init");  
   BLEDevice::init("LVS-Z001"); // CONFIGURATION: The name doesn't actually matter, The app identifies it by the reported id.
-
   // Create the BLE Server
   debugln("create ble server");
   pServer = BLEDevice::createServer();
   pServer->setCallbacks(new MyServerCallbacks());
-
   debugln("create ble service");
   // Create the BLE Service
   BLEService *pService = pServer->createService(SERVICE_UUID);
-
   debugln("create ble characteristics");
     // Create a BLE Characteristics
   pTxCharacteristic = pService->createCharacteristic(
@@ -288,7 +282,6 @@ void turn_ON_Bluetooth() {
   // Start the service
   debugln("start the service bt pService");
   pService->start();
-
   debugln("bt start advertising");
   // Start advertising
   BLEAdvertising *pAdvertising = BLEDevice::getAdvertising();
@@ -299,13 +292,12 @@ void turn_ON_Bluetooth() {
   debugln("Waiting a client connection to notify...");
   BT_Enabled = true;
 }
-
 void turn_OFF_Bluetooth() {
   BLEDevice::deinit(false);
   BT_Enabled = false;
   delay(2000);
 }
-#endif
+//Bluetooth/WiFi Switching end
 
 
 void notifyClients(String sliderValues) {
@@ -1180,6 +1172,7 @@ void onEvent_ws(AsyncWebSocket *server, AsyncWebSocketClient *client, AwsEventTy
 // update websocket values
 void update_values_ws(){
     json_string = JSON.stringify(values);
+    debugln(json_string);
     ws.textAll(json_string);
 }
 
@@ -1189,7 +1182,7 @@ void init_ws() {
   server.addHandler(&ws);
 }
 
-// disable Outputs
+// disable outputs 
 void disable_Outputs()
 {
   if (!Ch1_Enable) {
@@ -1210,7 +1203,52 @@ void disable_Outputs()
  }
   if (!Pump_Enable){
     ledcWrite(pumpOUT, 0);
+    Pump_Enable = false;
   }
+}
+
+// reset outputs
+void reset_Outputs(){
+  Ch1_Enable = false;
+  Ch2_Enable = false;
+  Ch3_Enable = false;
+  Ch4_Enable = false;
+  Pump_Enable = false;
+  Ch1_On = 0;
+  Ch1_Off = 0;
+  Ch1_PWM = 0;
+  Ch2_On = 0;
+  Ch2_Off = 0;
+  Ch2_PWM = 0;
+  Ch3_On = 0;
+  Ch3_Off = 0;
+  Ch3_PWM = 0;
+  Ch4_On = 0;
+  Ch4_Off = 0;
+  Ch4_PWM = 0;
+  pump_PWM = 0;
+    // Websocket stuff
+  values["slider_a"] = 0;
+  values["slider_b"] = 0;
+  values["slider_c"] = 0;
+  values["slider_d"] = 0;
+  values["slider_e"] = 0;
+  values["slider_f"] = 0;
+  values["slider_g"] = 0;
+  values["slider_h"] = 0;
+  values["slider_i"] = 0;
+  values["slider_j"] = 0;
+  values["slider_k"] = 0;
+  values["slider_l"] = 0;
+  values["slider_m"] = 0; // pump
+  values["toggle_a"] = false;
+  values["toggle_b"] = false;
+  values["toggle_c"] = false;
+  values["toggle_d"] = false;
+  values["toggle_e"] = false; // pump
+  values["buzzer"] = "off";
+  values["lb1"] = "off";
+  values["lb2"] = "off";
 }
 
 void PWM_Output(){
@@ -1473,20 +1511,22 @@ void loop() {
     turn_OFF_Bluetooth();
     debugln("enabling WiFi");
     initWiFi();
-  }
+    reset_Outputs();
+    update_values_ws();
+    }
 
-    #if BT == 1
-    // Bluetooth connection status
-    if (!deviceConnected && oldDeviceConnected && WiFi_Enabled == false) {
-          delay(500); // give the bluetooth stack the chance to get things ready
-          pServer->startAdvertising(); // restart advertising
-          debugln("start advertising");
-          oldDeviceConnected = deviceConnected;
-      }
-      // connecting
-    if (deviceConnected && !oldDeviceConnected && WiFi_Enabled == false) {
-          // do stuff here on connecting
-          oldDeviceConnected = deviceConnected;
-      }
-    #endif
+  // Bluetooth start
+  // Bluetooth connection status
+  if (!deviceConnected && oldDeviceConnected && WiFi_Enabled == false) {
+        delay(500); // give the bluetooth stack the chance to get things ready
+        pServer->startAdvertising(); // restart advertising
+        debugln("start advertising");
+        oldDeviceConnected = deviceConnected;
+    }
+    // connecting
+  if (deviceConnected && !oldDeviceConnected && WiFi_Enabled == false) {
+        // do stuff here on connecting
+        oldDeviceConnected = deviceConnected;
+    }
+  // Bluetooth end
 }
