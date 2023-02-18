@@ -154,6 +154,7 @@ String version = "0.1";
 
 void displayMenuManual();
 void buttonMenuManual();
+void displayBluetoothMenu();
 void reset_Outputs();
 void update_values_ws();
 
@@ -191,6 +192,14 @@ int Ch4_On = 0;
 int Ch4_Off = 0;
 int Ch4_PWM = 0;
 int pump_PWM = 0;
+
+// Bluetooth Menu
+int BT_V1_Output = 0;
+int BT_V1_Min_PWM = 0;
+int BT_V1_Max_PWM = 255;
+int BT_V2_Output = 0;
+int BT_V2_Min_PWM = 0;
+int BT_V2_Max_PWM = 255;
 
 // PWM settings
 const int freq = 5000;
@@ -303,6 +312,7 @@ void turn_ON_Bluetooth() {
   BT_Enabled = true;
 }
 void turn_OFF_Bluetooth() {
+  u8g2.clearBuffer();
   u8g2.setFont(u8g2_font_t0_13b_mf);
   u8g2.drawStr(30, 17, "Disabling");
   u8g2.drawStr(31, 32, "Bluetooth");
@@ -423,9 +433,10 @@ void displayMainMenu()
     }
     else if (current_screen == 12) {
       rotaryEncoder.setBoundaries(2, 2, false);
-      u8g2.setFont(u8g2_font_t0_13b_mf);
-      u8g2.drawStr(30, 17, "Bluetooth");
-      u8g2.drawStr(31, 32, "Enabled");
+      // u8g2.setFont(u8g2_font_t0_13b_mf);
+      // u8g2.drawStr(30, 17, "Bluetooth");
+      // u8g2.drawStr(31, 32, "Enabled");
+      displayBluetoothMenu();
       if (buttonLongPressed == true) {      
         current_screen = 0;
         item_selected = 2;
@@ -887,6 +898,38 @@ void buttonMenuManual() {
       // Dieser Fall ist optional
       break; // Wird nicht benötigt, wenn Statement(s) vorhanden sind
   }
+}
+
+// Bluetooth
+// Bluetooth Outputs Array
+const int OutputNumItems = 5; // number of items in the list 
+const int OutputItemsMaxLength = 20; // maximum characters for the item name
+char OutputItems [OutputNumItems] [OutputItemsMaxLength] = {"PWM1","PWM2","PWM3","PWM4","PUMP"};
+// Bluetooth Menu
+void displayBluetoothMenu(){
+  item_selected = 0;
+  u8g2.setFont(u8g2_font_pixzillav1_tr);
+  u8g2.drawStr(6,12,"BT");
+  u8g2.drawStr(1,30,"Map");
+  u8g2.drawStr(1,44,"Min");
+  u8g2.drawStr(1,58,"Max");
+  u8g2.drawHLine(0,15,128);
+  u8g2.drawVLine(34,0,64);
+  u8g2.drawVLine(80,0,64);
+  // V1
+  u8g2.drawStr(50, 11, "V1");
+  u8g2.drawStr(40, 30, OutputItems[BT_V1_Output]);
+  u8g2.setCursor(48, 44);
+  u8g2.print(BT_V1_Min_PWM);
+  u8g2.setCursor(48, 58);
+  u8g2.print(BT_V1_Max_PWM);
+  // V2
+  u8g2.drawStr(95, 10, "V2");
+  u8g2.drawStr(86, 30, OutputItems[BT_V2_Output]);
+  u8g2.setCursor(93,44);
+  u8g2.print(BT_V2_Min_PWM);
+  u8g2.setCursor(93,58);
+  u8g2.print(BT_V2_Max_PWM);
 }
 
 // handle websocket message
@@ -1538,7 +1581,7 @@ void loop() {
     }
   // Bluetooth end
 
-  //Testing
+  //Bluetooth Testing
   if (BT_Enabled == true) {
     Ch4_Enable = true;
     int mapped_BT_Ch4_PWM;
