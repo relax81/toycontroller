@@ -158,6 +158,7 @@ void displayBluetoothMenu();
 void reset_Outputs();
 void update_values_ws();
 void bluetooth_write_pwm(int, int);
+void buttonMenuBluetooth();
 
 bool WiFi_Enabled = false;
 bool BT_Enabled = false;
@@ -174,6 +175,7 @@ int item_sel_previous; // previous item - used in the menu screen to draw the it
 int item_sel_next; // next item - used in the menu screen to draw next item after the selected one
 int current_screen = 0;   // 0 = main menu, 
 int manualMenuSelect = 1; // from Manual Mode Menu
+int bluetoothMenuSelect = 1; // from bluetooth mode menu
 
 bool Ch1_Enable = false;
 bool Ch2_Enable = false;
@@ -433,11 +435,8 @@ void displayMainMenu()
       }
     }
     else if (current_screen == 12) {
-      rotaryEncoder.setBoundaries(2, 2, false);
-      // u8g2.setFont(u8g2_font_t0_13b_mf);
-      // u8g2.drawStr(30, 17, "Bluetooth");
-      // u8g2.drawStr(31, 32, "Enabled");
       displayBluetoothMenu();
+      buttonMenuBluetooth();
       if (buttonLongPressed == true) {      
         current_screen = 0;
         item_selected = 2;
@@ -473,7 +472,6 @@ void menuButtonAction(){
       manualMenuSelect = 1;
       encoderPosition = manualMenuSelect;
       rotaryEncoder.setEncoderValue(encoderPosition);
-      // displayMainMenu();
       break;
 
       case 1:
@@ -485,7 +483,9 @@ void menuButtonAction(){
       case 2:
       // Bluetooth
       current_screen = 12;
-      displayMainMenu();
+      manualMenuSelect = 1;      
+      encoderPosition = manualMenuSelect;
+      rotaryEncoder.setEncoderValue(encoderPosition);
       break;
 
       case 3:
@@ -901,6 +901,7 @@ void buttonMenuManual() {
   }
 }
 
+
 // Bluetooth
 // Bluetooth Outputs Array
 const int OutputNumItems = 6; // number of items in the list 
@@ -933,6 +934,132 @@ void displayBluetoothMenu(){
   u8g2.print(BT_V2_Max_PWM);
 }
 
+void buttonMenuBluetooth() {
+  switch (bluetoothMenuSelect) {
+
+    case 1: //
+      rotaryEncoder.setBoundaries(1, 2, false);
+      bluetoothMenuSelect = encoderPosition;
+      u8g2.setDrawColor(drawcolorstate);
+      u8g2.drawStr(50, 11,"V1");
+      u8g2.setDrawColor(1);
+      if (buttonPressed == true) {
+          buttonPressed = false;
+          rotaryEncoder.setBoundaries(0, 5, false);
+          rotaryEncoder.setEncoderValue(BT_V1_Output);
+          encoderPosition = BT_V1_Output;
+          bluetoothMenuSelect = bluetoothMenuSelect * 10;
+          }
+      break;
+
+      case 2: //
+      bluetoothMenuSelect = encoderPosition;
+      u8g2.setDrawColor(drawcolorstate);
+      u8g2.drawStr(95,10,"V2");
+      u8g2.setDrawColor(1);
+      if (buttonPressed == true) {
+          buttonPressed = false;
+          rotaryEncoder.setBoundaries(0, 5, false);
+          rotaryEncoder.setEncoderValue(BT_V2_Output);
+          encoderPosition = BT_V2_Output;
+          bluetoothMenuSelect = bluetoothMenuSelect * 10;
+          }
+      break;
+
+      case 10: // 
+      BT_V1_Output = encoderPosition;
+      u8g2.setCursor(40,30);
+      u8g2.setDrawColor(drawcolorstate);
+      u8g2.drawStr(40, 30, OutputItems[BT_V1_Output]);
+      u8g2.setDrawColor(1);
+      if (buttonPressed == true) {
+          buttonPressed = false;
+          rotaryEncoder.setBoundaries(0, 255, false);
+          rotaryEncoder.setEncoderValue(BT_V1_Min_PWM);
+          encoderPosition = BT_V1_Min_PWM;
+          bluetoothMenuSelect++;
+          }
+      break;
+
+    case 11: // 
+      BT_V1_Min_PWM = encoderPosition;
+      u8g2.setCursor(48,44);
+      u8g2.setDrawColor(drawcolorstate);
+      u8g2.print(BT_V1_Min_PWM); 
+      u8g2.setDrawColor(1);
+      if (buttonPressed == true) {
+          buttonPressed = false;
+		  rotaryEncoder.setBoundaries(0, 255, false);
+          rotaryEncoder.setEncoderValue(BT_V1_Max_PWM);
+          encoderPosition = BT_V1_Max_PWM;
+          bluetoothMenuSelect++;
+          }
+      break;
+
+    case 12: // 
+      BT_V1_Max_PWM = encoderPosition;
+      u8g2.setCursor(48,58);
+      u8g2.setDrawColor(drawcolorstate);
+      u8g2.print(BT_V1_Max_PWM);
+      u8g2.setDrawColor(1);
+      if (buttonPressed == true) {
+          buttonPressed = false;
+          rotaryEncoder.setEncoderValue(1);
+          encoderPosition = 1;
+          bluetoothMenuSelect = 1;
+          }
+      break;
+
+    case 20: //
+      BT_V2_Output = encoderPosition;
+      u8g2.setCursor(86,30);
+      u8g2.setDrawColor(drawcolorstate);
+      u8g2.drawStr(86, 30, OutputItems[BT_V2_Output]);
+      u8g2.setDrawColor(1);
+      if (buttonPressed == true) {
+          buttonPressed = false;
+          rotaryEncoder.setBoundaries(0, 255, false);
+          rotaryEncoder.setEncoderValue(BT_V2_Min_PWM);
+          encoderPosition = BT_V2_Min_PWM;
+          bluetoothMenuSelect++;
+          }
+      break;
+
+    case 21: // 
+      BT_V2_Min_PWM = encoderPosition;
+      u8g2.setCursor(93,44);
+      u8g2.setDrawColor(drawcolorstate);
+      u8g2.print(BT_V2_Min_PWM);
+      u8g2.setDrawColor(1);
+      if (buttonPressed == true) {
+          buttonPressed = false;
+		  rotaryEncoder.setBoundaries(0, 255, false);
+          rotaryEncoder.setEncoderValue(BT_V2_Max_PWM);
+          encoderPosition = BT_V2_Max_PWM;
+          bluetoothMenuSelect++;
+          }
+      break;
+
+    case 22: // 
+      BT_V2_Max_PWM = encoderPosition;
+      u8g2.setCursor(93,58);
+      u8g2.setDrawColor(drawcolorstate);
+      u8g2.print(BT_V2_Max_PWM);
+      u8g2.setDrawColor(1);
+      if (buttonPressed == true) {
+          buttonPressed = false;
+          rotaryEncoder.setEncoderValue(2);
+          encoderPosition = 2;
+          bluetoothMenuSelect = 2;
+          }
+      break;
+    
+      default:
+      // Tue etwas, im Defaultfall
+      // Dieser Fall ist optional
+      break; // Wird nicht benötigt, wenn Statement(s) vorhanden sind
+  }
+}
 // handle websocket message
 void handleWebSocketMessage_ws(void *arg, uint8_t *data, size_t len)
 {
@@ -1557,7 +1684,7 @@ void loop() {
   if (current_screen == 0) {
     rotaryEncoder.setAcceleration(0);
   }
-  else if (current_screen == 10) {
+  else if (current_screen == 10 || current_screen == 12) {
     rotaryEncoder.setAcceleration(50);
   }
   
@@ -1567,6 +1694,10 @@ void loop() {
     if (current_screen == 10) {
       displayMenuManual();
       buttonMenuManual();
+    }
+    else if (current_screen == 12) {
+      displayBluetoothMenu();
+      buttonMenuBluetooth();
     }
   u8g2.sendBuffer();
 
