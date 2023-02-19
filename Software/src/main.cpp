@@ -203,6 +203,8 @@ int BT_V1_Max_PWM = 255;
 int BT_V2_Output = 1;
 int BT_V2_Min_PWM = 0;
 int BT_V2_Max_PWM = 255;
+bool BT_V1_Paused = false;
+bool BT_V2_Paused = false;
 
 // PWM settings
 const int freq = 5000;
@@ -1736,8 +1738,8 @@ void loop() {
   //Bluetooth Testing
   if (BT_Enabled == true) {
     int BT_mapped_PWM[2];
-    BT_mapped_PWM[0] = map(bt_vibration1, 0, 20, BT_V1_Min_PWM, BT_V1_Max_PWM);
-    BT_mapped_PWM[1] = map(bt_vibration2, 0, 20, BT_V2_Min_PWM, BT_V2_Max_PWM);
+    BT_mapped_PWM[0] = map(bt_vibration1, 1, 20, BT_V1_Min_PWM, BT_V1_Max_PWM);
+    BT_mapped_PWM[1] = map(bt_vibration2, 1, 20, BT_V2_Min_PWM, BT_V2_Max_PWM);
 
     Ch1_Enable = (BT_V1_Output == 1 || BT_V2_Output == 1);
     Ch2_Enable = (BT_V1_Output == 2 || BT_V2_Output == 2);
@@ -1745,11 +1747,21 @@ void loop() {
     Ch4_Enable = (BT_V1_Output == 4 || BT_V2_Output == 4);
     Pump_Enable = (BT_V1_Output == 5 || BT_V2_Output == 5);
 
-    if (BT_V1_Output > 0) {
-    bluetooth_write_pwm(BT_V1_Output, BT_mapped_PWM[0]);
+    if ((BT_V1_Output > 0) && (bt_vibration1 > 0)) {
+      BT_V1_Paused = false;
+      bluetooth_write_pwm(BT_V1_Output, BT_mapped_PWM[0]);
     }
-    if (BT_V2_Output > 0) {
-    bluetooth_write_pwm(BT_V2_Output, BT_mapped_PWM[1]);
+    else if ((BT_V1_Output > 0) && (bt_vibration1 == 0) && (BT_V1_Paused == false)){
+      BT_V1_Paused = true;
+      bluetooth_write_pwm(BT_V1_Output, 0);
+    }
+    if ((BT_V2_Output > 0) && (bt_vibration2 > 0)) {
+      BT_V2_Paused = false;
+      bluetooth_write_pwm(BT_V2_Output, BT_mapped_PWM[1]);
+    }
+    else if ((BT_V2_Output > 0) && (bt_vibration2 == 0) && (BT_V2_Paused == false)) {
+      BT_V2_Paused = true;
+      bluetooth_write_pwm(BT_V2_Output, 0);
     }
   }
 
