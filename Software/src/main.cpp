@@ -157,6 +157,7 @@ void buttonMenuManual();
 void displayBluetoothMenu();
 void reset_Outputs();
 void update_values_ws();
+void bluetooth_write_pwm(int, int);
 
 bool WiFi_Enabled = false;
 bool BT_Enabled = false;
@@ -197,7 +198,7 @@ int pump_PWM = 0;
 int BT_V1_Output = 0;
 int BT_V1_Min_PWM = 0;
 int BT_V1_Max_PWM = 255;
-int BT_V2_Output = 0;
+int BT_V2_Output = 1;
 int BT_V2_Min_PWM = 0;
 int BT_V2_Max_PWM = 255;
 
@@ -902,9 +903,9 @@ void buttonMenuManual() {
 
 // Bluetooth
 // Bluetooth Outputs Array
-const int OutputNumItems = 5; // number of items in the list 
+const int OutputNumItems = 6; // number of items in the list 
 const int OutputItemsMaxLength = 20; // maximum characters for the item name
-char OutputItems [OutputNumItems] [OutputItemsMaxLength] = {"PWM1","PWM2","PWM3","PWM4","PUMP"};
+char OutputItems [OutputNumItems] [OutputItemsMaxLength] = {"OFF","PWM1","PWM2","PWM3","PWM4","PUMP"};
 // Bluetooth Menu
 void displayBluetoothMenu(){
   item_selected = 0;
@@ -1393,6 +1394,26 @@ void PWM_Output(){
     }
 }
 
+void bluetooth_write_pwm(int output, int mapped_PWM) {
+  switch (output) {
+    case 1:
+      ledcWrite(PWMOUT_1, mapped_PWM);
+      break;
+    case 2:
+      ledcWrite(PWMOUT_2, mapped_PWM);
+      break;
+    case 3:
+      ledcWrite(PWMOUT_3, mapped_PWM);
+      break;
+    case 4:
+      ledcWrite(PWMOUT_4, mapped_PWM);
+      break;
+    case 5:
+      ledcWrite(pumpOUT, mapped_PWM);
+      break;
+  }
+}
+
 void setup() {
   Serial.begin(115200);
   debugln("setup started");
@@ -1583,9 +1604,22 @@ void loop() {
 
   //Bluetooth Testing
   if (BT_Enabled == true) {
-    Ch4_Enable = true;
-    int mapped_BT_Ch4_PWM;
-    mapped_BT_Ch4_PWM = map(bt_vibration1, 0, 20, 0, 255);
-    ledcWrite(PWMOUT_4, mapped_BT_Ch4_PWM);
+    int BT_mapped_PWM[2];
+    BT_mapped_PWM[0] = map(bt_vibration1, 0, 20, BT_V1_Min_PWM, BT_V1_Max_PWM);
+    BT_mapped_PWM[1] = map(bt_vibration2, 0, 20, BT_V2_Min_PWM, BT_V2_Max_PWM);
+
+    Ch1_Enable = (BT_V1_Output == 1 || BT_V2_Output == 1);
+    Ch2_Enable = (BT_V1_Output == 2 || BT_V2_Output == 2);
+    Ch3_Enable = (BT_V1_Output == 3 || BT_V2_Output == 3);
+    Ch4_Enable = (BT_V1_Output == 4 || BT_V2_Output == 4);
+    Pump_Enable = (BT_V1_Output == 5 || BT_V2_Output == 5);
+
+    if (BT_V1_Output > 0) {
+    bluetooth_write_pwm(BT_V1_Output, BT_mapped_PWM[0]);
+    }
+    if (BT_V2_Output > 0) {
+    bluetooth_write_pwm(BT_V2_Output, BT_mapped_PWM[1]);
+    }
   }
-}
+
+} // Loop end
