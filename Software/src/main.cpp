@@ -26,118 +26,100 @@
 #include <BLEUtils.h>
 #include <BLE2902.h>
 
-// Bluetooth start
-BLEServer* pServer = NULL;
-BLECharacteristic* pTxCharacteristic = NULL;
-BLECharacteristic* pRxCharacteristic = NULL;
-// String bleAddress = "C0:42:3D:01:28:34"; // CONFIGURATION: < Use the real device BLE address here.
-String bleAddress = "FF:FF:FF:FF:FF:FF"; // CONFIGURATION: < Use the real device BLE address here.
-bool deviceConnected = false;
-bool oldDeviceConnected = false;
-uint32_t value = 0;
-int bt_rotation;
-int bt_vibration;
-int bt_vibration1;
-int bt_vibration2;
-int bt_airlevel;
-#define SERVICE_UUID           "6e400001-b5a3-f393-e0a9-e50e24dcca9e"
-#define CHARACTERISTIC_RX_UUID "6e400002-b5a3-f393-e0a9-e50e24dcca9e"
-#define CHARACTERISTIC_TX_UUID "6e400003-b5a3-f393-e0a9-e50e24dcca9e"
-// CONFIGURATION:                           ^ Replace X and Y with values that suit you.
-class MyServerCallbacks: public BLEServerCallbacks {
-    void onConnect(BLEServer* pServer) {
-      deviceConnected = true;
-      BLEDevice::startAdvertising();
-    };
+// software version
+String version = "0.1";
 
-    void onDisconnect(BLEServer* pServer) {
-      deviceConnected = false;
-    }
-};
-class MySerialCallbacks: public BLECharacteristicCallbacks {
-    void onWrite(BLECharacteristic *pCharacteristic) {
-      static uint8_t messageBuf[64];
-      assert(pCharacteristic == pRxCharacteristic);
-      std::string rxValue = pRxCharacteristic->getValue();
-      debugln(("rxValue: " + rxValue).c_str()); // debugging
-      
-      // Uncomment for full serial output
-      // if (rxValue.length() > 0) {
-      //   debugln("*********");
-      //   debug("Received Value: ");
-      //   for (int i = 0; i < rxValue.length(); i++)
-      //     debug(rxValue[i]);
+// set the font types being used
+const uint8_t* font_main_menu = u8g2_font_t0_13b_mf;
+const uint8_t* font_manual_menu = u8g2_font_ncenB08_tr;
+const uint8_t* font_bluetooth_menu = u8g2_font_pixzillav1_tr; 
 
-      //   debugln();
-      //   debugln("*********");
-      // }
-      if (rxValue == "DeviceType;") {
-        // debugln("$Responding to Device Enquiry");
-         memmove(messageBuf, "J:40:C0423D012834;", 18);
-        // memmove(messageBuf, "EI:40:C0FFFFFFFFFF;", 18);
-        // CONFIGURATION:               ^ Use a BLE address of the Lovense device you're cloning.
-        pTxCharacteristic->setValue(messageBuf, 18);
-        pTxCharacteristic->notify();
-      } else if (rxValue == "Battery;") {
-        memmove(messageBuf, "90;", 3);
-        pTxCharacteristic->setValue(messageBuf, 3);
-        pTxCharacteristic->notify();
-      } else if (rxValue == "PowerOff;") {
-        memmove(messageBuf, "OK;", 3);
-        pTxCharacteristic->setValue(messageBuf, 3);
-        pTxCharacteristic->notify();
-      } else if (rxValue == "RotateChange;") {
-                memmove(messageBuf, "OK;", 3);
-        pTxCharacteristic->setValue(messageBuf, 3);
-        pTxCharacteristic->notify();
-      } else if (rxValue.rfind("Status:", 0) == 0) {
-        memmove(messageBuf, "2;", 2);
-        pTxCharacteristic->setValue(messageBuf, 3);
-        pTxCharacteristic->notify();
-      } else if (rxValue.rfind("Vibrate:", 0) == 0) {
-        bt_vibration = std::atoi(rxValue.substr(8).c_str());
-        debug("V:");
-        debugln(bt_vibration);
-        memmove(messageBuf, "OK;", 3);
-        pTxCharacteristic->setValue(messageBuf, 3);
-        pTxCharacteristic->notify();
-      } else if (rxValue.rfind("Rotate:", 0) == 0) {
-        bt_rotation = std::atoi(rxValue.substr(7).c_str());
-        debug("R:");
-        debugln(bt_rotation);
-        memmove(messageBuf, "OK;", 3);
-        pTxCharacteristic->setValue(messageBuf, 3);
-        pTxCharacteristic->notify();
-      } else if (rxValue.rfind("Vibrate1:", 0) == 0) {
-        bt_vibration1 = std::atoi(rxValue.substr(9).c_str());
-        debug("V1:");
-        debugln(bt_vibration1);
-        memmove(messageBuf, "OK;", 3);
-        pTxCharacteristic->setValue(messageBuf, 3);
-        pTxCharacteristic->notify();
-      } else if (rxValue.rfind("Vibrate2:", 0) == 0) {
-        bt_vibration2 = std::atoi(rxValue.substr(9).c_str());
-        debug("V2:");
-        debugln(bt_vibration2);
-        memmove(messageBuf, "OK;", 3);
-        pTxCharacteristic->setValue(messageBuf, 3);
-        pTxCharacteristic->notify();
-      } else if (rxValue.rfind("Air:Level:", 0) == 0) {
-        bt_airlevel = std::atoi(rxValue.substr(10).c_str());
-        debug("AL:");
-        debugln(bt_airlevel);
-        memmove(messageBuf, "OK;", 3);
-        pTxCharacteristic->setValue(messageBuf, 3);
-        pTxCharacteristic->notify();
-      } else {
-        // debugln("$Unknown request");        
-        memmove(messageBuf, "ERR;", 4);
-        pTxCharacteristic->setValue(messageBuf, 4);
-        pTxCharacteristic->notify();
-      }
-    }
-};
-//bluetooth end
+void displayMenuManual();
+void buttonMenuManual();
+void displayBluetoothMenu();
+void buttonMenuBluetooth();
+void reset_Outputs();
+void update_values_ws();
+void bluetooth_write_pwm(int, int);
+void disable_Outputs();
+
+  bool WiFi_Enabled = false;
+  bool BT_Enabled = false;
+  bool buttonPressed = false;
+  bool buttonLongPressed = false;
+  int buttonDownCount = 0;
+  int encoderPosition = 0;
+  bool drawcolorstate = true;
+  unsigned long lastTimePressed = 0;
+  int item_selected = 0; // which item in the menu is selected
+  int item_sel_previous; // previous item - used in the menu screen to draw the item before the selected one
+  int item_sel_next; // next item - used in the menu screen to draw next item after the selected one
+  int current_screen = 0;   // 0 = main menu, 
+  int manualMenuSelect = 1; // from Manual Mode Menu
+  int bluetoothMenuSelect = 1; // from bluetooth mode menu
+  bool Ch1_Enable = false;
+  bool Ch2_Enable = false;
+  bool Ch3_Enable = false;
+  bool Ch4_Enable = false;
+  bool Pump_Enable = false;
+  int Ch1_On = 0;
+  int Ch1_Off = 0;
+  int Ch1_PWM = 0;
+  int Ch2_On = 0;
+  int Ch2_Off = 0;
+  int Ch2_PWM = 0;
+  int Ch3_On = 0;
+  int Ch3_Off = 0;
+  int Ch3_PWM = 0;
+  int Ch4_On = 0;
+  int Ch4_Off = 0;
+  int Ch4_PWM = 0;
+  int pump_PWM = 0;
+// Bluetooth Menu
+  int BT_V1_Output = 0;
+  int BT_V1_Min_PWM = 0;
+  int BT_V1_Max_PWM = 255;
+  int BT_V2_Output = 1;
+  int BT_V2_Min_PWM = 0;
+  int BT_V2_Max_PWM = 255;
+  bool BT_V1_Paused = false;
+  bool BT_V2_Paused = false;
+// PWM settings
+  const int freq = 5000;
+  const int resolution = 8;
+  const int PWMOUT_1 = 1; // max 30v ch1
+  const int PWMOUT_2 = 2; // max 30v ch2
+  const int PWMOUT_3 = 3; // 5v ch1
+  const int PWMOUT_4 = 4; // 5v ch2
+  const int buzzer = 5;
+  const int pumpOUT = 6; // Pump PWM Output
+  bool pwm1_paused = false;
+  bool pwm2_paused = false;
+  bool pwm3_paused = false;
+  bool pwm4_paused = false;
+  unsigned long pwm1_timeStarted = 0;
+  unsigned long pwm1_timeStopped = 0;
+  unsigned long pwm2_timeStarted = 0;
+  unsigned long pwm2_timeStopped = 0;
+  unsigned long pwm3_timeStarted = 0;
+  unsigned long pwm3_timeStopped = 0;
+  unsigned long pwm4_timeStarted = 0;
+  unsigned long pwm4_timeStopped = 0;
+  bool buzzer_enabled = false;
+  String lb1_mode;
+  String lb2_mode;
+  String tempString;
+// Main Menu New
+  const int MainMenuNumItems = 4; // number of items in the list 
+  const int MainMenuMaxItemLength = 20; // maximum characters for the item name
+  char MainMenuItems [MainMenuNumItems] [MainMenuMaxItemLength] = {"Manual","WiFi","Bluetooth","Info"};
+// Bluetooth Menu
+  const int OutputNumItems = 6; // number of items in the list 
+  const int OutputItemsMaxLength = 20; // maximum characters for the item name
+  char OutputItems [OutputNumItems] [OutputItemsMaxLength] = {"OFF","PWM1","PWM2","PWM3","PWM4","PUMP"};
+
+// Display Type
+  U8G2_SSD1306_128X64_NONAME_F_HW_I2C u8g2(U8G2_R0, /* reset=*/ U8X8_PIN_NONE);
 
 //Encoder
   //depending on your encoder - try 1,2 or 4 to get expected behaviour
@@ -146,133 +128,160 @@ class MySerialCallbacks: public BLECharacteristicCallbacks {
   //instead of changing here, rather change numbers above
   AiEsp32RotaryEncoder rotaryEncoder = AiEsp32RotaryEncoder(ROTARY_ENCODER_A_PIN, ROTARY_ENCODER_B_PIN, ROTARY_ENCODER_BUTTON_PIN, ROTARY_ENCODER_VCC_PIN, ROTARY_ENCODER_STEPS);
 
-// Display Type
-  U8G2_SSD1306_128X64_NONAME_F_HW_I2C u8g2(U8G2_R0, /* reset=*/ U8X8_PIN_NONE);
+// Bluetooth start
+  BLEServer* pServer = NULL;
+  BLECharacteristic* pTxCharacteristic = NULL;
+  BLECharacteristic* pRxCharacteristic = NULL;
+  // String bleAddress = "C0:42:3D:01:28:34"; // CONFIGURATION: < Use the real device BLE address here.
+  String bleAddress = "FF:FF:FF:FF:FF:FF"; // CONFIGURATION: < Use the real device BLE address here.
+  bool deviceConnected = false;
+  bool oldDeviceConnected = false;
+  uint32_t value = 0;
+  int bt_rotation;
+  int bt_vibration;
+  int bt_vibration1;
+  int bt_vibration2;
+  int bt_airlevel;
+  #define SERVICE_UUID           "6e400001-b5a3-f393-e0a9-e50e24dcca9e"
+  #define CHARACTERISTIC_RX_UUID "6e400002-b5a3-f393-e0a9-e50e24dcca9e"
+  #define CHARACTERISTIC_TX_UUID "6e400003-b5a3-f393-e0a9-e50e24dcca9e"
+  // CONFIGURATION:                           ^ Replace X and Y with values that suit you.
+  class MyServerCallbacks: public BLEServerCallbacks {
+      void onConnect(BLEServer* pServer) {
+        deviceConnected = true;
+        BLEDevice::startAdvertising();
+      };
 
-// software version
-String version = "0.1";
+      void onDisconnect(BLEServer* pServer) {
+        deviceConnected = false;
+      }
+  };
+  class MySerialCallbacks: public BLECharacteristicCallbacks {
+      void onWrite(BLECharacteristic *pCharacteristic) {
+        static uint8_t messageBuf[64];
+        assert(pCharacteristic == pRxCharacteristic);
+        std::string rxValue = pRxCharacteristic->getValue();
+        debugln(("rxValue: " + rxValue).c_str()); // debugging
+        
+        // Uncomment for full serial output
+        // if (rxValue.length() > 0) {
+        //   debugln("*********");
+        //   debug("Received Value: ");
+        //   for (int i = 0; i < rxValue.length(); i++)
+        //     debug(rxValue[i]);
 
-void displayMenuManual();
-void buttonMenuManual();
-void displayBluetoothMenu();
-void reset_Outputs();
-void update_values_ws();
-void bluetooth_write_pwm(int, int);
-void buttonMenuBluetooth();
+        //   debugln();
+        //   debugln("*********");
+        // }
+        if (rxValue == "DeviceType;") {
+          // debugln("$Responding to Device Enquiry");
+          memmove(messageBuf, "J:40:C0423D012834;", 18);
+          // memmove(messageBuf, "EI:40:C0FFFFFFFFFF;", 18);
+          // CONFIGURATION:               ^ Use a BLE address of the Lovense device you're cloning.
+          pTxCharacteristic->setValue(messageBuf, 18);
+          pTxCharacteristic->notify();
+        } else if (rxValue == "Battery;") {
+          memmove(messageBuf, "90;", 3);
+          pTxCharacteristic->setValue(messageBuf, 3);
+          pTxCharacteristic->notify();
+        } else if (rxValue == "PowerOff;") {
+          memmove(messageBuf, "OK;", 3);
+          pTxCharacteristic->setValue(messageBuf, 3);
+          pTxCharacteristic->notify();
+        } else if (rxValue == "RotateChange;") {
+                  memmove(messageBuf, "OK;", 3);
+          pTxCharacteristic->setValue(messageBuf, 3);
+          pTxCharacteristic->notify();
+        } else if (rxValue.rfind("Status:", 0) == 0) {
+          memmove(messageBuf, "2;", 2);
+          pTxCharacteristic->setValue(messageBuf, 3);
+          pTxCharacteristic->notify();
+        } else if (rxValue.rfind("Vibrate:", 0) == 0) {
+          bt_vibration = std::atoi(rxValue.substr(8).c_str());
+          debug("V:");
+          debugln(bt_vibration);
+          memmove(messageBuf, "OK;", 3);
+          pTxCharacteristic->setValue(messageBuf, 3);
+          pTxCharacteristic->notify();
+        } else if (rxValue.rfind("Rotate:", 0) == 0) {
+          bt_rotation = std::atoi(rxValue.substr(7).c_str());
+          debug("R:");
+          debugln(bt_rotation);
+          memmove(messageBuf, "OK;", 3);
+          pTxCharacteristic->setValue(messageBuf, 3);
+          pTxCharacteristic->notify();
+        } else if (rxValue.rfind("Vibrate1:", 0) == 0) {
+          bt_vibration1 = std::atoi(rxValue.substr(9).c_str());
+          debug("V1:");
+          debugln(bt_vibration1);
+          memmove(messageBuf, "OK;", 3);
+          pTxCharacteristic->setValue(messageBuf, 3);
+          pTxCharacteristic->notify();
+        } else if (rxValue.rfind("Vibrate2:", 0) == 0) {
+          bt_vibration2 = std::atoi(rxValue.substr(9).c_str());
+          debug("V2:");
+          debugln(bt_vibration2);
+          memmove(messageBuf, "OK;", 3);
+          pTxCharacteristic->setValue(messageBuf, 3);
+          pTxCharacteristic->notify();
+        } else if (rxValue.rfind("Air:Level:", 0) == 0) {
+          bt_airlevel = std::atoi(rxValue.substr(10).c_str());
+          debug("AL:");
+          debugln(bt_airlevel);
+          memmove(messageBuf, "OK;", 3);
+          pTxCharacteristic->setValue(messageBuf, 3);
+          pTxCharacteristic->notify();
+        } else {
+          // debugln("$Unknown request");        
+          memmove(messageBuf, "ERR;", 4);
+          pTxCharacteristic->setValue(messageBuf, 4);
+          pTxCharacteristic->notify();
+        }
+      }
+  };
+  //bluetooth end
 
-bool WiFi_Enabled = false;
-bool BT_Enabled = false;
-
-bool buttonPressed = false;
-bool buttonLongPressed = false;
-int buttonDownCount = 0;
-int encoderPosition = 0;
-bool drawcolorstate = true;
-unsigned long lastTimePressed = 0;
-
-int item_selected = 0; // which item in the menu is selected
-int item_sel_previous; // previous item - used in the menu screen to draw the item before the selected one
-int item_sel_next; // next item - used in the menu screen to draw next item after the selected one
-int current_screen = 0;   // 0 = main menu, 
-int manualMenuSelect = 1; // from Manual Mode Menu
-int bluetoothMenuSelect = 1; // from bluetooth mode menu
-
-bool Ch1_Enable = false;
-bool Ch2_Enable = false;
-bool Ch3_Enable = false;
-bool Ch4_Enable = false;
-bool Pump_Enable = false;
-int Ch1_On = 0;
-int Ch1_Off = 0;
-int Ch1_PWM = 0;
-int Ch2_On = 0;
-int Ch2_Off = 0;
-int Ch2_PWM = 0;
-int Ch3_On = 0;
-int Ch3_Off = 0;
-int Ch3_PWM = 0;
-int Ch4_On = 0;
-int Ch4_Off = 0;
-int Ch4_PWM = 0;
-int pump_PWM = 0;
-
-// Bluetooth Menu
-int BT_V1_Output = 0;
-int BT_V1_Min_PWM = 0;
-int BT_V1_Max_PWM = 255;
-int BT_V2_Output = 1;
-int BT_V2_Min_PWM = 0;
-int BT_V2_Max_PWM = 255;
-bool BT_V1_Paused = false;
-bool BT_V2_Paused = false;
-
-// PWM settings
-const int freq = 5000;
-const int resolution = 8;
-const int PWMOUT_1 = 1; // max 30v ch1
-const int PWMOUT_2 = 2; // max 30v ch2
-const int PWMOUT_3 = 3; // 5v ch1
-const int PWMOUT_4 = 4; // 5v ch2
-const int buzzer = 5;
-const int pumpOUT = 6; // Pump PWM Output
-bool pwm1_paused = false;
-bool pwm2_paused = false;
-bool pwm3_paused = false;
-bool pwm4_paused = false;
-unsigned long pwm1_timeStarted = 0;
-unsigned long pwm1_timeStopped = 0;
-unsigned long pwm2_timeStarted = 0;
-unsigned long pwm2_timeStopped = 0;
-unsigned long pwm3_timeStarted = 0;
-unsigned long pwm3_timeStopped = 0;
-unsigned long pwm4_timeStarted = 0;
-unsigned long pwm4_timeStopped = 0;
-bool buzzer_enabled = false;
-String lb1_mode;
-String lb2_mode;
-
-String tempString;
 
 // WebSocket
 // Create AsyncWebServer object on port 80
-AsyncWebServer server(80);
-// Create a WebSocket object
-AsyncWebSocket ws("/ws");
-//Json Variable to Hold Slider Values
-JSONVar values;
-String json_string;
+  AsyncWebServer server(80);
+  // Create a WebSocket object
+  AsyncWebSocket ws("/ws");
+  //Json Variable to Hold Slider Values
+  JSONVar values;
+  String json_string;
 
 // Initialize SPIFFS
-void initFS() {
-  if (!SPIFFS.begin()) {
-    Serial.println("An error has occurred while mounting SPIFFS");
+  void initFS() {
+    if (!SPIFFS.begin()) {
+      Serial.println("An error has occurred while mounting SPIFFS");
+    }
+    else{
+    Serial.println("SPIFFS mounted successfully");
+    }
   }
-  else{
-   Serial.println("SPIFFS mounted successfully");
-  }
-}
 // Initialize WiFi
-void initWiFi() {
-  WiFi.mode(WIFI_STA);
-  WiFi.begin(ssid, password);
-  Serial.print("Connecting to WiFi ..");
-  while (WiFi.status() != WL_CONNECTED) {
-    Serial.print('.');
-    delay(1000);
+  void initWiFi() {
+    WiFi.mode(WIFI_STA);
+    WiFi.begin(ssid, password);
+    Serial.print("Connecting to WiFi ..");
+    while (WiFi.status() != WL_CONNECTED) {
+      Serial.print('.');
+      delay(1000);
+    }
+    WiFi_Enabled = true;
+    Serial.println(WiFi.localIP());
   }
-  WiFi_Enabled = true;
-  Serial.println(WiFi.localIP());
-}
 
-void turn_OFF_WIFI() {
-    Serial.println("WIFI OFF");
-    WiFi.mode( WIFI_MODE_NULL );
-    WiFi_Enabled = false;
-    delay(1000);
-  }
 
 // Bluetooth/WiFi Switching start
-void turn_ON_Bluetooth() {
+  void turn_OFF_WIFI() {
+      Serial.println("WIFI OFF");
+      WiFi.mode( WIFI_MODE_NULL );
+      WiFi_Enabled = false;
+      delay(1000);
+    }
+  void turn_ON_Bluetooth() {
   if (BT_Enabled == false)
     {
       reset_Outputs();
@@ -316,30 +325,29 @@ void turn_ON_Bluetooth() {
   debugln("Waiting a client connection to notify...");
   BT_Enabled = true;
 }
-void turn_OFF_Bluetooth() {
+  void turn_OFF_Bluetooth() {
+  reset_Outputs();
+  disable_Outputs();
   u8g2.clearBuffer();
-  u8g2.setFont(u8g2_font_t0_13b_mf);
+  u8g2.setFont(font_main_menu);
   u8g2.drawStr(30, 17, "Disabling");
   u8g2.drawStr(31, 32, "Bluetooth");
   u8g2.sendBuffer();
   BLEDevice::deinit(false);
   BT_Enabled = false;
-  delay(2000);
+  delay(1000);
 }
 //Bluetooth/WiFi Switching end
-
-
-void notifyClients(String sliderValues) {
-  ws.textAll(sliderValues);
-}
-
-
 
 // Timer
   void blinktext();
   void buzzing();
   TickTwo timer1(blinktext, 400); // flash the display text every second
- 
+
+// Send Slider values
+  void notifyClients(String sliderValues) {
+    ws.textAll(sliderValues);
+  }
 
 // Encoder Functions
   void rotary_onButtonClick()
@@ -385,29 +393,24 @@ void notifyClients(String sliderValues) {
 
       }
   void IRAM_ATTR readEncoderISR()
-    {
-      rotaryEncoder.readEncoder_ISR();
-    }
+      {
+        rotaryEncoder.readEncoder_ISR();
+      }
 
 // display blink text
-void blinktext()
+  void blinktext()
   {
     drawcolorstate = !drawcolorstate;
   }  
 
-void update_values_ws();
 
-// Main Menu New
-const int MainMenuNumItems = 4; // number of items in the list 
-const int MainMenuMaxItemLength = 20; // maximum characters for the item name
-char MainMenuItems [MainMenuNumItems] [MainMenuMaxItemLength] = {"Manual","WiFi","Bluetooth","Info"};
-
-void displayMainMenu()
+// display the main intro menu
+  void displayMainMenu()
   {
     item_selected = encoderPosition;
     if (current_screen == 0) {
       rotaryEncoder.setBoundaries(0, 3, true);
-      u8g2.setFont(u8g2_font_t0_13b_mf);
+      u8g2.setFont(font_main_menu);
       u8g2.drawStr(25, 15, MainMenuItems[item_sel_previous]); 
       u8g2.drawStr(25, 35, MainMenuItems[item_selected]);
       u8g2.drawStr(25, 55, MainMenuItems[item_sel_next]);  
@@ -425,7 +428,7 @@ void displayMainMenu()
     }
     else if (current_screen == 11) {
       rotaryEncoder.setBoundaries(1, 1, false);
-      u8g2.setFont(u8g2_font_t0_13b_mf);
+      u8g2.setFont(font_main_menu);
       u8g2.drawStr(28, 17, "Local IP");
       u8g2.setCursor(8, 32);
       u8g2.print(WiFi.localIP());
@@ -436,19 +439,31 @@ void displayMainMenu()
         rotaryEncoder.setEncoderValue(encoderPosition);
       }
     }
+
     else if (current_screen == 12) {
-      displayBluetoothMenu();
-      buttonMenuBluetooth();
+      if (deviceConnected == 0){
+        u8g2.setFont(font_bluetooth_menu);
+        u8g2.clearBuffer();
+        u8g2.drawStr(33, 13, "Waiting");
+        u8g2.drawStr(45, 33, "for");
+        u8g2.drawStr(10, 53, "BT Connection");
+        u8g2.sendBuffer();
+        }
+      if (deviceConnected == 1) {
+        displayBluetoothMenu();
+        buttonMenuBluetooth();
+        }
       if (buttonLongPressed == true) {      
         current_screen = 0;
         item_selected = 2;
         encoderPosition = 2;
         rotaryEncoder.setEncoderValue(encoderPosition);
-      }
+        }
     }
+
     else if (current_screen == 13) {
       rotaryEncoder.setBoundaries(3, 3, false);
-      u8g2.setFont(u8g2_font_t0_13b_mf);
+      u8g2.setFont(font_main_menu);
       u8g2.drawStr(30, 17, "Software"); 
       u8g2.drawStr(31, 32, "Version");
       u8g2.setCursor(45, 47);
@@ -464,7 +479,7 @@ void displayMainMenu()
   }
 
 // actions on short and long button presses
-void menuButtonAction(){
+  void menuButtonAction(){
   if ( (buttonPressed == true) && (current_screen == 0) ) {
     //start switch case
     switch (item_selected) {
@@ -507,10 +522,10 @@ void menuButtonAction(){
   }
 }
 
-// menu manual display (old manual)
-void displayMenuManual()
+// menu manual display
+  void displayMenuManual()
   {
-  u8g2.setFont(u8g2_font_ncenB08_tr);
+  u8g2.setFont(font_manual_menu);
   u8g2.drawStr(1,8,"Ch1");
   u8g2.drawStr(34,8,"Ch2");
   u8g2.drawStr(69,8,"Ch3");
@@ -557,8 +572,8 @@ void displayMenuManual()
   u8g2.setCursor(102,61);
   u8g2.print(Ch4_PWM);
   }
-// menu System controls (old manual)
-void buttonMenuManual() {
+// menu System controls
+  void buttonMenuManual() {
   switch (manualMenuSelect) {
 
     case 1: //
@@ -905,14 +920,10 @@ void buttonMenuManual() {
 
 
 // Bluetooth
-// Bluetooth Outputs Array
-const int OutputNumItems = 6; // number of items in the list 
-const int OutputItemsMaxLength = 20; // maximum characters for the item name
-char OutputItems [OutputNumItems] [OutputItemsMaxLength] = {"OFF","PWM1","PWM2","PWM3","PWM4","PUMP"};
 // Bluetooth Menu
 void displayBluetoothMenu(){
   item_selected = 0;
-  u8g2.setFont(u8g2_font_pixzillav1_tr);
+  u8g2.setFont(font_bluetooth_menu);
   u8g2.drawStr(6,12,"BT");
   u8g2.drawStr(1,30,"Map");
   u8g2.drawStr(1,44,"Min");
@@ -935,8 +946,8 @@ void displayBluetoothMenu(){
   u8g2.setCursor(93,58);
   u8g2.print(BT_V2_Max_PWM);
 }
-
-void buttonMenuBluetooth() {
+// Bluetooth Menu Controls
+  void buttonMenuBluetooth() {
   switch (bluetoothMenuSelect) {
 
     case 1: //
@@ -1062,8 +1073,9 @@ void buttonMenuBluetooth() {
       break; // Wird nicht benötigt, wenn Statement(s) vorhanden sind
   }
 }
+
 // handle websocket message
-void handleWebSocketMessage_ws(void *arg, uint8_t *data, size_t len)
+  void handleWebSocketMessage_ws(void *arg, uint8_t *data, size_t len)
 {
   AwsFrameInfo *info = (AwsFrameInfo*)arg;
   int slider;
@@ -1330,7 +1342,7 @@ void handleWebSocketMessage_ws(void *arg, uint8_t *data, size_t len)
 } // handleWebSocketMessage_ws end
 
 // on websocket event
-void onEvent_ws(AsyncWebSocket *server, AsyncWebSocketClient *client, AwsEventType type, void *arg, uint8_t *data, size_t len) {
+  void onEvent_ws(AsyncWebSocket *server, AsyncWebSocketClient *client, AwsEventType type, void *arg, uint8_t *data, size_t len) {
   switch (type)
   {
     case WS_EVT_CONNECT:
@@ -1349,20 +1361,20 @@ void onEvent_ws(AsyncWebSocket *server, AsyncWebSocketClient *client, AwsEventTy
 }
 
 // update websocket values
-void update_values_ws(){
+  void update_values_ws(){
     json_string = JSON.stringify(values);
     debugln(json_string);
     ws.textAll(json_string);
 }
 
 // initialize Websocket
-void init_ws() {
+  void init_ws() {
   ws.onEvent(onEvent_ws);
   server.addHandler(&ws);
 }
 
 // disable outputs 
-void disable_Outputs()
+  void disable_Outputs()
 {
   if (!Ch1_Enable) {
     pwm1_paused = false;
@@ -1387,7 +1399,7 @@ void disable_Outputs()
 }
 
 // reset outputs
-void reset_Outputs(){
+  void reset_Outputs(){
   Ch1_Enable = false;
   Ch2_Enable = false;
   Ch3_Enable = false;
@@ -1430,7 +1442,8 @@ void reset_Outputs(){
   values["lb2"] = "off";
 }
 
-void PWM_Output(){
+// control pwm outputs in web or manual mode
+  void PWM_Output(){
   // Output 1
   if ((pwm1_paused == false) && (Ch1_Enable == true))
   {
@@ -1523,6 +1536,7 @@ void PWM_Output(){
     }
 }
 
+// control pwm outputs in bluetooth mode
 void bluetooth_write_pwm(int output, int mapped_PWM) {
   switch (output) {
     case 1:
@@ -1648,12 +1662,12 @@ void loop() {
   ws.cleanupClients();
   timer1.update(); // display blinking text timer
 
-  // control Outputs
+  // controls pwm outputs if system isn't in bluetooth mode / sub menu
   if (BT_Enabled == false) {
   PWM_Output();
   }
 
-    // disable Outputs
+  // disable Outputs
   disable_Outputs();
 
   // Encoder
@@ -1667,6 +1681,7 @@ void loop() {
     ledcWrite(buzzer,0);
   }
 
+  // encoder control in main menu - probably put in function
   if (encoderPosition != item_selected) 
     {
     item_selected = encoderPosition;
@@ -1693,16 +1708,9 @@ void loop() {
   u8g2.clearBuffer();
   menuButtonAction();
   displayMainMenu();
-    if (current_screen == 10) {
-      displayMenuManual();
-      buttonMenuManual();
-    }
-    else if (current_screen == 12) {
-      displayBluetoothMenu();
-      buttonMenuBluetooth();
-    }
-  u8g2.sendBuffer();
 
+  u8g2.sendBuffer();
+// switch from wifi to bluetooth
   if ((current_screen == 12) && (WiFi_Enabled == true)){
     turn_OFF_WIFI();
     WiFi_Enabled = false;
@@ -1711,7 +1719,7 @@ void loop() {
     debugln("trying to start bluetooth again");
         turn_ON_Bluetooth();
   }
-
+// switch from bluetooth to wifi
   if ((WiFi_Enabled == false) && (current_screen != 12)) {
     turn_OFF_Bluetooth();
     debugln("enabling WiFi");
@@ -1735,7 +1743,7 @@ void loop() {
     }
   // Bluetooth end
 
-  //Bluetooth Testing
+  //Bluetooth Output Control
   if (BT_Enabled == true) {
     int BT_mapped_PWM[2];
     BT_mapped_PWM[0] = map(bt_vibration1, 1, 20, BT_V1_Min_PWM, BT_V1_Max_PWM);
@@ -1764,5 +1772,4 @@ void loop() {
       bluetooth_write_pwm(BT_V2_Output, 0);
     }
   }
-
 } // Loop end
