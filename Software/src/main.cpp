@@ -110,8 +110,8 @@ void disable_Outputs();
   unsigned long pwm4_timeStarted = 0;
   unsigned long pwm4_timeStopped = 0;
   bool buzzer_enabled = false;
-  String lb1_mode;
-  String lb2_mode;
+  // String lb1_mode;
+  // String lb2_mode;
   String tempString;
 // Main Menu New
   const int MainMenuNumItems = 4; // number of items in the list 
@@ -1273,92 +1273,93 @@ void displayBluetoothMenu(){
         debugln(values["buzzer"]);
         break;
 
-      case 'l'://L bluetooth ch1
+      // case 'l'://L bluetooth ch1
 
-        switch (message[2])
-        {
-          case '1': //lb1 
-            debugln("lb case 1 triggered");
-            if (message[6] == 'f')//off
-            {
-              lb1_mode = "off";
-              debugln("bluetooth ch1 off");
-            }
-            else if (message[6] == '1')
-            {
-              lb1_mode = "ch1";
-              debugln("BT Ch1 -> Output 1 Enabled");
-            }
-            else if (message[6] == '2')
-            {
-              lb1_mode = "ch2";
-              debugln("BT Ch1 -> Output 2 Enabled");
-            }
-            else if (message[6] == '3')
-            {
-              lb1_mode = "ch3";
-              debugln("BT Ch1 -> Output 3 Enabled");
-            }
-            else if (message[6] == '4')
-            {
-              lb1_mode = "ch4";
-              debugln("BT Ch1 -> Output 4 Enabled");
-            }
-            else if (message[6] == '5')
-            {
-              lb1_mode = "ch5";
-              debugln("BT Ch1 -> Pump Enabled");
-            }
-            else
-            {
-              debugln("unknown lb1");
-            }
-            values["lb1"] = lb1_mode;
-            debugln("Bluetooth Ch1 output");
-            debugln(values["lb1"]);
-            break;
+      //   switch (message[2])
+      //   {
+      //     case '1': //lb1 
+      //       debugln("lb case 1 triggered");
+      //       if (message[6] == 'f')//off
+      //       {
+      //         lb1_mode = "off";
+      //         debugln("bluetooth ch1 off");
+      //       }
+      //       else if (message[6] == '1')
+      //       {
+      //         lb1_mode = "ch1";
+      //         debugln("BT Ch1 -> Output 1 Enabled");
+      //       }
+      //       else if (message[6] == '2')
+      //       {
+      //         lb1_mode = "ch2";
+      //         debugln("BT Ch1 -> Output 2 Enabled");
+      //       }
+      //       else if (message[6] == '3')
+      //       {
+      //         lb1_mode = "ch3";
+      //         debugln("BT Ch1 -> Output 3 Enabled");
+      //       }
+      //       else if (message[6] == '4')
+      //       {
+      //         lb1_mode = "ch4";
+      //         debugln("BT Ch1 -> Output 4 Enabled");
+      //       }
+      //       else if (message[6] == '5')
+      //       {
+      //         lb1_mode = "ch5";
+      //         debugln("BT Ch1 -> Pump Enabled");
+      //       }
+      //       else
+      //       {
+      //         debugln("unknown lb1");
+      //       }
+      //       values["lb1"] = lb1_mode;
+      //       debugln("Bluetooth Ch1 output");
+      //       debugln(values["lb1"]);
+      //       break;
 
-          case '2': //lb2 
-          debugln("lb case 2 triggered");
-            if (message[6] == 'f')//off
-            {
-              lb2_mode = "off";
-              debugln("BT Ch2 off");
-            }
-            else if (message[6] == '1')
-            {
-              lb2_mode = "ch1";
-              debugln("BT Ch2 -> Output 1 Enabled");
-            }
-            else if (message[6] == '2')
-            {
-              lb2_mode = "ch2";
-              debugln("BT Ch2 -> Output 2 Enabled");
-            }
-            else if (message[6] == '3')
-            {
-              lb2_mode = "ch3";
-              debugln("BT Ch2 -> Output 3 Enabled");
-            }
-            else if (message[6] == '4')
-            {
-              lb2_mode = "ch4";
-              debugln("BT Ch2 -> Output 4 Enabled");
-            }
-            else if (message[6] == '5')
-            {
-              lb2_mode = "ch5";
-              debugln("BT Ch2 -> Pump Enabled");
-            }
-            else
-            {
-              debugln("unknown lb2");
-            }
-            values["lb2"] = lb2_mode;
-            debugln("Bluetooth Ch2 output");
-            debugln(values["lb2"]);
-            break;
-          } // switch message[2] end
+      //     case '2': //lb2 
+      //     debugln("lb case 2 triggered");
+      //       if (message[6] == 'f')//off
+      //       {
+      //         lb2_mode = "off";
+      //         debugln("BT Ch2 off");
+      //       }
+      //       else if (message[6] == '1')
+      //       {
+      //         lb2_mode = "ch1";
+      //         debugln("BT Ch2 -> Output 1 Enabled");
+      //       }
+      //       else if (message[6] == '2')
+      //       {
+      //         lb2_mode = "ch2";
+      //         debugln("BT Ch2 -> Output 2 Enabled");
+      //       }
+      //       else if (message[6] == '3')
+      //       {
+      //         lb2_mode = "ch3";
+      //         debugln("BT Ch2 -> Output 3 Enabled");
+      //       }
+      //       else if (message[6] == '4')
+      //       {
+      //         lb2_mode = "ch4";
+      //         debugln("BT Ch2 -> Output 4 Enabled");
+      //       }
+      //       else if (message[6] == '5')
+      //       {
+      //         lb2_mode = "ch5";
+      //         debugln("BT Ch2 -> Pump Enabled");
+      //       }
+      //       else
+      //       {
+      //         debugln("unknown lb2");
+      //       }
+      //       values["lb2"] = lb2_mode;
+      //       debugln("Bluetooth Ch2 output");
+      //       debugln(values["lb2"]);
+      //       break;
+      //     } // switch message[2] end
+
     } // switch message[0] end
 
     json_string = JSON.stringify(values);
@@ -1463,8 +1464,8 @@ void displayBluetoothMenu(){
   values["toggle_d"] = false;
   values["toggle_e"] = false; // pump
   values["buzzer"] = "off";
-  values["lb1"] = "off";
-  values["lb2"] = "off";
+  // values["lb1"] = "off";
+  // values["lb2"] = "off";
 }
 
 // control pwm outputs in web or manual mode
@@ -1667,8 +1668,8 @@ void setup() {
   values["toggle_d"] = false;
   values["toggle_e"] = false; // pump
   values["buzzer"] = "off";
-  values["lb1"] = "off";
-  values["lb2"] = "off";
+  // values["lb1"] = "off";
+  // values["lb2"] = "off";
 
   json_string = JSON.stringify(values);
 
