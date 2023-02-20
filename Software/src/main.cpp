@@ -34,6 +34,8 @@ const uint8_t* font_status_messages = u8g2_font_crox4hb_tr;
 const uint8_t* font_main_menu = u8g2_font_t0_13b_mf;
 const uint8_t* font_manual_menu = u8g2_font_ncenB08_tr;
 const uint8_t* font_bluetooth_menu = u8g2_font_pixzillav1_tr; 
+const uint8_t* font_check_symbol = u8g2_font_open_iconic_check_1x_t;
+const uint8_t* font_wifi_symbol = u8g2_font_open_iconic_www_1x_t;
 
 void displayMenuManual();
 void buttonMenuManual();
@@ -44,6 +46,7 @@ void update_values_ws();
 void bluetooth_write_pwm(int, int);
 void disable_Outputs();
 
+  int wlanstatus;
   bool WiFi_Enabled = false;
   bool BT_Enabled = false;
   bool buttonPressed = false;
@@ -107,13 +110,13 @@ void disable_Outputs();
   unsigned long pwm4_timeStarted = 0;
   unsigned long pwm4_timeStopped = 0;
   bool buzzer_enabled = false;
-  String lb1_mode;
-  String lb2_mode;
+  // String lb1_mode;
+  // String lb2_mode;
   String tempString;
 // Main Menu New
   const int MainMenuNumItems = 4; // number of items in the list 
   const int MainMenuMaxItemLength = 20; // maximum characters for the item name
-  char MainMenuItems [MainMenuNumItems] [MainMenuMaxItemLength] = {"Manual","WiFi","Bluetooth","Info"};
+  char MainMenuItems [MainMenuNumItems] [MainMenuMaxItemLength] = {"Manual","WiFi Status","Bluetooth","Info"};
 // Bluetooth Menu
   const int OutputNumItems = 6; // number of items in the list 
   const int OutputItemsMaxLength = 20; // maximum characters for the item name
@@ -271,10 +274,10 @@ void disable_Outputs();
     u8g2.drawStr(8, 20, "Connecting");
     u8g2.drawStr(40, 45, "WiFi");
     u8g2.sendBuffer();
-    while (WiFi.status() != WL_CONNECTED) {
-      Serial.print('.');
-      delay(1000);
-    }
+    // while (WiFi.status() != WL_CONNECTED) {
+    //   Serial.print('.');
+    //   delay(1000);
+    // }
     WiFi_Enabled = true;
     Serial.println(WiFi.localIP());
   }
@@ -416,6 +419,18 @@ void disable_Outputs();
     item_selected = encoderPosition;
     if (current_screen == 0) {
       rotaryEncoder.setBoundaries(0, 3, true);
+
+    // WiFi Status Symbol
+    wlanstatus = WiFi.status();
+    if (wlanstatus == 3) { 
+      u8g2.setFont(font_wifi_symbol);
+      u8g2.drawGlyph(110, 8, 72);	// WiFi Symbol
+      }
+    else { 
+      u8g2.setFont(font_check_symbol);
+      u8g2.drawGlyph(110, 8, 68);	// Sync X Symbol
+      }
+
       u8g2.setFont(font_main_menu);
       u8g2.drawStr(25, 15, MainMenuItems[item_sel_previous]); 
       u8g2.drawStr(25, 35, MainMenuItems[item_selected]);
@@ -435,9 +450,13 @@ void disable_Outputs();
     else if (current_screen == 11) {
       rotaryEncoder.setBoundaries(1, 1, false);
       u8g2.setFont(font_main_menu);
-      u8g2.drawStr(28, 17, "Local IP");
-      u8g2.setCursor(8, 32);
+      u8g2.drawStr(30, 10, "Local IP");
+      u8g2.setCursor(8, 25);
       u8g2.print(WiFi.localIP());
+      u8g2.drawStr(24, 50, "RSSI: ");
+      u8g2.setCursor(70, 50);
+      u8g2.print(WiFi.RSSI());
+
       if (buttonLongPressed == true) {      
         current_screen = 0;
         item_selected = 1;
@@ -498,7 +517,7 @@ void disable_Outputs();
       break;
 
       case 1:
-      // WiFi
+      // WiFi Status
       current_screen = 11;
       displayMainMenu();
       break;
@@ -1254,92 +1273,93 @@ void displayBluetoothMenu(){
         debugln(values["buzzer"]);
         break;
 
-      case 'l'://L bluetooth ch1
+      // case 'l'://L bluetooth ch1
 
-        switch (message[2])
-        {
-          case '1': //lb1 
-            debugln("lb case 1 triggered");
-            if (message[6] == 'f')//off
-            {
-              lb1_mode = "off";
-              debugln("bluetooth ch1 off");
-            }
-            else if (message[6] == '1')
-            {
-              lb1_mode = "ch1";
-              debugln("BT Ch1 -> Output 1 Enabled");
-            }
-            else if (message[6] == '2')
-            {
-              lb1_mode = "ch2";
-              debugln("BT Ch1 -> Output 2 Enabled");
-            }
-            else if (message[6] == '3')
-            {
-              lb1_mode = "ch3";
-              debugln("BT Ch1 -> Output 3 Enabled");
-            }
-            else if (message[6] == '4')
-            {
-              lb1_mode = "ch4";
-              debugln("BT Ch1 -> Output 4 Enabled");
-            }
-            else if (message[6] == '5')
-            {
-              lb1_mode = "ch5";
-              debugln("BT Ch1 -> Pump Enabled");
-            }
-            else
-            {
-              debugln("unknown lb1");
-            }
-            values["lb1"] = lb1_mode;
-            debugln("Bluetooth Ch1 output");
-            debugln(values["lb1"]);
-            break;
+      //   switch (message[2])
+      //   {
+      //     case '1': //lb1 
+      //       debugln("lb case 1 triggered");
+      //       if (message[6] == 'f')//off
+      //       {
+      //         lb1_mode = "off";
+      //         debugln("bluetooth ch1 off");
+      //       }
+      //       else if (message[6] == '1')
+      //       {
+      //         lb1_mode = "ch1";
+      //         debugln("BT Ch1 -> Output 1 Enabled");
+      //       }
+      //       else if (message[6] == '2')
+      //       {
+      //         lb1_mode = "ch2";
+      //         debugln("BT Ch1 -> Output 2 Enabled");
+      //       }
+      //       else if (message[6] == '3')
+      //       {
+      //         lb1_mode = "ch3";
+      //         debugln("BT Ch1 -> Output 3 Enabled");
+      //       }
+      //       else if (message[6] == '4')
+      //       {
+      //         lb1_mode = "ch4";
+      //         debugln("BT Ch1 -> Output 4 Enabled");
+      //       }
+      //       else if (message[6] == '5')
+      //       {
+      //         lb1_mode = "ch5";
+      //         debugln("BT Ch1 -> Pump Enabled");
+      //       }
+      //       else
+      //       {
+      //         debugln("unknown lb1");
+      //       }
+      //       values["lb1"] = lb1_mode;
+      //       debugln("Bluetooth Ch1 output");
+      //       debugln(values["lb1"]);
+      //       break;
 
-          case '2': //lb2 
-          debugln("lb case 2 triggered");
-            if (message[6] == 'f')//off
-            {
-              lb2_mode = "off";
-              debugln("BT Ch2 off");
-            }
-            else if (message[6] == '1')
-            {
-              lb2_mode = "ch1";
-              debugln("BT Ch2 -> Output 1 Enabled");
-            }
-            else if (message[6] == '2')
-            {
-              lb2_mode = "ch2";
-              debugln("BT Ch2 -> Output 2 Enabled");
-            }
-            else if (message[6] == '3')
-            {
-              lb2_mode = "ch3";
-              debugln("BT Ch2 -> Output 3 Enabled");
-            }
-            else if (message[6] == '4')
-            {
-              lb2_mode = "ch4";
-              debugln("BT Ch2 -> Output 4 Enabled");
-            }
-            else if (message[6] == '5')
-            {
-              lb2_mode = "ch5";
-              debugln("BT Ch2 -> Pump Enabled");
-            }
-            else
-            {
-              debugln("unknown lb2");
-            }
-            values["lb2"] = lb2_mode;
-            debugln("Bluetooth Ch2 output");
-            debugln(values["lb2"]);
-            break;
-          } // switch message[2] end
+      //     case '2': //lb2 
+      //     debugln("lb case 2 triggered");
+      //       if (message[6] == 'f')//off
+      //       {
+      //         lb2_mode = "off";
+      //         debugln("BT Ch2 off");
+      //       }
+      //       else if (message[6] == '1')
+      //       {
+      //         lb2_mode = "ch1";
+      //         debugln("BT Ch2 -> Output 1 Enabled");
+      //       }
+      //       else if (message[6] == '2')
+      //       {
+      //         lb2_mode = "ch2";
+      //         debugln("BT Ch2 -> Output 2 Enabled");
+      //       }
+      //       else if (message[6] == '3')
+      //       {
+      //         lb2_mode = "ch3";
+      //         debugln("BT Ch2 -> Output 3 Enabled");
+      //       }
+      //       else if (message[6] == '4')
+      //       {
+      //         lb2_mode = "ch4";
+      //         debugln("BT Ch2 -> Output 4 Enabled");
+      //       }
+      //       else if (message[6] == '5')
+      //       {
+      //         lb2_mode = "ch5";
+      //         debugln("BT Ch2 -> Pump Enabled");
+      //       }
+      //       else
+      //       {
+      //         debugln("unknown lb2");
+      //       }
+      //       values["lb2"] = lb2_mode;
+      //       debugln("Bluetooth Ch2 output");
+      //       debugln(values["lb2"]);
+      //       break;
+      //     } // switch message[2] end
+
     } // switch message[0] end
 
     json_string = JSON.stringify(values);
@@ -1444,8 +1464,8 @@ void displayBluetoothMenu(){
   values["toggle_d"] = false;
   values["toggle_e"] = false; // pump
   values["buzzer"] = "off";
-  values["lb1"] = "off";
-  values["lb2"] = "off";
+  // values["lb1"] = "off";
+  // values["lb2"] = "off";
 }
 
 // control pwm outputs in web or manual mode
@@ -1648,8 +1668,8 @@ void setup() {
   values["toggle_d"] = false;
   values["toggle_e"] = false; // pump
   values["buzzer"] = "off";
-  values["lb1"] = "off";
-  values["lb2"] = "off";
+  // values["lb1"] = "off";
+  // values["lb2"] = "off";
 
   json_string = JSON.stringify(values);
 
