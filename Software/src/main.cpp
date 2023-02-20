@@ -30,6 +30,7 @@
 String version = "0.1";
 
 // set the font types being used
+const uint8_t* font_status_messages = u8g2_font_crox4hb_tr;
 const uint8_t* font_main_menu = u8g2_font_t0_13b_mf;
 const uint8_t* font_manual_menu = u8g2_font_ncenB08_tr;
 const uint8_t* font_bluetooth_menu = u8g2_font_pixzillav1_tr; 
@@ -265,6 +266,11 @@ void disable_Outputs();
     WiFi.mode(WIFI_STA);
     WiFi.begin(ssid, password);
     Serial.print("Connecting to WiFi ..");
+    u8g2.clearBuffer();
+    u8g2.setFont(font_status_messages);
+    u8g2.drawStr(8, 20, "Connecting");
+    u8g2.drawStr(40, 45, "WiFi");
+    u8g2.sendBuffer();
     while (WiFi.status() != WL_CONNECTED) {
       Serial.print('.');
       delay(1000);
@@ -329,9 +335,9 @@ void disable_Outputs();
   reset_Outputs();
   disable_Outputs();
   u8g2.clearBuffer();
-  u8g2.setFont(font_main_menu);
-  u8g2.drawStr(30, 17, "Disabling");
-  u8g2.drawStr(31, 32, "Bluetooth");
+  u8g2.setFont(font_status_messages);
+  u8g2.drawStr(15, 20, "Disabling");
+  u8g2.drawStr(15, 45, "Bluetooth");
   u8g2.sendBuffer();
   BLEDevice::deinit(false);
   BT_Enabled = false;
@@ -442,11 +448,11 @@ void disable_Outputs();
 
     else if (current_screen == 12) {
       if (deviceConnected == 0){
-        u8g2.setFont(font_bluetooth_menu);
+        u8g2.setFont(font_status_messages);
         u8g2.clearBuffer();
-        u8g2.drawStr(33, 13, "Waiting");
-        u8g2.drawStr(45, 33, "for");
-        u8g2.drawStr(10, 53, "BT Connection");
+        u8g2.drawStr(25, 16, "Waiting");
+        u8g2.drawStr(30, 36, "for BT");
+        u8g2.drawStr(8, 56, "Connection");
         u8g2.sendBuffer();
         }
       if (deviceConnected == 1) {
@@ -1613,7 +1619,7 @@ void setup() {
   u8g2.clearBuffer();
   u8g2.clearDisplay();
   u8g2.setFontMode(1);
-  u8g2.setFont(u8g2_font_crox4hb_tr);
+  u8g2.setFont(font_status_messages);
   u8g2.drawStr(15,20,"Universal");
   u8g2.drawStr(13,45,"Controller");
   u8g2.sendBuffer();
@@ -1773,3 +1779,4 @@ void loop() {
     }
   }
 } // Loop end
+
