@@ -111,11 +111,11 @@ html {
 }
 
 input:checked + .toggle {
-  background-color: #2196F3;
+  background-color: #13a191;
 }
 
 input:focus + .toggle {
-  box-shadow: 0 0 1px #2196F3;
+  box-shadow: 0 0 1px #13a191;
 }
 
 input:checked + .toggle:before {
@@ -176,11 +176,11 @@ input:checked + .toggle:before {
 }
 
 input:checked + .slider2 {
-  background-color: #2196F3;
+  background-color: #13a191;
 }
 
 input:focus + .slider2 {
-  box-shadow: 0 0 1px #2196F3;
+  box-shadow: 0 0 1px #13a191;
 }
 
 input:checked + .slider2:before {
@@ -198,3 +198,26 @@ input:checked + .slider2:before {
   border-radius: 50%;
 }
 /* Toggle Switch Example end */
+
+
+.button {
+  background-color: #13a191; /* Green */
+  border: none;
+  color: white;
+  padding: 12px 12px;
+  text-align: center;
+  text-decoration: none;
+  display: inline-block;
+  font-size: 16px;
+  font-weight: bold;
+  transition: all .2s ease-in-out;
+  border-radius: 10%;
+  margin-bottom: 20px;
+}
+
+.button:active {
+	transform: scale(0.9);
+	transition: .1s;
+}
+
+

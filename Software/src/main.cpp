@@ -25,6 +25,7 @@
 #include <BLEServer.h>
 #include <BLEUtils.h>
 #include <BLE2902.h>
+#include "DogCollar3.h"
 
 // software version
 String version = "0.1";
@@ -46,6 +47,25 @@ void update_values_ws();
 void bluetooth_write_pwm(int, int);
 void disable_Outputs();
 
+// DogCollar 
+  #define PIN_TRANSMITTER 15  // gpio15 is a strapping pin that can cause issues at bootup
+  // Unique ID (16 bit) of the Shock Collar. You can also keep this and use pairing mode of the collar
+  String uniqueKeyOfDevice = "0010110011011000";
+  DogCollar dg(PIN_TRANSMITTER,uniqueKeyOfDevice);
+  int vibration;
+  int shock;
+  int beep;
+  int keepawake;
+  int collar_strength;
+  bool Collar_Enable = false;
+  bool button_beep = false;
+  bool button_vib = false;
+  bool button_shock = false;
+  unsigned long previous_Collar_Wakeup = 0; 
+  unsigned long keep_Collar_Awake_Interval = 120000; // 2 Minutes
+
+// Random - name later
+  unsigned long currentMillis;
   int wlanstatus;
   bool WiFi_Enabled = false;
   bool BT_Enabled = false;
@@ -1183,6 +1203,21 @@ void displayBluetoothMenu(){
             values["toggle_e"] = Pump_Enable;
             } 
           break; 
+
+          case 'f':
+          if (message[9] == 't')//true
+            {
+            Collar_Enable = true;
+            values["toggle_f"] = Collar_Enable;
+            }
+          else if (message[9] == 'f')//false
+            {
+            Collar_Enable = false;
+            values["toggle_f"] = Collar_Enable;
+            } 
+          break; 
+
+
         }
         break;
 
@@ -1255,22 +1290,54 @@ void displayBluetoothMenu(){
             pump_PWM = slider;
             values["slider_m"] = pump_PWM;
             break;
+          case 'n':
+            collar_strength = slider;
+            values["slider_n"] = collar_strength;
+            break;
 
         }
         break;
 
-      case 'b'://buzzer
+      case 'b': //buzzer
         if (message[8] == 'n')//on
         {
           buzzer_enabled = true;
         }
-        else
+        else if (message[8] == 'f') //off
         {
           buzzer_enabled = false;
         }
         values["buzzer"] = buzzer_enabled ? "on" : "off";
         debugln("buzzer output");
         debugln(values["buzzer"]);
+        break;
+
+      case 'c': // click button
+        switch (message[6])
+        {
+          case 'b': // collar beep
+          if (Collar_Enable == true) {
+          dg.sendCollar(CollarChannel::CH1, CollarMode::Beep, collar_strength);
+          debugln("collar beeped");
+          }
+          break;
+
+        case 'v':  // collar vib
+          if (Collar_Enable == true) {
+          dg.sendCollar(CollarChannel::CH1, CollarMode::Vibe, collar_strength);
+          debug("collar vibrates at level: ");
+          debugln(collar_strength);
+          }
+          break;
+
+        case 's': // collar shock
+          if (Collar_Enable == true) {
+          dg.sendCollar(CollarChannel::CH1, CollarMode::Shock, collar_strength);
+          debug("collar shocks at level: ");
+          debugln(collar_strength);
+          }
+          break;
+          }
         break;
 
       // case 'l'://L bluetooth ch1
@@ -1458,11 +1525,13 @@ void displayBluetoothMenu(){
   values["slider_k"] = 0;
   values["slider_l"] = 0;
   values["slider_m"] = 0; // pump
+  values["slider_n"] = 0; // collar strength
   values["toggle_a"] = false;
   values["toggle_b"] = false;
   values["toggle_c"] = false;
   values["toggle_d"] = false;
   values["toggle_e"] = false; // pump
+  values["toggle_f"] = false; // collar
   values["buzzer"] = "off";
   // values["lb1"] = "off";
   // values["lb2"] = "off";
@@ -1662,11 +1731,13 @@ void setup() {
   values["slider_k"] = 0;
   values["slider_l"] = 0;
   values["slider_m"] = 0; // pump
+  values["slider_n"] = 0; // collar strength
   values["toggle_a"] = false;
   values["toggle_b"] = false;
   values["toggle_c"] = false;
   values["toggle_d"] = false;
   values["toggle_e"] = false; // pump
+  values["collar_f"] = false; // collar
   values["buzzer"] = "off";
   // values["lb1"] = "off";
   // values["lb2"] = "off";
@@ -1685,6 +1756,7 @@ void setup() {
 }
 
 void loop() {
+  currentMillis = millis();
   ws.cleanupClients();
   timer1.update(); // display blinking text timer
 
@@ -1798,5 +1870,13 @@ void loop() {
       bluetooth_write_pwm(BT_V2_Output, 0);
     }
   }
+
+  // Keep collar awake if enabled
+  if ((currentMillis - previous_Collar_Wakeup >= keep_Collar_Awake_Interval) && (Collar_Enable == true)) {
+    debugln("keeping collar awake");
+    previous_Collar_Wakeup = millis();
+    dg.sendCollar(CollarChannel::CH1, CollarMode::Blink, 100);
+  }
+
 } // Loop end
 

@@ -47,7 +47,7 @@ function update_switch(element){
 }
 
 function update_button(element) {
-    websocket.send(element.name);
+    websocket.send(element.id);
 }
 
 function SetValueToElementChecked(id, value)
@@ -140,6 +140,12 @@ function onMessage(event)
             continue;
         }
         if (key === "toggle_e")
+        {
+            // SetValueToElementChecked(key+"_"+values[key], true);
+            document.getElementById(key).checked = values[key];
+            continue;
+        }
+        if (key === "toggle_f")
         {
             // SetValueToElementChecked(key+"_"+values[key], true);
             document.getElementById(key).checked = values[key];
