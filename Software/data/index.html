@@ -133,6 +133,18 @@
                             <input type="radio" onclick="update_radio(this)" name="buzzer" id="buzzer_off" value="off" checked><label for="buzzer_off">Buzzer disabled</label><br>
                         </p>
                     </div>
+
+                    <div class="card">
+                        <p class="card-title">Collar</p>
+                        <p class="card-title">Strength</p>
+                        <p class="switch">
+                            <input type="range" onchange="update_slider(this)" id="slider_n" min="0" max="100" step="1" value ="0" class="slider">
+                        </p>
+                        <p class="state">Level: <span id="slider_n_value"></span></p>                           
+                            <input type="button" onclick="update_button(this)" name="Collar Beep" id="click_b" value="Beep" class="button"></button>
+                            <input type="button" onclick="update_button(this)" name="Collar Vibrate" id="click_v" value="Vib" class="button"></button>
+                            <input type="button" onclick="update_button(this)" name="Collar Shock" id="click_s" value="Shock" class="button"></button>
+                    </div>
           
                     <!-- <div class="card">
                       <p class="card-title">Bluetooth Ch1</p>

@@ -198,3 +198,26 @@ input:checked + .slider2:before {
   border-radius: 50%;
 }
 /* Toggle Switch Example end */
+
+
+.button {
+  background-color: #13a191; /* Green */
+  border: none;
+  color: white;
+  padding: 12px 12px;
+  text-align: center;
+  text-decoration: none;
+  display: inline-block;
+  font-size: 16px;
+  font-weight: bold;
+  transition: all .2s ease-in-out;
+  border-radius: 10%;
+  margin-bottom: 20px;
+}
+
+.button:active {
+	transform: scale(0.9);
+	transition: .1s;
+}
+
+

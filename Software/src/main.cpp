@@ -56,6 +56,10 @@ void disable_Outputs();
   int shock;
   int beep;
   int keepawake;
+  int collar_strength;
+  bool button_beep = false;
+  bool button_vib = false;
+  bool button_shock = false;
 
 // Random - name later
   int wlanstatus;
@@ -1267,22 +1271,43 @@ void displayBluetoothMenu(){
             pump_PWM = slider;
             values["slider_m"] = pump_PWM;
             break;
+          case 'n':
+            collar_strength = slider;
+            values["slider_n"] = collar_strength;
+            break;
 
         }
         break;
 
-      case 'b'://buzzer
+      case 'b': //buzzer
         if (message[8] == 'n')//on
         {
           buzzer_enabled = true;
         }
-        else
+        else if (message[8] == 'f') //off
         {
           buzzer_enabled = false;
         }
         values["buzzer"] = buzzer_enabled ? "on" : "off";
         debugln("buzzer output");
         debugln(values["buzzer"]);
+        break;
+
+      case 'c': // click button
+        switch (message[6])
+        {
+          case 'b': // collar beep
+          debugln("collar beep");
+          break;
+
+        case 'v':  // collar vib
+          debugln("collar vibrate");
+          break;
+
+        case 's': // collar shock
+          debugln("collar shock");
+          break;
+          }
         break;
 
       // case 'l'://L bluetooth ch1
@@ -1470,6 +1495,7 @@ void displayBluetoothMenu(){
   values["slider_k"] = 0;
   values["slider_l"] = 0;
   values["slider_m"] = 0; // pump
+  values["slider_n"] = 0; // collar strength
   values["toggle_a"] = false;
   values["toggle_b"] = false;
   values["toggle_c"] = false;
@@ -1674,6 +1700,7 @@ void setup() {
   values["slider_k"] = 0;
   values["slider_l"] = 0;
   values["slider_m"] = 0; // pump
+  values["slider_n"] = 0; // collar strength
   values["toggle_a"] = false;
   values["toggle_b"] = false;
   values["toggle_c"] = false;

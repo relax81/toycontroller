@@ -47,7 +47,7 @@ function update_switch(element){
 }
 
 function update_button(element) {
-    websocket.send(element.name);
+    websocket.send(element.id);
 }
 
 function SetValueToElementChecked(id, value)
