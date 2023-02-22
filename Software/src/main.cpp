@@ -25,6 +25,7 @@
 #include <BLEServer.h>
 #include <BLEUtils.h>
 #include <BLE2902.h>
+#include "DogCollar3.h"
 
 // software version
 String version = "0.1";
@@ -46,6 +47,17 @@ void update_values_ws();
 void bluetooth_write_pwm(int, int);
 void disable_Outputs();
 
+// DogCollar 
+  #define PIN_TRANSMITTER 15  // gpio15 is a strapping pin that can cause issues at bootup
+  // Unique ID (16 bit) of the Shock Collar. You can also keep this and use pairing mode of the collar
+  String uniqueKeyOfDevice = "0010110011011000";
+  DogCollar dg(PIN_TRANSMITTER,uniqueKeyOfDevice);
+  int vibration;
+  int shock;
+  int beep;
+  int keepawake;
+
+// Random - name later
   int wlanstatus;
   bool WiFi_Enabled = false;
   bool BT_Enabled = false;
