@@ -145,6 +145,12 @@ function onMessage(event)
             document.getElementById(key).checked = values[key];
             continue;
         }
+        if (key === "toggle_f")
+        {
+            // SetValueToElementChecked(key+"_"+values[key], true);
+            document.getElementById(key).checked = values[key];
+            continue;
+        }
     
 
         SetValueToElementInnerHTML(key+"_value", values[key]);

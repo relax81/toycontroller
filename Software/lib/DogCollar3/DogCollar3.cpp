@@ -35,7 +35,6 @@ DogCollar::DogCollar(int transmitPin, String uniqueKey, int repeatedSending) : m
     pin = transmitPin;
     pinMode(pin,OUTPUT);
     keyIsOK = false;
-    Serial.begin(115200);
 
     if(uniqueKey.length() == lenKey)
     {

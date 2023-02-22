@@ -127,7 +127,7 @@
 
 
                     <div class="card">
-                        <p class="card-title">Buzzer Button Test</p>
+                        <p class="card-title">Buzzer</p>
                         <p class="switch3">
                             <input type="radio" onclick="update_radio(this)" name="buzzer" id="buzzer_on" value="on"><label for="buzzer_on">Buzzer enabled</label><br>
                             <input type="radio" onclick="update_radio(this)" name="buzzer" id="buzzer_off" value="off" checked><label for="buzzer_off">Buzzer disabled</label><br>
@@ -135,7 +135,11 @@
                     </div>
 
                     <div class="card">
-                        <p class="card-title">Collar</p>
+                        <p class="card-title">Collar Enable</p>
+                        <label class="switch2">
+                            <input type="checkbox" onclick="update_switch(this)" id="toggle_f">
+                            <span class="slider2 round"></span>
+                            </label>
                         <p class="card-title">Strength</p>
                         <p class="switch">
                             <input type="range" onchange="update_slider(this)" id="slider_n" min="0" max="100" step="1" value ="0" class="slider">

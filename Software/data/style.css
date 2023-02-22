@@ -111,11 +111,11 @@ html {
 }
 
 input:checked + .toggle {
-  background-color: #2196F3;
+  background-color: #13a191;
 }
 
 input:focus + .toggle {
-  box-shadow: 0 0 1px #2196F3;
+  box-shadow: 0 0 1px #13a191;
 }
 
 input:checked + .toggle:before {
@@ -176,11 +176,11 @@ input:checked + .toggle:before {
 }
 
 input:checked + .slider2 {
-  background-color: #2196F3;
+  background-color: #13a191;
 }
 
 input:focus + .slider2 {
-  box-shadow: 0 0 1px #2196F3;
+  box-shadow: 0 0 1px #13a191;
 }
 
 input:checked + .slider2:before {
