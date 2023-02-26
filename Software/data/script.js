@@ -97,11 +97,11 @@ function onMessage(event)
             SetValueToElementChecked(key+"_"+values[key]);
             continue;
 		}
-		if (key === "buzzer")
-		{
-            SetValueToElementChecked(key+"_"+values[key], true);
-			continue;
-		}
+		// if (key === "buzzer")
+		// {
+        //     SetValueToElementChecked(key+"_"+values[key], true);
+		// 	continue;
+		// }
         // if (key === "lb1")
 		// {
         //     console.log("key lb1 triggered");
@@ -146,6 +146,12 @@ function onMessage(event)
             continue;
         }
         if (key === "toggle_f")
+        {
+            // SetValueToElementChecked(key+"_"+values[key], true);
+            document.getElementById(key).checked = values[key];
+            continue;
+        }
+        if (key === "toggle_g")
         {
             // SetValueToElementChecked(key+"_"+values[key], true);
             document.getElementById(key).checked = values[key];

@@ -129,7 +129,6 @@ void disable_Outputs();
   unsigned long pwm3_timeStopped = 0;
   unsigned long pwm4_timeStarted = 0;
   unsigned long pwm4_timeStopped = 0;
-  bool buzzer_enabled = false;
   // String lb1_mode;
   // String lb2_mode;
   String tempString;
@@ -141,6 +140,18 @@ void disable_Outputs();
   const int OutputNumItems = 6; // number of items in the list 
   const int OutputItemsMaxLength = 20; // maximum characters for the item name
   char OutputItems [OutputNumItems] [OutputItemsMaxLength] = {"OFF","PWM1","PWM2","PWM3","PWM4","PUMP"};
+// buzzer 
+  bool buzzer_Metronome_Enabled = false;
+  int buzzerVolume = 5; // 0 - 10
+  const int buzzerFrequency = 2000; // initial buzzerFrequency
+  unsigned long buzzerPreviousMillis = 0;
+  int buzzerBPM = 60; // 1 - 255
+  int beatInterval = 60000 / buzzerBPM; // duration of one beat in milliseconds
+  int buzzerOnTimeMS = 50;
+  bool buzzerIsPlaying = false;
+
+
+
 
 // Display Type
   U8G2_SSD1306_128X64_NONAME_F_HW_I2C u8g2(U8G2_R0, /* reset=*/ U8X8_PIN_NONE);
@@ -1217,6 +1228,19 @@ void displayBluetoothMenu(){
             } 
           break; 
 
+          case 'g':
+          if (message[9] == 't')//true
+            {
+            buzzer_Metronome_Enabled = true;
+            values["toggle_g"] = buzzer_Metronome_Enabled;
+            }
+          else if (message[9] == 'f')//false
+            {
+            buzzer_Metronome_Enabled = false;
+            values["toggle_g"] = buzzer_Metronome_Enabled;
+            } 
+          break; 
+
 
         }
         break;
@@ -1294,6 +1318,14 @@ void displayBluetoothMenu(){
             collar_strength = slider;
             values["slider_n"] = collar_strength;
             break;
+          case 'o':
+            buzzerBPM = slider;
+            values["slider_o"] = buzzerBPM;
+            break;
+          case 'p':
+            buzzerVolume = slider;
+            values["slider_p"] = buzzerVolume;
+            break;
 
         }
         break;
@@ -1301,13 +1333,13 @@ void displayBluetoothMenu(){
       case 'b': //buzzer
         if (message[8] == 'n')//on
         {
-          buzzer_enabled = true;
+          buzzer_Metronome_Enabled = true;
         }
         else if (message[8] == 'f') //off
         {
-          buzzer_enabled = false;
+          buzzer_Metronome_Enabled = false;
         }
-        values["buzzer"] = buzzer_enabled ? "on" : "off";
+        values["buzzer"] = buzzer_Metronome_Enabled ? "on" : "off";
         debugln("buzzer output");
         debugln(values["buzzer"]);
         break;
@@ -1526,13 +1558,16 @@ void displayBluetoothMenu(){
   values["slider_l"] = 0;
   values["slider_m"] = 0; // pump
   values["slider_n"] = 0; // collar strength
+  values["slider_o"] = 60; // Buzzer Metronome BPM
+  values["slider_p"] = 5; // Buzzer Metronome Volume
   values["toggle_a"] = false;
   values["toggle_b"] = false;
   values["toggle_c"] = false;
   values["toggle_d"] = false;
   values["toggle_e"] = false; // pump
   values["toggle_f"] = false; // collar
-  values["buzzer"] = "off";
+  values["toggle_g"] = false; // Buzzer Metronome
+  // values["buzzer"] = "off";
   // values["lb1"] = "off";
   // values["lb2"] = "off";
 }
@@ -1652,6 +1687,23 @@ void bluetooth_write_pwm(int output, int mapped_PWM) {
   }
 }
 
+void buzzer_Metronome (int buzzerBPM, int buzzerOnTimeMS, int buzzerVolume) {
+    beatInterval = 60000 / buzzerBPM;
+    int buzzerPWM = map(buzzerVolume, 0, 10, 0, 140);
+    if ((currentMillis - buzzerPreviousMillis >= beatInterval - buzzerOnTimeMS) && (!buzzerIsPlaying)) { // turn on
+        ledcWrite (buzzer, buzzerPWM);
+        buzzerIsPlaying = true;
+        buzzerPreviousMillis = currentMillis;
+  } else { // turn off
+    if (currentMillis - buzzerPreviousMillis >= buzzerOnTimeMS) {
+        ledcWrite (buzzer, 0);
+        buzzerIsPlaying = false;
+        buzzerPreviousMillis = currentMillis;
+        delay(beatInterval - buzzerOnTimeMS);
+    }
+  }
+}
+
 void setup() {
   Serial.begin(115200);
   debugln("setup started");
@@ -1675,7 +1727,7 @@ void setup() {
   ledcSetup(PWMOUT_2, freq, resolution);
   ledcSetup(PWMOUT_3, freq, resolution);
   ledcSetup(PWMOUT_4, freq, resolution);
-  ledcSetup(buzzer, freq, resolution);
+  ledcSetup(buzzer, buzzerFrequency, resolution);
   ledcSetup(pumpOUT, 500, resolution);
   ledcAttachPin(CH1_30VMax, PWMOUT_1);
   ledcAttachPin(CH2_30VMax, PWMOUT_2);
@@ -1732,12 +1784,15 @@ void setup() {
   values["slider_l"] = 0;
   values["slider_m"] = 0; // pump
   values["slider_n"] = 0; // collar strength
+  values["slider_o"] = 60; // Buzzer Metronome BPM
+  values["slider_p"] = 5; // Buzzer Metronome Volume
   values["toggle_a"] = false;
   values["toggle_b"] = false;
   values["toggle_c"] = false;
   values["toggle_d"] = false;
   values["toggle_e"] = false; // pump
-  values["collar_f"] = false; // collar
+  values["toggle_f"] = false; // collar
+  values["toggle_g"] = false; // Buzzer Metronome
   values["buzzer"] = "off";
   // values["lb1"] = "off";
   // values["lb2"] = "off";
@@ -1770,14 +1825,6 @@ void loop() {
 
   // Encoder
   rotary_loop();
-
-  // Buzzer test
-  if (buzzer_enabled == true) {
-    ledcWrite(buzzer,50);
-  }
-  else {
-    ledcWrite(buzzer,0);
-  }
 
   // encoder control in main menu - probably put in function
   if (encoderPosition != item_selected) 
@@ -1877,6 +1924,15 @@ void loop() {
     previous_Collar_Wakeup = millis();
     dg.sendCollar(CollarChannel::CH1, CollarMode::Blink, 100);
   }
+
+// buzzer start
+  if (buzzer_Metronome_Enabled == true) {
+  buzzer_Metronome(buzzerBPM, buzzerOnTimeMS, buzzerVolume);
+  }
+  else if (buzzer_Metronome_Enabled == false) {
+    ledcWrite(buzzer, 0);
+  }
+// buzzer end
 
 } // Loop end
 

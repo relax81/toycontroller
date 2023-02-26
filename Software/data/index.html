@@ -16,7 +16,7 @@
         <div class="card-grid">
             <!-- First Row -->
             <div class="card">
-            <p class="card-title">Ch1 Enable</p>
+            <p class="card-title">Ch1</p>
             <!-- Rounded switch -->
             <label class="switch2"> 
                 <input type="checkbox" onclick="update_switch(this)" id="toggle_a"> 
@@ -40,7 +40,7 @@
             </div>
             <!-- Second Row -->
             <div class="card">
-                <p class="card-title">Ch2 Enable</p>
+                <p class="card-title">Ch2</p>
                 <!-- Rounded switch -->
                 <label class="switch2">
                     <input type="checkbox" onclick="update_switch(this)" id="toggle_b">
@@ -64,7 +64,7 @@
                 </div>
                 <!-- Third Row -->
                 <div class="card">
-                    <p class="card-title">Ch3 Enable</p>
+                    <p class="card-title">Ch3</p>
                     <!-- Rounded switch -->
                     <label class="switch2">
                         <input type="checkbox" onclick="update_switch(this)" id="toggle_c">
@@ -88,7 +88,7 @@
                     </div>
                 <!-- Fourth Row -->
                 <div class="card">
-                    <p class="card-title">Ch4 Enable</p>
+                    <p class="card-title">Ch4</p>
                     <!-- Rounded switch -->
                     <label class="switch2">
                         <input type="checkbox" onclick="update_switch(this)" id="toggle_d">
@@ -112,7 +112,7 @@
                     </div>
 
                     <div class="card">
-                        <p class="card-title">Pump Enable</p>
+                        <p class="card-title">Pump</p>
                         <!-- Rounded switch -->
                         <label class="switch2">
                             <input type="checkbox" onclick="update_switch(this)" id="toggle_e">
@@ -127,15 +127,29 @@
 
 
                     <div class="card">
-                        <p class="card-title">Buzzer</p>
-                        <p class="switch3">
+                        <p class="card-title">Buzzer Metronome</p>
+                        <label class="switch2">
+                            <input type="checkbox" onclick="update_switch(this)" id="toggle_g">
+                            <span class="slider2 round"></span>
+                            </label>
+                            <p class="card-title">BPM</p>
+                        <p class="switch">
+                            <input type="range" onchange="update_slider(this)" id="slider_o" min="1" max="255" step="1" value ="0" class="slider">
+                        </p>
+                        <p class="state">BPM: <span id="slider_o_value"></span></p>
+                        <p class="card-title">Volume</p>
+                        <p class="switch">
+                            <input type="range" onchange="update_slider(this)" id="slider_p" min="0" max="10" step="1" value ="0" class="slider">
+                        </p>
+                        <p class="state">Volume: <span id="slider_p_value"></span></p>
+                        <!-- <p class="switch3">
                             <input type="radio" onclick="update_radio(this)" name="buzzer" id="buzzer_on" value="on"><label for="buzzer_on">Buzzer enabled</label><br>
                             <input type="radio" onclick="update_radio(this)" name="buzzer" id="buzzer_off" value="off" checked><label for="buzzer_off">Buzzer disabled</label><br>
-                        </p>
+                        </p> -->
                     </div>
 
                     <div class="card">
-                        <p class="card-title">Collar Enable</p>
+                        <p class="card-title">Collar</p>
                         <label class="switch2">
                             <input type="checkbox" onclick="update_switch(this)" id="toggle_f">
                             <span class="slider2 round"></span>
