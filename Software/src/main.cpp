@@ -232,7 +232,8 @@ void disable_Outputs();
           pTxCharacteristic->setValue(messageBuf, 3);
           pTxCharacteristic->notify();
         } else if (rxValue.rfind("Vibrate:", 0) == 0) {
-          bt_vibration = std::atoi(rxValue.substr(8).c_str());
+          bt_vibration1 = std::atoi(rxValue.substr(8).c_str());
+          bt_vibration2 = std::atoi(rxValue.substr(8).c_str());
           debug("V:");
           debugln(bt_vibration);
           memmove(messageBuf, "OK;", 3);
@@ -242,6 +243,13 @@ void disable_Outputs();
           bt_rotation = std::atoi(rxValue.substr(7).c_str());
           debug("R:");
           debugln(bt_rotation);
+          memmove(messageBuf, "OK;", 3);
+          pTxCharacteristic->setValue(messageBuf, 3);
+          pTxCharacteristic->notify();
+          } else if (rxValue.rfind("Vibrate:", 0) == 0) {
+          bt_vibration1 = std::atoi(rxValue.substr(8).c_str());
+          debug("V:");
+          debugln(bt_vibration1);
           memmove(messageBuf, "OK;", 3);
           pTxCharacteristic->setValue(messageBuf, 3);
           pTxCharacteristic->notify();
