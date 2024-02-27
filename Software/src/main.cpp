@@ -57,10 +57,12 @@ void disable_Outputs();
   int beep;
   int keepawake;
   int collar_strength;
+  int previous_shock = 30;
   bool Collar_Enable = false;
   bool button_beep = false;
   bool button_vib = false;
   bool button_shock = false;
+  bool collar_bt_only_changes = true;
   unsigned long previous_Collar_Wakeup = 0; 
   unsigned long keep_Collar_Awake_Interval = 120000; // 2 Minutes
 
@@ -137,9 +139,9 @@ void disable_Outputs();
   const int MainMenuMaxItemLength = 20; // maximum characters for the item name
   char MainMenuItems [MainMenuNumItems] [MainMenuMaxItemLength] = {"Manual","WiFi Status","Bluetooth","Info"};
 // Bluetooth Menu
-  const int OutputNumItems = 6; // number of items in the list 
+  const int OutputNumItems = 7; // number of items in the list 
   const int OutputItemsMaxLength = 20; // maximum characters for the item name
-  char OutputItems [OutputNumItems] [OutputItemsMaxLength] = {"OFF","PWM1","PWM2","PWM3","PWM4","PUMP"};
+  char OutputItems [OutputNumItems] [OutputItemsMaxLength] = {"OFF","PWM1","PWM2","PWM3","PWM4","PUMP","Shoc"};
 // buzzer 
   bool buzzer_Metronome_Enabled = false;
   int buzzerVolume = 5; // 0 - 10
@@ -1022,7 +1024,7 @@ void displayBluetoothMenu(){
       u8g2.setDrawColor(1);
       if (buttonPressed == true) {
           buttonPressed = false;
-          rotaryEncoder.setBoundaries(0, 5, false);
+          rotaryEncoder.setBoundaries(0, (OutputNumItems - 1), false);
           rotaryEncoder.setEncoderValue(BT_V1_Output);
           encoderPosition = BT_V1_Output;
           bluetoothMenuSelect = bluetoothMenuSelect * 10;
@@ -1036,7 +1038,7 @@ void displayBluetoothMenu(){
       u8g2.setDrawColor(1);
       if (buttonPressed == true) {
           buttonPressed = false;
-          rotaryEncoder.setBoundaries(0, 5, false);
+          rotaryEncoder.setBoundaries(0, (OutputNumItems - 1), false);
           rotaryEncoder.setEncoderValue(BT_V2_Output);
           encoderPosition = BT_V2_Output;
           bluetoothMenuSelect = bluetoothMenuSelect * 10;
@@ -1045,13 +1047,20 @@ void displayBluetoothMenu(){
 
       case 10: // 
       BT_V1_Output = encoderPosition;
+      if (BT_V1_Output == 6) {
+        BT_V1_Max_PWM = 100;
+      }
       u8g2.setCursor(40,30);
       u8g2.setDrawColor(drawcolorstate);
       u8g2.drawStr(40, 30, OutputItems[BT_V1_Output]);
       u8g2.setDrawColor(1);
       if (buttonPressed == true) {
           buttonPressed = false;
+          if (BT_V1_Output != 6){
           rotaryEncoder.setBoundaries(0, 255, false);
+          }
+            else 
+            {rotaryEncoder.setBoundaries(0, 100, false); }
           rotaryEncoder.setEncoderValue(BT_V1_Min_PWM);
           encoderPosition = BT_V1_Min_PWM;
           bluetoothMenuSelect++;
@@ -1066,7 +1075,13 @@ void displayBluetoothMenu(){
       u8g2.setDrawColor(1);
       if (buttonPressed == true) {
           buttonPressed = false;
-		  rotaryEncoder.setBoundaries(0, 255, false);
+          if (BT_V1_Output != 6){
+		        rotaryEncoder.setBoundaries(0, 255, false);
+            }
+            else 
+            {
+            rotaryEncoder.setBoundaries(0, 100, false); 
+            }
           rotaryEncoder.setEncoderValue(BT_V1_Max_PWM);
           encoderPosition = BT_V1_Max_PWM;
           bluetoothMenuSelect++;
@@ -1089,6 +1104,9 @@ void displayBluetoothMenu(){
 
     case 20: //
       BT_V2_Output = encoderPosition;
+      if (BT_V2_Output == 6) {
+        BT_V2_Max_PWM = 100;
+      }
       u8g2.setCursor(86,30);
       u8g2.setDrawColor(drawcolorstate);
       u8g2.drawStr(86, 30, OutputItems[BT_V2_Output]);
@@ -1132,8 +1150,7 @@ void displayBluetoothMenu(){
       break;
     
       default:
-      // Tue etwas, im Defaultfall
-      // Dieser Fall ist optional
+      bluetoothMenuSelect = 1;
       break; // Wird nicht benötigt, wenn Statement(s) vorhanden sind
   }
 }
@@ -1692,6 +1709,20 @@ void bluetooth_write_pwm(int output, int mapped_PWM) {
     case 5:
       ledcWrite(pumpOUT, mapped_PWM);
       break;
+    case 6: 
+
+      if (collar_bt_only_changes == true) {
+        if (mapped_PWM != previous_shock){
+          dg.sendCollar(CollarChannel::CH1, CollarMode::Shock, mapped_PWM);
+        }
+      previous_shock = mapped_PWM;
+      }
+
+      else {
+        dg.sendCollar(CollarChannel::CH1, CollarMode::Shock, mapped_PWM);
+      }
+
+      break;
   }
 }
 
@@ -1907,6 +1938,7 @@ void loop() {
     Ch3_Enable = (BT_V1_Output == 3 || BT_V2_Output == 3);
     Ch4_Enable = (BT_V1_Output == 4 || BT_V2_Output == 4);
     Pump_Enable = (BT_V1_Output == 5 || BT_V2_Output == 5);
+    Collar_Enable = (BT_V1_Output == 6 || BT_V2_Output == 6);
 
     if ((BT_V1_Output > 0) && (bt_vibration1 > 0)) {
       BT_V1_Paused = false;
@@ -1924,6 +1956,7 @@ void loop() {
       BT_V2_Paused = true;
       bluetooth_write_pwm(BT_V2_Output, 0);
     }
+
   }
 
   // Keep collar awake if enabled
