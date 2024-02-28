@@ -135,9 +135,9 @@ void disable_Outputs();
   // String lb2_mode;
   String tempString;
 // Main Menu New
-  const int MainMenuNumItems = 4; // number of items in the list 
+  const int MainMenuNumItems = 5; // number of items in the list 
   const int MainMenuMaxItemLength = 20; // maximum characters for the item name
-  char MainMenuItems [MainMenuNumItems] [MainMenuMaxItemLength] = {"Manual","WiFi Status","Bluetooth","Info"};
+  char MainMenuItems [MainMenuNumItems] [MainMenuMaxItemLength] = {"Manual","WiFi Status","Bluetooth","Info","Settings"};
 // Bluetooth Menu
   const int OutputNumItems = 7; // number of items in the list 
   const int OutputItemsMaxLength = 20; // maximum characters for the item name
@@ -458,8 +458,10 @@ void disable_Outputs();
   void displayMainMenu()
   {
     item_selected = encoderPosition;
+    // debugln(item_selected);
+    // debugln(encoderPosition);
     if (current_screen == 0) {
-      rotaryEncoder.setBoundaries(0, 3, true);
+      rotaryEncoder.setBoundaries(0, 4, false);
 
     // WiFi Status Symbol
     wlanstatus = WiFi.status();
@@ -541,6 +543,38 @@ void disable_Outputs();
         rotaryEncoder.setEncoderValue(encoderPosition);
       }
     }
+
+    else if (current_screen == 14) {
+      rotaryEncoder.setBoundaries(0, 1, false);
+      u8g2.setFont(font_main_menu);
+      u8g2.drawStr(2, 10, "Shock BT trigger"); 
+      u8g2.drawStr(10, 24, "only on Level");
+      u8g2.drawStr(28, 38, "change");
+      if (collar_bt_only_changes == true) {
+        u8g2.drawStr(28,55, "ENABLED");
+      }
+      else {
+        u8g2.drawStr(28,55, "DISABLED");
+      }
+
+      if (encoderPosition == 0) {
+        collar_bt_only_changes = false;
+        }
+        else if (encoderPosition == 1) {
+          collar_bt_only_changes = true;
+        }
+
+      if (buttonLongPressed == true) {      
+        current_screen = 0;
+        item_selected = 4;
+        encoderPosition = 4;
+        rotaryEncoder.setEncoderValue(encoderPosition);
+      }
+    }
+
+
+
+
     // u8g2.sendBuffer();
   }
 
@@ -574,6 +608,12 @@ void disable_Outputs();
       case 3:
       // Info
       current_screen = 13;
+      displayMainMenu();
+      break;
+
+      case 4:
+      // Settings
+      current_screen = 14;
       displayMainMenu();
       break;
 
