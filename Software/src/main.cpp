@@ -1100,52 +1100,39 @@ void displayBluetoothMenu(){
     {
 
       case 't': // toggle_a .. toggle_g, message[9] = 't'rue / 'f'alse
-        if (message[7] >= 'a' && message[7] <= 'g' && (message[9] == 't' || message[9] == 'f'))
         {
-          int on = (message[9] == 't') ? 1 : 0;
-          switch (message[7])
+          static const char* const toggleKeys[7] = {"ch1.en", "ch2.en", "ch3.en", "ch4.en", "pump.en", "collar.en", "buzzer.en"};
+          if (message[7] >= 'a' && message[7] <= 'g' && (message[9] == 't' || message[9] == 'f'))
           {
-            case 'a': case 'b': case 'c': case 'd':
-              state_set(EV_OUT_ENABLE, message[7] - 'a', on);
-              break;
-            case 'e': state_set(EV_PUMP_ENABLE, 0, on); break;
-            case 'f': state_set(EV_COLLAR_ENABLE, 0, on); break;
-            case 'g': state_set(EV_BUZZ_ENABLE, 0, on); break;
+            protocol_legacy_set(toggleKeys[message[7] - 'a'], (message[9] == 't') ? 1 : 0);
           }
         }
         break;
 
       case 's': //slider
       debugln("slider triggered");
-        slider = atoi(message + 9);
-        if (message[7] >= 'a' && message[7] <= 'l')
         {
-          // a-l: three sliders per channel (on, off, pwm)
-          int ch = (message[7] - 'a') / 3;
-          switch ((message[7] - 'a') % 3)
+          // slider_a .. slider_l: three sliders per channel (on, off, pwm), then pump, collar, buzzer
+          static const char* const sliderKeys[16] = {
+            "ch1.on", "ch1.off", "ch1.pwm", "ch2.on", "ch2.off", "ch2.pwm",
+            "ch3.on", "ch3.off", "ch3.pwm", "ch4.on", "ch4.off", "ch4.pwm",
+            "pump.pwm", "collar.strength", "buzzer.bpm", "buzzer.vol"};
+          slider = atoi(message + 9);
+          if (message[7] >= 'a' && message[7] <= 'p')
           {
-            case 0: state_set(EV_OUT_ON, ch, slider); break;
-            case 1: state_set(EV_OUT_OFF, ch, slider); break;
-            case 2: state_set(EV_OUT_PWM, ch, slider); break;
+            protocol_legacy_set(sliderKeys[message[7] - 'a'], slider);
           }
-        }
-        else switch (message[7])
-        {
-          case 'm': state_set(EV_PUMP_PWM, 0, slider); break;
-          case 'n': state_set(EV_COLLAR_STRENGTH, 0, slider); break;
-          case 'o': state_set(EV_BUZZ_BPM, 0, slider); break;
-          case 'p': state_set(EV_BUZZ_VOL, 0, slider); break;
         }
         break;
 
       case 'b': //buzzer
         if (message[8] == 'n')//on
         {
-          state_set(EV_BUZZ_ENABLE, 0, 1);
+          protocol_legacy_set("buzzer.en", 1);
         }
         else if (message[8] == 'f') //off
         {
-          state_set(EV_BUZZ_ENABLE, 0, 0);
+          protocol_legacy_set("buzzer.en", 0);
         }
         debugln("buzzer output");
         break;

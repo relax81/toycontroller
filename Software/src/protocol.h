@@ -25,6 +25,7 @@ class AsyncWebSocketClient;
 void protocol_client_connected(uint32_t id);   // WS_EVT_CONNECT (async_tcp task)
 void protocol_client_gone(uint32_t id);        // WS_EVT_DISCONNECT (async_tcp task)
 void protocol_handle(AsyncWebSocketClient* client, const char* msg, size_t len); // async_tcp task
+bool protocol_legacy_set(const char* key, long value); // old "id?value" messages, same checks; false: rejected
 void protocol_loop(AsyncWebSocket& ws);        // loop(): answers pending "get" requests
 
 #endif

@@ -138,6 +138,26 @@ static JSONVar key_error(const char* k, const char* code, const KeyDef* def) {
   return e;
 }
 
+// Check a numeric value against the key definition and queue the event.
+// Returns nullptr on success, otherwise the error code ("type" or "range").
+static const char* set_number(const KeyDef& def, double num) {
+  if (num != (double)(long)num) return "type"; // integers only
+  if (def.kind == K_BOOL && num != 0 && num != 1) return "range";
+  if (num < def.lo || num > def.hi) {
+    Serial.printf("[ws] set %s=%ld rejected (range %ld-%ld)\n", def.name, (long)num, (long)def.lo, (long)def.hi);
+    return "range";
+  }
+  state_set((EventType)def.ev, def.idx, (int32_t)num);
+  return nullptr;
+}
+
+// Old "id?value" messages: same key table, same checks. A rejected value is dropped (log only).
+bool protocol_legacy_set(const char* key, long value) {
+  int ki = key_find(key);
+  if (ki < 0 || KEYS[ki].ev == EV_NONE) return false;
+  return set_number(KEYS[ki], (double)value) == nullptr;
+}
+
 static void handle_set(AsyncWebSocketClient* c, JSONVar& m) {
   if (!m.hasOwnProperty("d") || JSONVar::typeof_(m["d"]) != "object") {
     send_err(c, m, "type", "set needs a \"d\" object");
@@ -159,14 +179,8 @@ static void handle_set(AsyncWebSocketClient* c, JSONVar& m) {
     if (def.kind == K_BOOL && ty == "boolean") num = ((bool)v) ? 1 : 0;
     else if (ty == "number") num = (double)v;
     else { errs[nerr++] = key_error(k.c_str(), "type", &def); continue; }
-    if (def.kind == K_BOOL && num != 0 && num != 1) { errs[nerr++] = key_error(k.c_str(), "range", &def); continue; }
-    if (num != (double)(long)num) { errs[nerr++] = key_error(k.c_str(), "type", &def); continue; } // integers only
-    if (num < def.lo || num > def.hi) {
-      errs[nerr++] = key_error(k.c_str(), "range", &def);
-      Serial.printf("[ws] set %s=%ld rejected (range %ld-%ld)\n", def.name, (long)num, (long)def.lo, (long)def.hi);
-      continue;
-    }
-    state_set((EventType)def.ev, def.idx, (int32_t)num);
+    const char* err = set_number(def, num);
+    if (err) { errs[nerr++] = key_error(k.c_str(), err, &def); continue; }
     applied++;
   }
   JSONVar r;
