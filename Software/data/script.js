@@ -20,11 +20,13 @@ function initWebSocket() {
 
 function onOpen(event) {
     console.log('Connection opened');
-    websocket.send("getValues");
+    v2Reset();
+    send({ t: "get" }); // full state, marks this client as a JSON client
 }
 
 function onClose(event) {
     console.log('Connection closed');
+    v2Reset();
     setTimeout(initWebSocket, 2000);
 }
 
@@ -89,6 +91,12 @@ function onMessage(event)
 {
     console.log(event.data);
     var values = JSON.parse(event.data);
+
+    if (values.t !== undefined) // JSON protocol: state / patch / ack / err
+    {
+        onV2Message(values);
+        return;
+    }
 
     for (const key in values) 
 	{
@@ -164,3 +172,87 @@ function onMessage(event)
     }
 }
 
+// ---------------------------------------------------------------------------
+// JSON protocol: {"t":"state"|"patch"|"ack"|"err", ...}, keys in dot notation.
+// The elements are found by their data-key attribute (index.html).
+// ---------------------------------------------------------------------------
+var v2State = { hasState: false, n: 0, store: {} };
+var v2Keys = null; // key -> [elements]
+var v2MsgId = 0;
+
+function send(obj)
+{
+    obj.id = ++v2MsgId;
+    websocket.send(JSON.stringify(obj));
+}
+
+function v2Reset()
+{
+    v2State.hasState = false;
+    v2State.n = 0;
+}
+
+function v2BuildKeyMap()
+{
+    v2Keys = {};
+    document.querySelectorAll('[data-key]').forEach(function (el) {
+        var k = el.getAttribute('data-key');
+        (v2Keys[k] = v2Keys[k] || []).push(el);
+    });
+}
+
+function v2Apply(d)
+{
+    if (v2Keys === null)
+        v2BuildKeyMap();
+    for (const key in d)
+    {
+        v2State.store[key] = d[key]; // keys without an element (ble.*, sys.*) are kept for later pages
+        var els = v2Keys[key];
+        if (!els)
+            continue;
+        els.forEach(function (el) {
+            if (el === document.activeElement)
+                return; // being operated right now, it gets the value afterwards
+            if (el.type === "checkbox")
+            {
+                el.checked = d[key];
+            }
+            else
+            {
+                el.value = d[key];
+                SetValueToElementInnerHTML(el.id + "_value", d[key]);
+            }
+        });
+    }
+}
+
+function onV2Message(m)
+{
+    switch (m.t)
+    {
+        case "state":
+            v2State.store = {};
+            v2Apply(m.d);
+            v2State.n = m.n;
+            v2State.hasState = true;
+            break;
+        case "patch":
+            if (!v2State.hasState || m.n <= v2State.n)
+                return; // no state yet, or already known
+            if (m.n !== v2State.n + 1) // a patch got lost: ask for the full state
+            {
+                v2Reset();
+                send({ t: "get" });
+                return;
+            }
+            v2State.n = m.n;
+            v2Apply(m.d);
+            break;
+        case "ack":
+            break;
+        case "err":
+            console.warn("server error", m);
+            break;
+    }
+}
