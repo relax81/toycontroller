@@ -80,12 +80,15 @@ stellen, `reboot` senden. Boot-Log und `[ledc]`-Diagnose ohne Reset-Knopf.
 - Ereignis-Queue und `state_set()` (WS, BLE, Menü reihen ein, nur `loop()`
   schreibt den State); `values` (JSONVar) ist nicht thread-sicher.
 - Kanalfälle im Manuell-Menü tabellengetrieben machen.
-- Visueller Indikator in der Web-UI: Solange BLE verbunden ist, gehören die
-  gemappten Ausgänge BLE (`state.ble.hold[]`), die Web-UI steuert nur die
-  übrigen. Die BLE-Kanäle sollen dort ausgegraut bzw. markiert werden, live
-  ohne Refresh. Der Zustand pro Kanal (BLE oder Web) kommt per WebSocket und
-  gehört in die JSON-Protokoll-Phase. Voraussetzung: der Server sendet bei
-  jeder Änderung von Verbindung oder BT-Mapping ein Update.
+- Visueller Indikator in der Web-UI: zeigt pro Kanal, ob gerade BLE oder Web
+  den Ausgang steuert (BLE-Kanäle ausgegraut bzw. markiert), live ohne
+  Refresh. Zustand pro Kanal (BLE oder Web) kommt per WebSocket und gehört in
+  die JSON-Protokoll-Phase. Grundlage ist das Latch in `outputs_arbitrate()`
+  (`state.ble.latch[]`, `state.ble.hold[]`): BLE behält den Ausgang auch bei
+  Level 0, bis Web/Encoder ihn danach ändert oder BLE trennt. Die Lovense-App
+  hält die Verbindung nach dem Schließen lange offen, deshalb taugt "verbunden"
+  nicht als Kriterium. Der Server muss bei jeder Änderung des Zustands ein
+  Update senden.
 - Persistente Einstellungen über Preferences (NVS), JSON-Protokoll für den
   WebSocket und Migration von `data/script.js` (siehe Plan in der
   Unterhaltung; nichts davon ist umgesetzt).
