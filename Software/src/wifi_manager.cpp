@@ -25,6 +25,7 @@ static const char* const WIFI_HOSTNAME = "toycontroller";
 static const char* const NVS_NAMESPACE = "wifi";
 static const unsigned long WIFI_CONNECT_TIMEOUT_MS = 15000; // first attempt after boot
 static const unsigned long WIFI_RETRY_MS = 10000;           // between reconnect attempts
+static const unsigned long PORTAL_AFTER_LOSS_MS = 180000;    // connection lost this long -> portal
 static const unsigned long PORTAL_STA_RETRY_MS = 60000;     // STA attempt while the portal runs
 static const unsigned long PORTAL_STA_TRY_MS = 15000;       // how long one such attempt may take
 
@@ -484,6 +485,10 @@ void wifi_manager_update(unsigned long nowMs) {
     case WifiState::Reconnecting:
       if (up) {
         onConnected(nowMs);
+      }
+      else if (nowMs - s_stateSince >= PORTAL_AFTER_LOSS_MS) { // s_stateSince = moment of the loss
+        Serial.println("[wifi] connection lost for 3 min, starting portal");
+        enterPortal(nowMs);
       }
       else if (nowMs - s_lastAttempt >= WIFI_RETRY_MS) {
         s_lastAttempt = nowMs;

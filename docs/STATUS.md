@@ -1,6 +1,6 @@
 # Stand des Umbaus (Branch `dev-wifi-ble-parallel`)
 
-Stand: 2026-09-24, Schritt 4 und `outputs.h/.cpp` abgeschlossen und getestet (letzter Code-Commit `de6562c`). Zum Weitermachen morgen: erst
+Stand: 2026-09-24, Schritt 4, `outputs.h/.cpp` und das WLAN-Einrichtungsportal (Stufe 1-3) umgesetzt. Zum Weitermachen morgen: erst
 diese Datei und `docs/TODO-notes.md` lesen.
 
 ## Arbeitsregeln (kurz)
@@ -74,6 +74,41 @@ nur die Pumpe (Hardware fehlt).
 `DogCollar3` und das Sendeverhalten sind unverändert (siehe Abschnitt 433 MHz
 in `TODO-notes.md`). Serielles Terminal (z. B. HTerm): "Send on enter" auf LF
 stellen, `reboot` senden. Boot-Log und `[ledc]`-Diagnose ohne Reset-Knopf.
+
+## WLAN-Manager, Einrichtungsportal und mDNS (`wifi_manager.h/.cpp`)
+
+| Commit | Inhalt | Status |
+|---|---|---|
+| `150ec7b` | Stufe 1: NVS-Zugangsdaten, Zustandsautomat, mDNS, `wifi-reset` | getestet |
+| `7dead0a` | Stufe 2: Hotspot, Captive-DNS, Portalseite, Scan, pending-Logik | getestet |
+| `54608e1` | Portal-OLED: größere Schrift, Auswahl zur Laufzeit | getestet |
+| Stufe 3 | 3-min-Regel bei Verlust, Encoder-Langdruck beim Boot, Doku | Build, Test offen |
+
+- Zugangsdaten im NVS-Namespace `wifi` (`ssid`, `pass`, Flag `seeded`,
+  `p_ssid`/`p_pass` für noch unbestätigte Portal-Daten). `true-credentials.h`
+  füllt den NVS nur einmal (`seeded`), nur wenn die Datei existiert
+  (`__has_include`); sie ist untracked und wird nie gelesen oder committet.
+  `wifi-reset` und der Langdruck löschen die Zugangsdaten, nicht das Flag.
+- Ablauf: `Connecting` (15 s) -> `Connected`; Timeout oder keine Daten ->
+  `Portal`. Verlust im Betrieb: `Reconnecting` (Neuversuch alle 10 s), nach
+  3 min `Portal`. Im Portal alle 60 s ein STA-Versuch (max. 15 s, nur ohne
+  Client am Hotspot); klappt er, geht der Hotspot aus.
+- Hotspot `Toy-XXXX` (letzte 2 MAC-Bytes), Passwort 8 Ziffern zufällig pro
+  Portalstart, nur auf der OLED (Bild öffnet sich beim Start, ein Klick
+  schließt es, über "WiFi Status" wieder aufrufbar). Portalseite liegt im Code
+  (PROGMEM), Scan async, `/wifi/scan` und `/wifi/save` nur im Portalzustand
+  (sonst 403). Alles Unbekannte wird auf `192.168.4.1` umgeleitet, die Steuerung
+  ist als Link erreichbar.
+- Neue Zugangsdaten aus dem Portal sind "pending": erst nach der ersten
+  erfolgreichen Verbindung gelten sie, sonst bleiben die alten und das Portal
+  startet wieder.
+- Rücksetzen: Serial `wifi-reset`, oder Encoder-Taster (GPIO32, kein
+  Strapping-Pin) beim Einschalten halten: innerhalb der ersten 3 s nach dem
+  Setup drücken und 3 s halten.
+- Offen zu testen: Verlust im Betrieb mit dem mobilen Hotspot (Netz aus,
+  nach 3 min Portal, Netz an, Hotspot aus, mDNS wieder da), Langdruck beim Boot.
+- Das WLAN-Passwort steht nirgends im Log. Flash: 1370570 Byte (41,0 %),
+  RAM 58180 Byte.
 
 ## Weitere Ideen (nicht begonnen)
 

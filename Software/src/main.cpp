@@ -1587,6 +1587,47 @@ void serial_commands() {
   }
 }
 
+// Hold the encoder button for 3 s right after the boot (press within the first 3 s after
+// setup() has finished):
+// deletes the stored WiFi credentials and restarts, the portal opens then.
+void boot_wifi_reset_gesture(unsigned long nowMs) {
+  static bool finished = false;
+  static bool holding = false;
+  static unsigned long holdStart = 0;
+  static unsigned long windowStart = 0;
+  static bool started = false;
+  if (finished) return;
+  if (!started) { // setup() takes a while, the window starts with the first call
+    started = true;
+    windowStart = nowMs;
+  }
+  bool down = rotaryEncoder.isEncoderButtonDown();
+  if (!holding) {
+    if (nowMs - windowStart >= 3000) { // window over, the button was not pressed
+      finished = true;
+    }
+    else if (down) {
+      holding = true;
+      holdStart = nowMs;
+    }
+  }
+  else if (!down) {
+    holding = false;     // released too early, the window may still be open
+  }
+  else if (nowMs - holdStart >= 3000) {
+    finished = true;
+    wifi_forget();
+    Serial.println("[boot] wifi credentials deleted (encoder button), restarting");
+    u8g2.clearBuffer();
+    u8g2.setFont(font_status_messages);
+    u8g2.drawStr(8, 20, "WiFi data");
+    u8g2.drawStr(20, 45, "deleted");
+    u8g2.sendBuffer();
+    delay(1200);
+    ESP.restart();
+  }
+}
+
 void loop() {
   currentMillis = millis();
 #if DEBUG_LEDC == 1
@@ -1604,6 +1645,7 @@ void loop() {
   }
 #endif
   serial_commands();
+  boot_wifi_reset_gesture(currentMillis);
   wifi_manager_update(currentMillis);
   if (wifi_portal_take_show_request() && current_screen == 0) {
     current_screen = 15; // show hotspot data once when the portal starts
