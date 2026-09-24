@@ -18,6 +18,7 @@ extern volatile unsigned long loop_max_us; // longest loop() pass of the last fu
 #include "state.h"
 #include "outputs.h"
 #include "settings.h"
+#include "protocol.h"
 #include <DNSServer.h>
 #include <WiFi.h>
 #include <AsyncTCP.h>
@@ -1077,7 +1078,7 @@ void displayBluetoothMenu(){
 }
 
 // handle websocket message
-  void handleWebSocketMessage_ws(void *arg, uint8_t *data, size_t len)
+  void handleWebSocketMessage_ws(AsyncWebSocketClient *client, void *arg, uint8_t *data, size_t len)
 {
   AwsFrameInfo *info = (AwsFrameInfo*)arg;
   int slider;
@@ -1089,6 +1090,11 @@ void displayBluetoothMenu(){
     data[len] = 0;
     message = (char*)data;
     debugln(message);
+
+    if (message[0] == '{') { // JSON protocol (protocol.cpp), everything else is the old "id?value" form
+      protocol_handle(client, message, len);
+      return;
+    }
 
     switch (message[0])
     {
@@ -1271,15 +1277,17 @@ void displayBluetoothMenu(){
   {
     case WS_EVT_CONNECT:
       ws_last_seen = millis();
+      protocol_client_connected(client->id());
       //serial.printf("WebSocket client #%u connected from %s\n", client->id(), client->remoteIP().toString().c_str());
       break;
     case WS_EVT_DISCONNECT:
+      protocol_client_gone(client->id());
       //serial.printf("WebSocket client #%u disconnected\n", client->id());
       break;
     case WS_EVT_DATA:
       ws_last_seen = millis();
       ws_failsafe_armed = true;
-      handleWebSocketMessage_ws(arg, data, len);
+      handleWebSocketMessage_ws(client, arg, data, len);
       break;
     case WS_EVT_PONG:
       ws_last_seen = millis();
@@ -1527,6 +1535,8 @@ void loop() {
     ws_failsafe();
   }
 #endif
+
+  protocol_loop(ws); // answers "get" requests of JSON clients
 
   // state changes (web, BLE, device menu) go to the web clients, at most once per pass
   if (state_ui_dirty || ws_broadcast_req) {
