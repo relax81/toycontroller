@@ -644,8 +644,8 @@ void disable_Outputs();
       if (buttonPressed == true) {
           buttonPressed = false;
           rotaryEncoder.setBoundaries(0, 1, false);
-          rotaryEncoder.setEncoderValue(Ch1_Enable);
-          encoderPosition = Ch1_Enable;
+          rotaryEncoder.setEncoderValue(state.out[0].enabled);
+          encoderPosition = state.out[0].enabled;
           manualMenuSelect = manualMenuSelect * 10;
           }
       break;
@@ -658,8 +658,8 @@ void disable_Outputs();
       if (buttonPressed == true) {
           buttonPressed = false;
           rotaryEncoder.setBoundaries(0, 1, false);
-          rotaryEncoder.setEncoderValue(Ch2_Enable);
-          encoderPosition = Ch2_Enable;
+          rotaryEncoder.setEncoderValue(state.out[1].enabled);
+          encoderPosition = state.out[1].enabled;
           manualMenuSelect = manualMenuSelect * 10;
           }
       break;
@@ -673,8 +673,8 @@ void disable_Outputs();
       if (buttonPressed == true) {
           buttonPressed = false;
           rotaryEncoder.setBoundaries(0, 1, false);
-          rotaryEncoder.setEncoderValue(Ch3_Enable);
-          encoderPosition = Ch3_Enable;
+          rotaryEncoder.setEncoderValue(state.out[2].enabled);
+          encoderPosition = state.out[2].enabled;
           manualMenuSelect = manualMenuSelect * 10;
           }
       break;
@@ -688,72 +688,72 @@ void disable_Outputs();
       if (buttonPressed == true) {
           buttonPressed = false;
           rotaryEncoder.setBoundaries(0, 1, false);
-          rotaryEncoder.setEncoderValue(Ch4_Enable);
-          encoderPosition = Ch4_Enable;
+          rotaryEncoder.setEncoderValue(state.out[3].enabled);
+          encoderPosition = state.out[3].enabled;
           manualMenuSelect = manualMenuSelect * 10;
           }
       break;
 
       case 10: // 
-      Ch1_Enable = encoderPosition;
+      state.out[0].enabled = encoderPosition;
       u8g2.setCursor(1,25);
       u8g2.setDrawColor(drawcolorstate);
-      u8g2.print(Ch1_Enable ? "ON" : "OFF");  
+      u8g2.print(state.out[0].enabled ? "ON" : "OFF");  
       u8g2.setDrawColor(1);
       if (buttonPressed == true) {
-          values["toggle_a"] = Ch1_Enable;
+          values["toggle_a"] = state.out[0].enabled;
           update_values_ws();
           buttonPressed = false;
           rotaryEncoder.setBoundaries(0, 100, false);
-          rotaryEncoder.setEncoderValue(Ch1_On);
-          encoderPosition = Ch1_On;
+          rotaryEncoder.setEncoderValue(state.out[0].on);
+          encoderPosition = state.out[0].on;
           manualMenuSelect++;
           }
       break;
 
     case 11: // 
       rotaryEncoder.setBoundaries(0, 100, false);
-      Ch1_On = encoderPosition;
+      state.out[0].on = encoderPosition;
       u8g2.setCursor(1,37);
       u8g2.setDrawColor(drawcolorstate);
-      u8g2.print(Ch1_On);  
+      u8g2.print(state.out[0].on);  
       u8g2.setDrawColor(1);
       if (buttonPressed == true) {
-          values["slider_a"] = Ch1_On;
+          values["slider_a"] = state.out[0].on;
           update_values_ws();
           buttonPressed = false;
-          rotaryEncoder.setEncoderValue(Ch1_Off);
-          encoderPosition = Ch1_Off;
+          rotaryEncoder.setEncoderValue(state.out[0].off);
+          encoderPosition = state.out[0].off;
           manualMenuSelect++;
           }
       break;
 
     case 12: // 
       rotaryEncoder.setBoundaries(0, 100, false); 
-      Ch1_Off = encoderPosition;
+      state.out[0].off = encoderPosition;
       u8g2.setCursor(1,49);
       u8g2.setDrawColor(drawcolorstate);
-      u8g2.print(Ch1_Off);
+      u8g2.print(state.out[0].off);
       u8g2.setDrawColor(1);
       if (buttonPressed == true) {
-          values["slider_b"] = Ch1_Off;
+          values["slider_b"] = state.out[0].off;
           update_values_ws();
           buttonPressed = false;
-          rotaryEncoder.setEncoderValue(Ch1_PWM);
-          encoderPosition = Ch1_PWM;
+          rotaryEncoder.setEncoderValue(state.out[0].pwm);
+          encoderPosition = state.out[0].pwm;
           manualMenuSelect++;
           }
       break;
 
     case 13: // 
       rotaryEncoder.setBoundaries(0, 100, false);
-      Ch1_PWM = encoderPosition;
+      state.out[0].pwm = encoderPosition;
       u8g2.setCursor(1,61);
       u8g2.setDrawColor(drawcolorstate);
-      u8g2.print(Ch1_PWM);
+      u8g2.print(state.out[0].pwm);
       u8g2.setDrawColor(1);
       if (buttonPressed == true) {
-          values["slider_c"] = Ch1_PWM;
+          values["slider_c"] = state.out[0].pwm;
           update_values_ws();
           buttonPressed = false;
           rotaryEncoder.setEncoderValue(1);
@@ -764,65 +764,65 @@ void disable_Outputs();
 
     case 20: //
       rotaryEncoder.setBoundaries(0, 1, false);
-      Ch2_Enable = encoderPosition;
+      state.out[1].enabled = encoderPosition;
       u8g2.setCursor(36,25);
       u8g2.setDrawColor(drawcolorstate);
-      u8g2.print(Ch2_Enable ? "ON" : "OFF");  
+      u8g2.print(state.out[1].enabled ? "ON" : "OFF");  
       u8g2.setDrawColor(1);
       if (buttonPressed == true) {
-          values["toggle_b"] = Ch2_Enable;
+          values["toggle_b"] = state.out[1].enabled;
           update_values_ws();
           buttonPressed = false;
           rotaryEncoder.setBoundaries(0, 100, false);
-          rotaryEncoder.setEncoderValue(Ch2_On);
-          encoderPosition = Ch2_On;
+          rotaryEncoder.setEncoderValue(state.out[1].on);
+          encoderPosition = state.out[1].on;
           manualMenuSelect++;
           }
       break;
 
     case 21: // 
       rotaryEncoder.setBoundaries(0, 100, false); 
-      Ch2_On = encoderPosition;
+      state.out[1].on = encoderPosition;
       u8g2.setCursor(36,37);
       u8g2.setDrawColor(drawcolorstate);
-      u8g2.print(Ch2_On);
+      u8g2.print(state.out[1].on);
       u8g2.setDrawColor(1);
       if (buttonPressed == true) {
-          values["slider_d"] = Ch2_On;
+          values["slider_d"] = state.out[1].on;
           update_values_ws();
           buttonPressed = false;
-          rotaryEncoder.setEncoderValue(Ch2_Off);
-          encoderPosition = Ch2_Off;
+          rotaryEncoder.setEncoderValue(state.out[1].off);
+          encoderPosition = state.out[1].off;
           manualMenuSelect++;
           }
       break;
 
     case 22: // 
       rotaryEncoder.setBoundaries(0, 100, false); 
-      Ch2_Off = encoderPosition;
+      state.out[1].off = encoderPosition;
       u8g2.setCursor(36,49);
       u8g2.setDrawColor(drawcolorstate);
-      u8g2.print(Ch2_Off);
+      u8g2.print(state.out[1].off);
       u8g2.setDrawColor(1);
       if (buttonPressed == true) {
-          values["slider_e"] = Ch2_Off;
+          values["slider_e"] = state.out[1].off;
           update_values_ws();
           buttonPressed = false;
-          rotaryEncoder.setEncoderValue(Ch2_PWM);
-          encoderPosition = Ch2_PWM;
+          rotaryEncoder.setEncoderValue(state.out[1].pwm);
+          encoderPosition = state.out[1].pwm;
           manualMenuSelect++;
           }
       break;
 
     case 23: // 
       rotaryEncoder.setBoundaries(0, 100, false); 
-      Ch2_PWM = encoderPosition;
+      state.out[1].pwm = encoderPosition;
       u8g2.setCursor(36,61);
       u8g2.setDrawColor(drawcolorstate);
-      u8g2.print(Ch2_PWM);
+      u8g2.print(state.out[1].pwm);
       u8g2.setDrawColor(1);
       if (buttonPressed == true) {
-          values["slider_f"] = Ch2_PWM;
+          values["slider_f"] = state.out[1].pwm;
           update_values_ws();
           buttonPressed = false;
           rotaryEncoder.setEncoderValue(2);
@@ -833,65 +833,65 @@ void disable_Outputs();
     
     case 30: //
       rotaryEncoder.setBoundaries(0, 1, false);
-      Ch3_Enable = encoderPosition;
+      state.out[2].enabled = encoderPosition;
       u8g2.setCursor(69,25);
       u8g2.setDrawColor(drawcolorstate);
-      u8g2.print(Ch3_Enable ? "ON" : "OFF");  
+      u8g2.print(state.out[2].enabled ? "ON" : "OFF");  
       u8g2.setDrawColor(1);
       if (buttonPressed == true) {
-          values["toggle_c"] = Ch3_Enable;
+          values["toggle_c"] = state.out[2].enabled;
           update_values_ws();
           buttonPressed = false;
           rotaryEncoder.setBoundaries(0, 100, false);
-          rotaryEncoder.setEncoderValue(Ch3_On);
-          encoderPosition = Ch3_On;
+          rotaryEncoder.setEncoderValue(state.out[2].on);
+          encoderPosition = state.out[2].on;
           manualMenuSelect++;
           }
       break;
 
     case 31: // 
       rotaryEncoder.setBoundaries(0, 100, false); 
-      Ch3_On = encoderPosition;
+      state.out[2].on = encoderPosition;
       u8g2.setCursor(69,37);
       u8g2.setDrawColor(drawcolorstate);
-      u8g2.print(Ch3_On);
+      u8g2.print(state.out[2].on);
       u8g2.setDrawColor(1);
       if (buttonPressed == true) {
-          values["slider_g"] = Ch3_On;
+          values["slider_g"] = state.out[2].on;
           update_values_ws();
           buttonPressed = false;
-          rotaryEncoder.setEncoderValue(Ch3_Off);
-          encoderPosition = Ch3_Off;
+          rotaryEncoder.setEncoderValue(state.out[2].off);
+          encoderPosition = state.out[2].off;
           manualMenuSelect++;
           }
       break;
 
     case 32: // 
       rotaryEncoder.setBoundaries(0, 100, false); 
-      Ch3_Off = encoderPosition;
+      state.out[2].off = encoderPosition;
       u8g2.setCursor(69,49);
       u8g2.setDrawColor(drawcolorstate);
-      u8g2.print(Ch3_Off);
+      u8g2.print(state.out[2].off);
       u8g2.setDrawColor(1);
       if (buttonPressed == true) {
-          values["slider_h"] = Ch3_Off;
+          values["slider_h"] = state.out[2].off;
           update_values_ws();
           buttonPressed = false;
-          rotaryEncoder.setEncoderValue(Ch3_PWM);
-          encoderPosition = Ch3_PWM;        
+          rotaryEncoder.setEncoderValue(state.out[2].pwm);
+          encoderPosition = state.out[2].pwm;        
           manualMenuSelect++;
           }
       break;
 
     case 33: // 
       rotaryEncoder.setBoundaries(0, 100, false); 
-      Ch3_PWM = encoderPosition;
+      state.out[2].pwm = encoderPosition;
       u8g2.setCursor(69,61);
       u8g2.setDrawColor(drawcolorstate);
-      u8g2.print(Ch3_PWM);
+      u8g2.print(state.out[2].pwm);
       u8g2.setDrawColor(1);
       if (buttonPressed == true) {
-          values["slider_i"] = Ch3_PWM;
+          values["slider_i"] = state.out[2].pwm;
           update_values_ws();
           buttonPressed = false;
           rotaryEncoder.setEncoderValue(3);
@@ -902,18 +902,18 @@ void disable_Outputs();
 
       case 40: //
       rotaryEncoder.setBoundaries(0, 1, false);
-      Ch4_Enable = encoderPosition;
+      state.out[3].enabled = encoderPosition;
       u8g2.setCursor(102,25);
       u8g2.setDrawColor(drawcolorstate);
-      u8g2.print(Ch4_Enable ? "ON" : "OFF");  
+      u8g2.print(state.out[3].enabled ? "ON" : "OFF");  
       u8g2.setDrawColor(1);
       if (buttonPressed == true) {
-          values["toggle_d"] = Ch4_Enable;
+          values["toggle_d"] = state.out[3].enabled;
           update_values_ws();
           buttonPressed = false;
           rotaryEncoder.setBoundaries(0, 100, false);
-          rotaryEncoder.setEncoderValue(Ch4_On);
-          encoderPosition = Ch4_On;
+          rotaryEncoder.setEncoderValue(state.out[3].on);
+          encoderPosition = state.out[3].on;
           manualMenuSelect++;
           }
       break;
@@ -921,47 +921,47 @@ void disable_Outputs();
 
       case 41: // 
       rotaryEncoder.setBoundaries(0, 100, false); 
-      Ch4_On = encoderPosition;
+      state.out[3].on = encoderPosition;
       u8g2.setCursor(102,37);
       u8g2.setDrawColor(drawcolorstate);
-      u8g2.print(Ch4_On);
+      u8g2.print(state.out[3].on);
       u8g2.setDrawColor(1);
       if (buttonPressed == true) {
-          values["slider_j"] = Ch4_On;
+          values["slider_j"] = state.out[3].on;
           update_values_ws();
           buttonPressed = false;
-          rotaryEncoder.setEncoderValue(Ch4_Off);
-          encoderPosition = Ch4_Off;
+          rotaryEncoder.setEncoderValue(state.out[3].off);
+          encoderPosition = state.out[3].off;
           manualMenuSelect++;
           }
       break;
 
     case 42: // 
       rotaryEncoder.setBoundaries(0, 100, false); 
-      Ch4_Off = encoderPosition;
+      state.out[3].off = encoderPosition;
       u8g2.setCursor(102,49);
       u8g2.setDrawColor(drawcolorstate);
-      u8g2.print(Ch4_Off);
+      u8g2.print(state.out[3].off);
       u8g2.setDrawColor(1);
       if (buttonPressed == true) {
-          values["slider_k"] = Ch4_Off;
+          values["slider_k"] = state.out[3].off;
           update_values_ws();
           buttonPressed = false;
-          rotaryEncoder.setEncoderValue(Ch4_PWM);          
-          encoderPosition = Ch4_PWM;         
+          rotaryEncoder.setEncoderValue(state.out[3].pwm);          
+          encoderPosition = state.out[3].pwm;         
           manualMenuSelect++;
           }
       break;
 
     case 43: // 
       rotaryEncoder.setBoundaries(0, 100, false); 
-      Ch4_PWM = encoderPosition;
+      state.out[3].pwm = encoderPosition;
       u8g2.setCursor(102,61);
       u8g2.setDrawColor(drawcolorstate);
-      u8g2.print(Ch4_PWM);
+      u8g2.print(state.out[3].pwm);
       u8g2.setDrawColor(1);
       if (buttonPressed == true) {  
-          values["slider_l"] = Ch4_PWM;
+          values["slider_l"] = state.out[3].pwm;
           update_values_ws();
           buttonPressed = false;
           rotaryEncoder.setEncoderValue(4);
