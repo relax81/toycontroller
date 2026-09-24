@@ -8,6 +8,14 @@
 #define debugln(x)
 #endif
 
+// activate deactivate heap logging (free / min free / largest free block)
+#define DEBUG_HEAP 1
+#if DEBUG_HEAP == 1
+#define heap_log(tag) Serial.printf("[heap] %-12s free=%u min=%u maxblock=%u\n", tag, ESP.getFreeHeap(), ESP.getMinFreeHeap(), ESP.getMaxAllocHeap())
+#else
+#define heap_log(tag)
+#endif
+
 #include <Arduino.h>
 #include "true-credentials.h"
 #include <U8g2lib.h>
@@ -374,6 +382,7 @@ void disable_Outputs();
   BLEDevice::startAdvertising();
   debugln("Waiting a client connection to notify...");
   BT_Enabled = true;
+  heap_log("ble init");
 }
   void turn_OFF_Bluetooth() {
   reset_Outputs();
@@ -1887,10 +1896,18 @@ void setup() {
 
   // Start server
   server.begin();
+  heap_log("setup");
 }
 
 void loop() {
   currentMillis = millis();
+#if DEBUG_HEAP == 1
+  static unsigned long lastHeapLog = 0;
+  if (currentMillis - lastHeapLog >= 10000) {
+    lastHeapLog = currentMillis;
+    heap_log("loop");
+  }
+#endif
   ws.cleanupClients();
   timer1.update(); // display blinking text timer
 
