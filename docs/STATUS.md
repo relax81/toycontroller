@@ -110,7 +110,7 @@ stellen, `reboot` senden. Boot-Log und `[ledc]`-Diagnose ohne Reset-Knopf.
 - Das WLAN-Passwort steht nirgends im Log. Flash: 1370570 Byte (41,0 %),
   RAM 58180 Byte.
 
-## Block A: Ereignis-Queue und Persistenz (umgesetzt, Hardware-Test offen)
+## Block A: Ereignis-Queue und Persistenz (umgesetzt, auf der Hardware getestet 2026-09-25)
 
 | Commit | Inhalt |
 |---|---|
@@ -119,7 +119,8 @@ stellen, `reboot` senden. Boot-Log und `[ledc]`-Diagnose ohne Reset-Knopf.
 | `79efa6e` | WS-Handler reiht ein, `values` (JSONVar) nur noch in `loop()` aus dem State gebaut |
 | `277e899` | `settings_load()` (NVS `cfg`, validiert), `state.failsafeTimeoutS` |
 | `de24468` | verzögertes Speichern (5 s nach der letzten Änderung, nur geänderte Schlüssel), BT-Menü und `co_chg` über `state_set()` |
-| Serial-Commit | `cfg`, `cfg failsafe <3-120>`, `cfg reset` |
+| `6b4b702` | Serial `cfg`, `cfg failsafe <3-120>`, `cfg reset` |
+| `e472460` | sofort speichern, wenn der letzte WS-Client trennt (Buzzer-Werte gingen bei Power-Loss innerhalb des 5-s-Debounce verloren) |
 
 - `loop()` ist der einzige State-Schreiber. `state_set()` wendet im `loop`-Task sofort
   an, aus anderen Tasks wird eingereiht. Kritische Ereignisse (`ALL_OFF`, `*_ENABLE`
