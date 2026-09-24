@@ -1538,6 +1538,11 @@ void loop() {
   }
 
   settings_update(currentMillis); // debounced NVS save of changed settings
+  // last web client gone (browser closed): save pending changes at once
+  static bool hadWsClient = false;
+  bool hasWsClient = ws.count() > 0;
+  if (hadWsClient && !hasWsClient) settings_flush();
+  hadWsClient = hasWsClient;
 
   outputs_arbitrate();
 
