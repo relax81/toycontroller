@@ -180,7 +180,6 @@ void disable_Outputs();
   bool oldDeviceConnected = false;
   uint32_t value = 0;
   int bt_rotation;
-  int bt_vibration;
   int bt_vibration1;
   int bt_vibration2;
   int bt_airlevel;
@@ -243,13 +242,13 @@ void disable_Outputs();
           pTxCharacteristic->notify();
         } else if (rxValue.rfind("Status:", 0) == 0) {
           memmove(messageBuf, "2;", 2);
-          pTxCharacteristic->setValue(messageBuf, 3);
+          pTxCharacteristic->setValue(messageBuf, 2);
           pTxCharacteristic->notify();
         } else if (rxValue.rfind("Vibrate:", 0) == 0) {
           bt_vibration1 = std::atoi(rxValue.substr(8).c_str());
           bt_vibration2 = std::atoi(rxValue.substr(8).c_str());
           debug("V:");
-          debugln(bt_vibration);
+          debugln(bt_vibration1);
           memmove(messageBuf, "OK;", 3);
           pTxCharacteristic->setValue(messageBuf, 3);
           pTxCharacteristic->notify();
@@ -257,13 +256,6 @@ void disable_Outputs();
           bt_rotation = std::atoi(rxValue.substr(7).c_str());
           debug("R:");
           debugln(bt_rotation);
-          memmove(messageBuf, "OK;", 3);
-          pTxCharacteristic->setValue(messageBuf, 3);
-          pTxCharacteristic->notify();
-          } else if (rxValue.rfind("Vibrate:", 0) == 0) {
-          bt_vibration1 = std::atoi(rxValue.substr(8).c_str());
-          debug("V:");
-          debugln(bt_vibration1);
           memmove(messageBuf, "OK;", 3);
           pTxCharacteristic->setValue(messageBuf, 3);
           pTxCharacteristic->notify();
