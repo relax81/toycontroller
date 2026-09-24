@@ -1538,18 +1538,16 @@ void serial_commands() {
   static size_t len = 0;
   while (Serial.available()) {
     char c = Serial.read();
-    if (c == '
-' || c == '') {
-      line[len] = ' ';
+    if (c == '\n' || c == '\r') {
+      line[len] = '\0';
       len = 0;
       if (strcmp(line, "reboot") == 0 || strcmp(line, "restart") == 0) {
         Serial.println("[cmd] restarting");
         Serial.flush();
         ESP.restart();
       }
-      else if (line[0] != ' ') {
-        Serial.printf("[cmd] unknown command \"%s\" (available: reboot)
-", line);
+      else if (line[0] != '\0') {
+        Serial.printf("[cmd] unknown command \"%s\" (available: reboot)\n", line);
       }
     }
     else if (len < sizeof(line) - 1) {
