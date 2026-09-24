@@ -25,7 +25,7 @@
 #include <Wire.h>
 #include <TickTwo.h>
 #include <AiEsp32RotaryEncoder.h>
-#include <pinout.h>
+#include "config.h"
 #include <DNSServer.h>
 #include <WiFi.h>
 #include <AsyncTCP.h>
@@ -43,14 +43,6 @@
 // software version
 String version = "0.1";
 
-// set the font types being used
-const uint8_t* font_status_messages = u8g2_font_crox4hb_tr;
-const uint8_t* font_main_menu = u8g2_font_t0_13b_mf;
-const uint8_t* font_manual_menu = u8g2_font_ncenB08_tr;
-const uint8_t* font_bluetooth_menu = u8g2_font_pixzillav1_tr; 
-const uint8_t* font_check_symbol = u8g2_font_open_iconic_check_1x_t;
-const uint8_t* font_wifi_symbol = u8g2_font_open_iconic_www_1x_t;
-
 void displayMenuManual();
 void buttonMenuManual();
 void displayBluetoothMenu();
@@ -61,7 +53,6 @@ void bluetooth_write_pwm(int, int);
 void disable_Outputs();
 
 // DogCollar 
-  #define PIN_TRANSMITTER 15  // gpio15 is a strapping pin that can cause issues at bootup
   // Unique ID (16 bit) of the Shock Collar. You can also keep this and use pairing mode of the collar
   String uniqueKeyOfDevice = "0010110011011000";
   DogCollar dg(PIN_TRANSMITTER,uniqueKeyOfDevice);
@@ -124,18 +115,6 @@ void disable_Outputs();
   bool BT_V1_Paused = true; // true = nothing sent to the output yet / already zeroed
   bool BT_V2_Paused = true;
 // PWM settings
-  const int freq = 5000;
-  const int resolution = 8;
-  // LEDC channels: PWM1-4 use the pairs (0,1) (2,3) at 5 kHz, the buzzer has the
-  // pair (4,5) and the pump the pair (6,7) for itself, because each pair shares one
-  // timer / frequency
-  const int PWMOUT_1 = 0; // max 30v ch1
-  const int PWMOUT_2 = 1; // max 30v ch2
-  const int PWMOUT_3 = 2; // 5v ch1
-  const int PWMOUT_4 = 3; // 5v ch2
-  const int buzzer = 4;
-  const int pumpFrequency = 500;
-  const int pumpOUT = 6; // Pump PWM Output
   bool pwm1_paused = false;
   bool pwm2_paused = false;
   bool pwm3_paused = false;
@@ -152,38 +131,12 @@ void disable_Outputs();
   // String lb2_mode;
   String tempString;
 // Main Menu New
-  const int MainMenuNumItems = 5; // number of items in the list 
-  const int MainMenuMaxItemLength = 20; // maximum characters for the item name
   char MainMenuItems [MainMenuNumItems] [MainMenuMaxItemLength] = {"Manual","WiFi Status","Bluetooth","Info","Settings"};
 // Bluetooth Menu
-  const int OutputNumItems = 7; // number of items in the list 
-  const int OutputItemsMaxLength = 20; // maximum characters for the item name
   char OutputItems [OutputNumItems] [OutputItemsMaxLength] = {"OFF","PWM1","PWM2","PWM3","PWM4","PUMP","Shoc"};
 // buzzer 
   bool buzzer_Metronome_Enabled = false;
   int buzzerVolume = 5; // 0 - 10
-  const int buzzerFrequency = 2000; // initial buzzerFrequency
-// LEDC: the channels share one timer (= one frequency) per pair (0,1) (2,3) (4,5) (6,7).
-// Two channels in the same pair with different frequencies would silently change
-// each other's frequency, so this is checked at compile time.
-#define LEDC_PAIR_OK(a, fa, b, fb) ((a) != (b) && ((a) / 2 != (b) / 2 || (fa) == (fb)))
-static_assert(
-  LEDC_PAIR_OK(PWMOUT_1,freq,PWMOUT_2,freq) &&
-  LEDC_PAIR_OK(PWMOUT_1,freq,PWMOUT_3,freq) &&
-  LEDC_PAIR_OK(PWMOUT_1,freq,PWMOUT_4,freq) &&
-  LEDC_PAIR_OK(PWMOUT_1,freq,buzzer,buzzerFrequency) &&
-  LEDC_PAIR_OK(PWMOUT_1,freq,pumpOUT,pumpFrequency) &&
-  LEDC_PAIR_OK(PWMOUT_2,freq,PWMOUT_3,freq) &&
-  LEDC_PAIR_OK(PWMOUT_2,freq,PWMOUT_4,freq) &&
-  LEDC_PAIR_OK(PWMOUT_2,freq,buzzer,buzzerFrequency) &&
-  LEDC_PAIR_OK(PWMOUT_2,freq,pumpOUT,pumpFrequency) &&
-  LEDC_PAIR_OK(PWMOUT_3,freq,PWMOUT_4,freq) &&
-  LEDC_PAIR_OK(PWMOUT_3,freq,buzzer,buzzerFrequency) &&
-  LEDC_PAIR_OK(PWMOUT_3,freq,pumpOUT,pumpFrequency) &&
-  LEDC_PAIR_OK(PWMOUT_4,freq,buzzer,buzzerFrequency) &&
-  LEDC_PAIR_OK(PWMOUT_4,freq,pumpOUT,pumpFrequency) &&
-  LEDC_PAIR_OK(buzzer,buzzerFrequency,pumpOUT,pumpFrequency),
-  "LEDC channel pair conflict: two channels with different frequencies share a timer (ch/2)");
   unsigned long buzzerPreviousMillis = 0;
   int buzzerBPM = 60; // 1 - 255
   int beatInterval = 60000 / buzzerBPM; // duration of one beat in milliseconds
@@ -197,9 +150,6 @@ static_assert(
   U8G2_SSD1306_128X64_NONAME_F_HW_I2C u8g2(U8G2_R0, /* reset=*/ U8X8_PIN_NONE);
 
 //Encoder
-  //depending on your encoder - try 1,2 or 4 to get expected behaviour
-  #define ROTARY_ENCODER_STEPS 4
-  #define ROTARY_ENCODER_VCC_PIN -1 /* 27 put -1 of Rotary encoder Vcc is connected directly to 3,3V; else you can use declared output pin for powering rotary encoder */
   //instead of changing here, rather change numbers above
   AiEsp32RotaryEncoder rotaryEncoder = AiEsp32RotaryEncoder(ROTARY_ENCODER_A_PIN, ROTARY_ENCODER_B_PIN, ROTARY_ENCODER_BUTTON_PIN, ROTARY_ENCODER_VCC_PIN, ROTARY_ENCODER_STEPS);
 
