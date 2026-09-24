@@ -34,6 +34,10 @@
 #include <Arduino_JSON.h>
 #include <NimBLEDevice.h>
 #include "driver/ledc.h"
+
+#ifndef GIT_HASH
+#define GIT_HASH "unknown" // set by git_hash.py
+#endif
 #include "DogCollar3.h"
 
 // software version
@@ -1821,8 +1825,23 @@ void buzzer_Metronome (int buzzerBPM, int buzzerOnTimeMS, int buzzerVolume) {
     }
 }
 
+// diagnostics only: configured vs. actual LEDC frequency; the ESP32 LEDC shares one
+// timer between the channel pairs (0,1) (2,3) (4,5) (6,7).
+// ledcReadFreq() returns 0 while the duty is 0, so the timer is read directly.
+#if DEBUG_LEDC == 1
+void debug_ledc() {
+  const char* ledcNames[] = {"PWM1", "PWM2", "PWM3", "PWM4", "buzzer", "pump"};
+  const int ledcChannels[] = {PWMOUT_1, PWMOUT_2, PWMOUT_3, PWMOUT_4, buzzer, pumpOUT};
+  const int ledcSetFreq[] = {freq, freq, freq, freq, buzzerFrequency, 500};
+  for (int i = 0; i < 6; i++) {
+    Serial.printf("[ledc] %-6s ch=%d timer=%d set=%d Hz actual=%u Hz\n", ledcNames[i], ledcChannels[i], (ledcChannels[i] / 2) % 4, ledcSetFreq[i], (unsigned int)ledc_get_freq(LEDC_HIGH_SPEED_MODE, (ledc_timer_t)((ledcChannels[i] / 2) % 4)));
+  }
+}
+#endif
+
 void setup() {
   Serial.begin(115200);
+  Serial.printf("[fw] %s %s %s\n", __DATE__, __TIME__, GIT_HASH);
   debugln("setup started");
 
   // Pins
@@ -1853,17 +1872,7 @@ void setup() {
   ledcAttachPin(buzzerPin, buzzer);
   ledcAttachPin(pumpPin, pumpOUT);
 #if DEBUG_LEDC == 1
-  // diagnostics only: configured vs. actual frequency; the ESP32 LEDC shares one
-  // timer between the channel pairs (0,1) (2,3) (4,5) (6,7).
-  // ledcReadFreq() returns 0 while the duty is 0, so the timer is read directly.
-  {
-    const char* ledcNames[] = {"PWM1", "PWM2", "PWM3", "PWM4", "buzzer", "pump"};
-    const int ledcChannels[] = {PWMOUT_1, PWMOUT_2, PWMOUT_3, PWMOUT_4, buzzer, pumpOUT};
-    const int ledcSetFreq[] = {freq, freq, freq, freq, buzzerFrequency, 500};
-    for (int i = 0; i < 6; i++) {
-      Serial.printf("[ledc] %-6s ch=%d timer=%d set=%d Hz actual=%u Hz\n", ledcNames[i], ledcChannels[i], (ledcChannels[i] / 2) % 4, ledcSetFreq[i], (unsigned int)ledc_get_freq(LEDC_HIGH_SPEED_MODE, (ledc_timer_t)((ledcChannels[i] / 2) % 4)));
-    }
-  }
+  debug_ledc();
 #endif
 
   //Encoder
@@ -1946,6 +1955,13 @@ void setup() {
 
 void loop() {
   currentMillis = millis();
+#if DEBUG_LEDC == 1
+  static bool ledcLogged = false;
+  if (!ledcLogged && currentMillis >= 5000) { // once, so it shows up in an already open monitor
+    ledcLogged = true;
+    debug_ledc();
+  }
+#endif
 #if DEBUG_HEAP == 1
   static unsigned long lastHeapLog = 0;
   if (currentMillis - lastHeapLog >= 10000) {
