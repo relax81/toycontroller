@@ -13,6 +13,7 @@
 #include <AiEsp32RotaryEncoder.h>
 #include "config.h"
 #include "wifi_setup.h"
+#include "wifi_manager.h"
 #include "state.h"
 #include "outputs.h"
 #include <DNSServer.h>
@@ -39,8 +40,6 @@ void update_values_ws();
 
 // Random - name later
   unsigned long currentMillis;
-  int wlanstatus;
-  bool WiFi_Enabled = false;
   bool BT_Enabled = false;
   bool buttonPressed = false;
   bool buttonLongPressed = false;
@@ -326,8 +325,7 @@ void update_values_ws();
       rotaryEncoder.setBoundaries(0, 4, false);
 
     // WiFi Status Symbol
-    wlanstatus = WiFi.status();
-    if (wlanstatus == 3) { 
+    if (wifi_connected()) { 
       u8g2.setFont(font_wifi_symbol);
       u8g2.drawGlyph(110, 8, 72);	// WiFi Symbol
       }
@@ -355,12 +353,20 @@ void update_values_ws();
     else if (current_screen == 11) {
       rotaryEncoder.setBoundaries(1, 1, false);
       u8g2.setFont(font_main_menu);
-      u8g2.drawStr(30, 10, "Local IP");
-      u8g2.setCursor(8, 25);
-      u8g2.print(WiFi.localIP());
-      u8g2.drawStr(24, 50, "RSSI: ");
-      u8g2.setCursor(70, 50);
-      u8g2.print(WiFi.RSSI());
+      if (wifi_connected()) {
+        u8g2.drawStr(30, 10, "Local IP");
+        u8g2.setCursor(8, 25);
+        u8g2.print(WiFi.localIP());
+        u8g2.drawStr(24, 50, "RSSI: ");
+        u8g2.setCursor(70, 50);
+        u8g2.print(WiFi.RSSI());
+        u8g2.setFont(font_manual_menu);
+        u8g2.drawStr(8, 62, "toycontroller.local");
+      }
+      else {
+        u8g2.drawStr(46, 10, "WiFi");
+        u8g2.drawStr(8, 32, wifi_state_text());
+      }
 
       if (buttonLongPressed == true) {      
         current_screen = 0;
@@ -1487,7 +1493,7 @@ void setup() {
   u8g2.sendBuffer();
 
   initFS();
-  initWiFi();
+  wifi_manager_init();
   init_ws();
 
   // Websocket stuff
@@ -1532,7 +1538,7 @@ void setup() {
 }
 
 // serial terminal commands (line based, non-blocking): "reboot" restarts the ESP
-// as a replacement for the reset button
+// as a replacement for the reset button, "wifi-reset" deletes the stored WiFi credentials
 void serial_commands() {
   static char line[32];
   static size_t len = 0;
@@ -1546,8 +1552,14 @@ void serial_commands() {
         Serial.flush();
         ESP.restart();
       }
+      else if (strcmp(line, "wifi-reset") == 0) {
+        wifi_forget();
+        Serial.println("[cmd] wifi credentials deleted, restarting");
+        Serial.flush();
+        ESP.restart();
+      }
       else if (line[0] != '\0') {
-        Serial.printf("[cmd] unknown command \"%s\" (available: reboot)\n", line);
+        Serial.printf("[cmd] unknown command \"%s\" (available: reboot, wifi-reset)\n", line);
       }
     }
     else if (len < sizeof(line) - 1) {
@@ -1573,6 +1585,7 @@ void loop() {
   }
 #endif
   serial_commands();
+  wifi_manager_update(currentMillis);
   ws.cleanupClients();
   timer1.update(); // display blinking text timer
 
