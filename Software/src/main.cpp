@@ -113,8 +113,8 @@ void disable_Outputs();
   int BT_V2_Output = 1;
   int BT_V2_Min_PWM = 0;
   int BT_V2_Max_PWM = 255;
-  bool BT_V1_Paused = false;
-  bool BT_V2_Paused = false;
+  bool BT_V1_Paused = true; // true = nothing sent to the output yet / already zeroed
+  bool BT_V2_Paused = true;
 // PWM settings
   const int freq = 5000;
   const int resolution = 8;
@@ -184,6 +184,10 @@ void disable_Outputs();
   int bt_vibration1;
   int bt_vibration2;
   int bt_airlevel;
+  // Output arbitration: BLE has priority on an output (1-6) while its level is > 0,
+  // otherwise the web / manual control drives it.
+  bool bt_hold[7] = {false, false, false, false, false, false, false};
+  bool bt_collar_mapped = false;
   #define SERVICE_UUID           "6e400001-b5a3-f393-e0a9-e50e24dcca9e"
   #define CHARACTERISTIC_RX_UUID "6e400002-b5a3-f393-e0a9-e50e24dcca9e"
   #define CHARACTERISTIC_TX_UUID "6e400003-b5a3-f393-e0a9-e50e24dcca9e"
@@ -1552,23 +1556,23 @@ void displayBluetoothMenu(){
 // disable outputs 
   void disable_Outputs()
 {
-  if (!Ch1_Enable) {
+  if (!Ch1_Enable && !bt_hold[1]) {
     pwm1_paused = false;
     ledcWrite(PWMOUT_1, 0);
   }
-  if (!Ch2_Enable) {
+  if (!Ch2_Enable && !bt_hold[2]) {
     pwm2_paused = false;
     ledcWrite(PWMOUT_2, 0);
   }
-  if (!Ch3_Enable) {
+  if (!Ch3_Enable && !bt_hold[3]) {
     pwm3_paused = false;
     ledcWrite(PWMOUT_3, 0);
   }
- if (!Ch4_Enable) {
+ if (!Ch4_Enable && !bt_hold[4]) {
     pwm4_paused = false;
     ledcWrite(PWMOUT_4,0);
  }
-  if (!Pump_Enable){
+  if (!Pump_Enable && !bt_hold[5]){
     ledcWrite(pumpOUT, 0);
     Pump_Enable = false;
   }
@@ -1626,7 +1630,10 @@ void displayBluetoothMenu(){
 // control pwm outputs in web or manual mode
   void PWM_Output(){
   // Output 1
-  if ((pwm1_paused == false) && (Ch1_Enable == true))
+  if (bt_hold[1]) {
+    // driven by BLE
+  }
+  else if ((pwm1_paused == false) && (Ch1_Enable == true))
   {
      int mapped_Ch1_PWM;
      mapped_Ch1_PWM = map(Ch1_PWM, 0, 100, 0, 255);
@@ -1646,7 +1653,10 @@ void displayBluetoothMenu(){
     }
   }
   // Output 2
-  if ((pwm2_paused == false) && (Ch2_Enable == true))
+  if (bt_hold[2]) {
+    // driven by BLE
+  }
+  else if ((pwm2_paused == false) && (Ch2_Enable == true))
   {
      int mapped_Ch2_PWM;
      mapped_Ch2_PWM = map(Ch2_PWM, 0, 100, 0, 255);
@@ -1666,7 +1676,10 @@ void displayBluetoothMenu(){
     }
   }
   // Output 3
-  if ((pwm3_paused == false) && (Ch3_Enable == true))
+  if (bt_hold[3]) {
+    // driven by BLE
+  }
+  else if ((pwm3_paused == false) && (Ch3_Enable == true))
   {
      int mapped_Ch3_PWM;
      mapped_Ch3_PWM = map(Ch3_PWM, 0, 100, 0, 255);
@@ -1686,7 +1699,10 @@ void displayBluetoothMenu(){
     }
   }
   // Output 4
-  if ((pwm4_paused == false) && (Ch4_Enable == true))
+  if (bt_hold[4]) {
+    // driven by BLE
+  }
+  else if ((pwm4_paused == false) && (Ch4_Enable == true))
   {
      int mapped_Ch4_PWM;
      mapped_Ch4_PWM = map(Ch4_PWM, 0, 100, 0, 255);
@@ -1706,7 +1722,10 @@ void displayBluetoothMenu(){
     }
   }
   // Pump Output 5
-  if (Pump_Enable == true)
+  if (bt_hold[5]) {
+    // driven by BLE
+  }
+  else if (Pump_Enable == true)
     {
       int mapped_pump_PWM;
       mapped_pump_PWM = map(pump_PWM, 0, 100, 0, 255);
@@ -1891,7 +1910,13 @@ void loop() {
   ws.cleanupClients();
   timer1.update(); // display blinking text timer
 
-  // controls pwm outputs (web / manual)
+  // BLE has priority on an output while its level is > 0
+  for (int i = 0; i < 7; i++) bt_hold[i] = false;
+  if ((BT_V1_Output > 0) && (bt_vibration1 > 0)) bt_hold[BT_V1_Output] = true;
+  if ((BT_V2_Output > 0) && (bt_vibration2 > 0)) bt_hold[BT_V2_Output] = true;
+  bt_collar_mapped = (BT_V1_Output == 6 || BT_V2_Output == 6);
+
+  // controls pwm outputs (web / manual), skips outputs held by BLE
   PWM_Output();
 
   // disable Outputs
@@ -1957,13 +1982,6 @@ void loop() {
     BT_mapped_PWM[0] = map(bt_vibration1, 1, 20, BT_V1_Min_PWM, BT_V1_Max_PWM);
     BT_mapped_PWM[1] = map(bt_vibration2, 1, 20, BT_V2_Min_PWM, BT_V2_Max_PWM);
 
-    Ch1_Enable = (BT_V1_Output == 1 || BT_V2_Output == 1);
-    Ch2_Enable = (BT_V1_Output == 2 || BT_V2_Output == 2);
-    Ch3_Enable = (BT_V1_Output == 3 || BT_V2_Output == 3);
-    Ch4_Enable = (BT_V1_Output == 4 || BT_V2_Output == 4);
-    Pump_Enable = (BT_V1_Output == 5 || BT_V2_Output == 5);
-    Collar_Enable = (BT_V1_Output == 6 || BT_V2_Output == 6);
-
     if ((BT_V1_Output > 0) && (bt_vibration1 > 0)) {
       BT_V1_Paused = false;
       bluetooth_write_pwm(BT_V1_Output, BT_mapped_PWM[0]);
@@ -1984,7 +2002,7 @@ void loop() {
   }
 
   // Keep collar awake if enabled
-  if ((currentMillis - previous_Collar_Wakeup >= keep_Collar_Awake_Interval) && (Collar_Enable == true)) {
+  if ((currentMillis - previous_Collar_Wakeup >= keep_Collar_Awake_Interval) && (Collar_Enable == true || (deviceConnected && bt_collar_mapped))) {
     debugln("keeping collar awake");
     previous_Collar_Wakeup = millis();
     dg.sendCollar(CollarChannel::CH1, CollarMode::Blink, 100);
