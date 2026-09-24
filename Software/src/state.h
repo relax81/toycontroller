@@ -101,6 +101,7 @@ struct AppState {
   CollarState   collar;
   BuzzerState   buzzer;
   BleState      ble;
+  int           failsafeTimeoutS = 15;   // web failsafe: no WS traffic for this long -> outputs off (3-120)
 };
 
 // ---------------------------------------------------------------------------
@@ -131,6 +132,7 @@ enum EventType : uint8_t {
   EV_BT_OUT,          // idx = 0/1 (V1/V2), val = OutputId
   EV_BT_MIN,          // idx, val
   EV_BT_MAX,          // idx, val
+  EV_FAILSAFE_TO,     // val = seconds (3-120)
   EV_ALL_OFF,         // Ch1-4, pump and collar disabled
   EV_TYPE_COUNT
 };

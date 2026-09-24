@@ -98,6 +98,9 @@ void state_apply(const Event& e) {
     case EV_BT_MAX:
       if (i < 2) { state.ble.map[i].maxPwm = e.val; bt_clamp(state.ble.map[i]); }
       break;
+    case EV_FAILSAFE_TO:
+      if (e.val >= 3 && e.val <= 120) state.failsafeTimeoutS = e.val;
+      break;
     case EV_ALL_OFF:
       outputs_all_off();
       state_ui_dirty = true;

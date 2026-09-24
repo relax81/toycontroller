@@ -17,6 +17,7 @@ extern volatile unsigned long loop_max_us; // longest loop() pass of the last fu
 #include "wifi_manager.h"
 #include "state.h"
 #include "outputs.h"
+#include "settings.h"
 #include <DNSServer.h>
 #include <WiFi.h>
 #include <AsyncTCP.h>
@@ -209,7 +210,6 @@ void update_values_ws();
 // BLE-held outputs are not touched. Only armed after a WS command, so local
 // manual control without any web client is not affected.
   #define WS_FAILSAFE 1
-  const unsigned long WS_FAILSAFE_TIMEOUT_MS = 15000;
   const unsigned long WS_PING_INTERVAL_MS = 5000; // browsers answer ping frames automatically
   volatile unsigned long ws_last_seen = 0;
   volatile bool ws_failsafe_armed = false;
@@ -1340,6 +1340,7 @@ void setup() {
   Serial.begin(115200);
   Serial.printf("[fw] %s %s %s\n", __DATE__, __TIME__, GIT_HASH);
   debugln("setup started");
+  settings_load(); // persistent settings (NVS "cfg") into the state
 
   // Pins (outputs are set up in outputs_init())
   pinMode(PIR, INPUT);
@@ -1502,7 +1503,7 @@ void loop() {
     ws_last_ping = currentMillis;
     ws.pingAll();
   }
-  if (ws_failsafe_armed && (ws.count() == 0 || currentMillis - ws_last_seen >= WS_FAILSAFE_TIMEOUT_MS)) {
+  if (ws_failsafe_armed && (ws.count() == 0 || currentMillis - ws_last_seen >= (unsigned long)state.failsafeTimeoutS * 1000UL)) {
     ws_failsafe();
   }
 #endif
