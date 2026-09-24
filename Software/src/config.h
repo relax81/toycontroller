@@ -8,6 +8,19 @@
 #include <U8g2lib.h>
 #include "pinout.h"
 
+// activate deactivate serial output for debugging
+#define DEBUG 1
+#if DEBUG == 1
+#define debug(x) Serial.print(x)
+#define debugln(x) Serial.println(x)
+#else
+#define debug(x)      
+#define debugln(x)
+#endif
+
+// activate deactivate LEDC (PWM) frequency diagnostics at startup
+#define DEBUG_LEDC 1
+
 // set the font types being used
 const uint8_t* const font_status_messages = u8g2_font_crox4hb_tr;
 const uint8_t* const font_main_menu = u8g2_font_t0_13b_mf;
