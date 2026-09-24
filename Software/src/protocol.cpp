@@ -111,34 +111,61 @@ void protocol_client_gone(uint32_t id) {
 }
 
 // ---------------------------------------------------------------------------
-// Replies (async_tcp task, own JSON objects only)
+// Replies (async_tcp task). Built as strings: copying JSONVar children between objects
+// (r["id"] = m["id"], errs[n] = ...) gave null values with Arduino_JSON.
 // ---------------------------------------------------------------------------
-static void send_json(AsyncWebSocketClient* c, JSONVar& r) {
-  if (c && c->status() == WS_CONNECTED) c->text(JSON.stringify(r));
+static String json_escape(const char* s) {
+  String o;
+  for (; *s; s++) {
+    unsigned char ch = (unsigned char)*s;
+    if (ch == '"' || ch == 0x5C) { o += (char)0x5C; o += (char)ch; }
+    else if (ch < 0x20) o += ' ';
+    else o += (char)ch;
+  }
+  return o;
 }
 
-static void reply_head(JSONVar& r, const char* t, JSONVar& m) {
-  r["t"] = t;
-  if (m.hasOwnProperty("id")) r["id"] = m["id"];
+// ,"id":<number or string> of the request, "" if it has none
+static String id_field(JSONVar& m) {
+  if (!m.hasOwnProperty("id")) return "";
+  JSONVar id = m["id"];
+  String ty = JSONVar::typeof_(id);
+  if (ty == "number") { return String(",\"id\":") + String((long)(double)id); }
+  if (ty == "string") { return String(",\"id\":\"") + json_escape((const char*)id) + "\""; }
+  return "";
+}
+
+static void send_str(AsyncWebSocketClient* c, const String& s) {
+  if (c && c->status() == WS_CONNECTED) c->text(s);
+}
+
+static void send_ack(AsyncWebSocketClient* c, JSONVar& m) {
+  send_str(c, String("{\"t\":\"ack\"") + id_field(m) + "}");
 }
 
 static void send_err(AsyncWebSocketClient* c, JSONVar& m, const char* code, const char* msg) {
-  JSONVar r;
-  reply_head(r, "err", m);
-  r["code"] = code;
-  r["msg"] = msg;
-  send_json(c, r);
+  send_str(c, String("{\"t\":\"err\"") + id_field(m) + ",\"code\":\"" + code + "\",\"msg\":\"" + json_escape(msg) + "\"}");
 }
 
-static JSONVar key_error(const char* k, const char* code, const KeyDef* def) {
-  JSONVar e;
-  e["k"] = k;
-  e["code"] = code;
+// one entry of the "errors" list
+static void add_key_error(String& list, const char* k, const char* code, const KeyDef* def) {
+  if (list.length() > 0) list += ',';
+  list += "{\"k\":\"";
+  list += json_escape(k);
+  list += "\",\"code\":\"";
+  list += code;
+  list += '"';
   if (def && strcmp(code, "range") == 0) {
-    e["min"] = (int)def->lo;
-    e["max"] = (int)def->hi;
+    list += ",\"min\":";
+    list += (int)def->lo;
+    list += ",\"max\":";
+    list += (int)def->hi;
   }
-  return e;
+  list += '}';
+}
+
+static void send_key_errors(AsyncWebSocketClient* c, JSONVar& m, int applied, const String& list) {
+  send_str(c, String("{\"t\":\"err\"") + id_field(m) + ",\"applied\":" + applied + ",\"errors\":[" + list + "]}");
 }
 
 // Check a numeric value against the key definition and queue the event.
@@ -168,47 +195,39 @@ static void handle_set(AsyncWebSocketClient* c, JSONVar& m) {
   }
   JSONVar d = m["d"];
   JSONVar keys = d.keys();
-  JSONVar errs;
+  String errs;
   int nerr = 0, applied = 0;
   for (int i = 0; i < keys.length(); i++) {
     String k = (const char*)keys[i];
     JSONVar v = d[k];
     int ki = key_find(k.c_str());
-    if (ki < 0) { errs[nerr++] = key_error(k.c_str(), "unknown", nullptr); continue; }
+    if (ki < 0) { add_key_error(errs, k.c_str(), "unknown", nullptr); nerr++; continue; }
     const KeyDef& def = KEYS[ki];
-    if (def.ev == EV_NONE) { errs[nerr++] = key_error(k.c_str(), "readonly", &def); continue; }
+    if (def.ev == EV_NONE) { add_key_error(errs, k.c_str(), "readonly", &def); nerr++; continue; }
     String ty = JSONVar::typeof_(v);
     double num;
     if (def.kind == K_BOOL && ty == "boolean") num = ((bool)v) ? 1 : 0;
     else if (ty == "number") num = (double)v;
-    else { errs[nerr++] = key_error(k.c_str(), "type", &def); continue; }
+    else { add_key_error(errs, k.c_str(), "type", &def); nerr++; continue; }
     const char* err = set_number(def, num);
-    if (err) { errs[nerr++] = key_error(k.c_str(), err, &def); continue; }
+    if (err) { add_key_error(errs, k.c_str(), err, &def); nerr++; continue; }
     applied++;
   }
-  JSONVar r;
-  if (nerr == 0) {
-    reply_head(r, "ack", m);
-  }
-  else {
-    reply_head(r, "err", m);
-    r["applied"] = applied;
-    r["errors"] = errs;
-  }
-  send_json(c, r);
+  if (nerr == 0) send_ack(c, m);
+  else send_key_errors(c, m, applied, errs);
 }
 
 static void handle_get(AsyncWebSocketClient* c, JSONVar& m) {
   uint64_t mask = 0;
-  JSONVar errs;
+  String errs;
   int nerr = 0;
   if (m.hasOwnProperty("k") && JSONVar::typeof_(m["k"]) == "array") {
     JSONVar kl = m["k"];
     for (int i = 0; i < kl.length(); i++) {
-      if (JSONVar::typeof_(kl[i]) != "string") { errs[nerr++] = key_error("?", "type", nullptr); continue; }
+      if (JSONVar::typeof_(kl[i]) != "string") { add_key_error(errs, "?", "type", nullptr); nerr++; continue; }
       String k = (const char*)kl[i];
       int ki = key_find(k.c_str());
-      if (ki < 0) errs[nerr++] = key_error(k.c_str(), "unknown", nullptr);
+      if (ki < 0) { add_key_error(errs, k.c_str(), "unknown", nullptr); nerr++; }
       else mask |= (uint64_t)1 << ki;
     }
   }
@@ -219,13 +238,7 @@ static void handle_get(AsyncWebSocketClient* c, JSONVar& m) {
   Slot* s = slot_find(c->id());
   if (s) { s->v2 = true; s->getMask |= mask; }
   portEXIT_CRITICAL(&slotMux);
-  if (nerr > 0) {
-    JSONVar r;
-    reply_head(r, "err", m);
-    r["applied"] = 0;
-    r["errors"] = errs;
-    send_json(c, r);
-  }
+  if (nerr > 0) send_key_errors(c, m, 0, errs);
 }
 
 // Commands. The collar sends run here in the async_tcp task, exactly like the old click_* messages
@@ -252,9 +265,7 @@ static void handle_cmd(AsyncWebSocketClient* c, JSONVar& m) {
     send_err(c, m, "unknown_cmd", "unknown command");
     return;
   }
-  JSONVar r;
-  reply_head(r, "ack", m);
-  send_json(c, r);
+  send_ack(c, m);
 }
 
 void protocol_handle(AsyncWebSocketClient* c, const char* msg, size_t len) {
