@@ -57,12 +57,6 @@ void disable_Outputs();
   String uniqueKeyOfDevice = "0010110011011000";
   DogCollar dg(PIN_TRANSMITTER,uniqueKeyOfDevice);
   // temporary bridge (step 4): the old names are references into the AppState (removed at the end of step 4)
-  int& collar_strength = state.collar.strength;
-  int& previous_shock = state.collar.previousShock;
-  bool& Collar_Enable = state.collar.enabled;
-  bool& collar_bt_only_changes = state.collar.btOnlyChanges;
-  unsigned long& previous_Collar_Wakeup = state.collar.lastWakeup;
-  unsigned long& keep_Collar_Awake_Interval = state.collar.keepAwakeMs; // 2 Minutes
 
 // Random - name later
   unsigned long currentMillis;
@@ -82,14 +76,6 @@ void disable_Outputs();
   int manualMenuSelect = 1; // from Manual Mode Menu
   int bluetoothMenuSelect = 1; // from bluetooth mode menu
 // Bluetooth Menu
-  int& BT_V1_Output = state.ble.map[0].output;
-  int& BT_V1_Min_PWM = state.ble.map[0].minPwm;
-  int& BT_V1_Max_PWM = state.ble.map[0].maxPwm;
-  int& BT_V2_Output = state.ble.map[1].output;
-  int& BT_V2_Min_PWM = state.ble.map[1].minPwm;
-  int& BT_V2_Max_PWM = state.ble.map[1].maxPwm;
-  bool& BT_V1_Paused = state.ble.map[0].paused; // true = nothing sent to the output yet / already zeroed
-  bool& BT_V2_Paused = state.ble.map[1].paused;
   // String lb1_mode;
   // String lb2_mode;
   String tempString;
@@ -98,13 +84,6 @@ void disable_Outputs();
 // Bluetooth Menu
   char OutputItems [OutputNumItems] [OutputItemsMaxLength] = {"OFF","PWM1","PWM2","PWM3","PWM4","PUMP","Shoc"};
 // buzzer 
-  bool& buzzer_Metronome_Enabled = state.buzzer.enabled;
-  int& buzzerVolume = state.buzzer.volume; // 0 - 10
-  unsigned long& buzzerPreviousMillis = state.buzzer.previousMillis;
-  int& buzzerBPM = state.buzzer.bpm; // 1 - 255
-  int& beatInterval = state.buzzer.beatInterval; // duration of one beat in milliseconds
-  int& buzzerOnTimeMS = state.buzzer.onTimeMs;
-  bool& buzzerIsPlaying = state.buzzer.isPlaying;
 
 
 
@@ -122,17 +101,7 @@ void disable_Outputs();
   NimBLECharacteristic* pRxCharacteristic = NULL;
   // String bleAddress = "C0:42:3D:01:28:34"; // CONFIGURATION: < Use the real device BLE address here.
   String bleAddress = "FF:FF:FF:FF:FF:FF"; // CONFIGURATION: < Use the real device BLE address here.
-  bool& deviceConnected = state.ble.in.connected;
-  bool& oldDeviceConnected = state.ble.wasConnected;
   uint32_t value = 0;
-  int& bt_rotation = state.ble.in.rotation;
-  int& bt_vibration1 = state.ble.in.vib[0];
-  int& bt_vibration2 = state.ble.in.vib[1];
-  int& bt_airlevel = state.ble.in.airLevel;
-  // Output arbitration: BLE has priority on an output (1-6) while its level is > 0,
-  // otherwise the web / manual control drives it.
-  bool (&bt_hold)[OUT_ID_COUNT] = state.ble.hold;
-  bool& bt_collar_mapped = state.ble.collarMapped;
   #define SERVICE_UUID           "6e400001-b5a3-f393-e0a9-e50e24dcca9e"
   #define CHARACTERISTIC_RX_UUID "6e400002-b5a3-f393-e0a9-e50e24dcca9e"
   #define CHARACTERISTIC_TX_UUID "6e400003-b5a3-f393-e0a9-e50e24dcca9e"
