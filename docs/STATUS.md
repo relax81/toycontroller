@@ -80,6 +80,12 @@ stellen, `reboot` senden. Boot-Log und `[ledc]`-Diagnose ohne Reset-Knopf.
 - Ereignis-Queue und `state_set()` (WS, BLE, Menü reihen ein, nur `loop()`
   schreibt den State); `values` (JSONVar) ist nicht thread-sicher.
 - Kanalfälle im Manuell-Menü tabellengetrieben machen.
+- Visueller Indikator in der Web-UI: Solange BLE verbunden ist, gehören die
+  gemappten Ausgänge BLE (`state.ble.hold[]`), die Web-UI steuert nur die
+  übrigen. Die BLE-Kanäle sollen dort ausgegraut bzw. markiert werden, live
+  ohne Refresh. Der Zustand pro Kanal (BLE oder Web) kommt per WebSocket und
+  gehört in die JSON-Protokoll-Phase. Voraussetzung: der Server sendet bei
+  jeder Änderung von Verbindung oder BT-Mapping ein Update.
 - Persistente Einstellungen über Preferences (NVS), JSON-Protokoll für den
   WebSocket und Migration von `data/script.js` (siehe Plan in der
   Unterhaltung; nichts davon ist umgesetzt).
