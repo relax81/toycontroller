@@ -213,6 +213,7 @@ void update_values_ws();
   const unsigned long WS_PING_INTERVAL_MS = 5000; // browsers answer ping frames automatically
   volatile unsigned long ws_last_seen = 0;
   volatile bool ws_failsafe_armed = false;
+  volatile bool ws_broadcast_req = false; // set by the WS handler, evaluated in loop()
   unsigned long ws_last_ping = 0;
   //Json Variable to Hold Slider Values
   JSONVar values;
@@ -648,8 +649,7 @@ void update_values_ws();
       u8g2.print(state.out[0].enabled ? "ON" : "OFF");  
       u8g2.setDrawColor(1);
       if (buttonPressed == true) {
-          values["toggle_a"] = state.out[0].enabled;
-          update_values_ws();
+          state_ui_dirty = true; // the loop sends the state to the web clients
           buttonPressed = false;
           rotaryEncoder.setBoundaries(0, 100, false);
           rotaryEncoder.setEncoderValue(state.out[0].on);
@@ -666,8 +666,7 @@ void update_values_ws();
       u8g2.print(state.out[0].on);  
       u8g2.setDrawColor(1);
       if (buttonPressed == true) {
-          values["slider_a"] = state.out[0].on;
-          update_values_ws();
+          state_ui_dirty = true; // the loop sends the state to the web clients
           buttonPressed = false;
           rotaryEncoder.setEncoderValue(state.out[0].off);
           encoderPosition = state.out[0].off;
@@ -683,8 +682,7 @@ void update_values_ws();
       u8g2.print(state.out[0].off);
       u8g2.setDrawColor(1);
       if (buttonPressed == true) {
-          values["slider_b"] = state.out[0].off;
-          update_values_ws();
+          state_ui_dirty = true; // the loop sends the state to the web clients
           buttonPressed = false;
           rotaryEncoder.setEncoderValue(state.out[0].pwm);
           encoderPosition = state.out[0].pwm;
@@ -700,8 +698,7 @@ void update_values_ws();
       u8g2.print(state.out[0].pwm);
       u8g2.setDrawColor(1);
       if (buttonPressed == true) {
-          values["slider_c"] = state.out[0].pwm;
-          update_values_ws();
+          state_ui_dirty = true; // the loop sends the state to the web clients
           buttonPressed = false;
           rotaryEncoder.setEncoderValue(1);
           encoderPosition = 1;
@@ -717,8 +714,7 @@ void update_values_ws();
       u8g2.print(state.out[1].enabled ? "ON" : "OFF");  
       u8g2.setDrawColor(1);
       if (buttonPressed == true) {
-          values["toggle_b"] = state.out[1].enabled;
-          update_values_ws();
+          state_ui_dirty = true; // the loop sends the state to the web clients
           buttonPressed = false;
           rotaryEncoder.setBoundaries(0, 100, false);
           rotaryEncoder.setEncoderValue(state.out[1].on);
@@ -735,8 +731,7 @@ void update_values_ws();
       u8g2.print(state.out[1].on);
       u8g2.setDrawColor(1);
       if (buttonPressed == true) {
-          values["slider_d"] = state.out[1].on;
-          update_values_ws();
+          state_ui_dirty = true; // the loop sends the state to the web clients
           buttonPressed = false;
           rotaryEncoder.setEncoderValue(state.out[1].off);
           encoderPosition = state.out[1].off;
@@ -752,8 +747,7 @@ void update_values_ws();
       u8g2.print(state.out[1].off);
       u8g2.setDrawColor(1);
       if (buttonPressed == true) {
-          values["slider_e"] = state.out[1].off;
-          update_values_ws();
+          state_ui_dirty = true; // the loop sends the state to the web clients
           buttonPressed = false;
           rotaryEncoder.setEncoderValue(state.out[1].pwm);
           encoderPosition = state.out[1].pwm;
@@ -769,8 +763,7 @@ void update_values_ws();
       u8g2.print(state.out[1].pwm);
       u8g2.setDrawColor(1);
       if (buttonPressed == true) {
-          values["slider_f"] = state.out[1].pwm;
-          update_values_ws();
+          state_ui_dirty = true; // the loop sends the state to the web clients
           buttonPressed = false;
           rotaryEncoder.setEncoderValue(2);
           encoderPosition = 2;
@@ -786,8 +779,7 @@ void update_values_ws();
       u8g2.print(state.out[2].enabled ? "ON" : "OFF");  
       u8g2.setDrawColor(1);
       if (buttonPressed == true) {
-          values["toggle_c"] = state.out[2].enabled;
-          update_values_ws();
+          state_ui_dirty = true; // the loop sends the state to the web clients
           buttonPressed = false;
           rotaryEncoder.setBoundaries(0, 100, false);
           rotaryEncoder.setEncoderValue(state.out[2].on);
@@ -804,8 +796,7 @@ void update_values_ws();
       u8g2.print(state.out[2].on);
       u8g2.setDrawColor(1);
       if (buttonPressed == true) {
-          values["slider_g"] = state.out[2].on;
-          update_values_ws();
+          state_ui_dirty = true; // the loop sends the state to the web clients
           buttonPressed = false;
           rotaryEncoder.setEncoderValue(state.out[2].off);
           encoderPosition = state.out[2].off;
@@ -821,8 +812,7 @@ void update_values_ws();
       u8g2.print(state.out[2].off);
       u8g2.setDrawColor(1);
       if (buttonPressed == true) {
-          values["slider_h"] = state.out[2].off;
-          update_values_ws();
+          state_ui_dirty = true; // the loop sends the state to the web clients
           buttonPressed = false;
           rotaryEncoder.setEncoderValue(state.out[2].pwm);
           encoderPosition = state.out[2].pwm;        
@@ -838,8 +828,7 @@ void update_values_ws();
       u8g2.print(state.out[2].pwm);
       u8g2.setDrawColor(1);
       if (buttonPressed == true) {
-          values["slider_i"] = state.out[2].pwm;
-          update_values_ws();
+          state_ui_dirty = true; // the loop sends the state to the web clients
           buttonPressed = false;
           rotaryEncoder.setEncoderValue(3);
           encoderPosition = 3;
@@ -855,8 +844,7 @@ void update_values_ws();
       u8g2.print(state.out[3].enabled ? "ON" : "OFF");  
       u8g2.setDrawColor(1);
       if (buttonPressed == true) {
-          values["toggle_d"] = state.out[3].enabled;
-          update_values_ws();
+          state_ui_dirty = true; // the loop sends the state to the web clients
           buttonPressed = false;
           rotaryEncoder.setBoundaries(0, 100, false);
           rotaryEncoder.setEncoderValue(state.out[3].on);
@@ -874,8 +862,7 @@ void update_values_ws();
       u8g2.print(state.out[3].on);
       u8g2.setDrawColor(1);
       if (buttonPressed == true) {
-          values["slider_j"] = state.out[3].on;
-          update_values_ws();
+          state_ui_dirty = true; // the loop sends the state to the web clients
           buttonPressed = false;
           rotaryEncoder.setEncoderValue(state.out[3].off);
           encoderPosition = state.out[3].off;
@@ -891,8 +878,7 @@ void update_values_ws();
       u8g2.print(state.out[3].off);
       u8g2.setDrawColor(1);
       if (buttonPressed == true) {
-          values["slider_k"] = state.out[3].off;
-          update_values_ws();
+          state_ui_dirty = true; // the loop sends the state to the web clients
           buttonPressed = false;
           rotaryEncoder.setEncoderValue(state.out[3].pwm);          
           encoderPosition = state.out[3].pwm;         
@@ -908,8 +894,7 @@ void update_values_ws();
       u8g2.print(state.out[3].pwm);
       u8g2.setDrawColor(1);
       if (buttonPressed == true) {  
-          values["slider_l"] = state.out[3].pwm;
-          update_values_ws();
+          state_ui_dirty = true; // the loop sends the state to the web clients
           buttonPressed = false;
           rotaryEncoder.setEncoderValue(4);
           encoderPosition = 4;
@@ -1112,201 +1097,55 @@ void displayBluetoothMenu(){
     switch (message[0])
     {
 
-      case 't':
-        switch(message[7])
+      case 't': // toggle_a .. toggle_g, message[9] = 't'rue / 'f'alse
+        if (message[7] >= 'a' && message[7] <= 'g' && (message[9] == 't' || message[9] == 'f'))
         {
-          case 'a':
-          if (message[9] == 't')//true
-            {
-            state.out[0].enabled = true;
-            values["toggle_a"] = state.out[0].enabled;
-            }
-          else if (message[9] == 'f')//false
-            {
-            state.out[0].enabled = false;
-            values["toggle_a"] = state.out[0].enabled;
-            } 
-          break;
-
-          case 'b':
-          if (message[9] == 't')//true
-            {
-            state.out[1].enabled = true;
-            values["toggle_b"] = state.out[1].enabled;
-            }
-          else if (message[9] == 'f')//false
-            {
-            state.out[1].enabled = false;
-            values["toggle_b"] = state.out[1].enabled;
-            } 
-          break;
-
-          case 'c':
-          if (message[9] == 't')//true
-            {
-            state.out[2].enabled = true;
-            values["toggle_c"] = state.out[2].enabled;
-            }
-          else if (message[9] == 'f')//false
-            {
-            state.out[2].enabled = false;
-            values["toggle_c"] = state.out[2].enabled;
-            } 
-          break;
-
-          case 'd':
-          if (message[9] == 't')//true
-            {
-            state.out[3].enabled = true;
-            values["toggle_d"] = state.out[3].enabled;
-            }
-          else if (message[9] == 'f')//false
-            {
-            state.out[3].enabled = false;
-            values["toggle_d"] = state.out[3].enabled;
-            } 
-          break;          
-
-          case 'e':
-          if (message[9] == 't')//true
-            {
-            state.pump.enabled = true;
-            values["toggle_e"] = state.pump.enabled;
-            }
-          else if (message[9] == 'f')//false
-            {
-            state.pump.enabled = false;
-            values["toggle_e"] = state.pump.enabled;
-            } 
-          break; 
-
-          case 'f':
-          if (message[9] == 't')//true
-            {
-            state.collar.enabled = true;
-            values["toggle_f"] = state.collar.enabled;
-            }
-          else if (message[9] == 'f')//false
-            {
-            state.collar.enabled = false;
-            values["toggle_f"] = state.collar.enabled;
-            } 
-          break; 
-
-          case 'g':
-          if (message[9] == 't')//true
-            {
-            state.buzzer.enabled = true;
-            values["toggle_g"] = state.buzzer.enabled;
-            }
-          else if (message[9] == 'f')//false
-            {
-            state.buzzer.enabled = false;
-            values["toggle_g"] = state.buzzer.enabled;
-            } 
-          break; 
-
-
+          int on = (message[9] == 't') ? 1 : 0;
+          switch (message[7])
+          {
+            case 'a': case 'b': case 'c': case 'd':
+              state_set(EV_OUT_ENABLE, message[7] - 'a', on);
+              break;
+            case 'e': state_set(EV_PUMP_ENABLE, 0, on); break;
+            case 'f': state_set(EV_COLLAR_ENABLE, 0, on); break;
+            case 'g': state_set(EV_BUZZ_ENABLE, 0, on); break;
+          }
         }
         break;
 
       case 's': //slider
       debugln("slider triggered");
         slider = atoi(message + 9);
-        switch (message[7])
+        if (message[7] >= 'a' && message[7] <= 'l')
         {
-          case 'a':
-            state.out[0].on = slider;
-            values["slider_a"] = state.out[0].on;
-            break;
-
-          case 'b':
-            state.out[0].off = slider;
-            values["slider_b"] = state.out[0].off;
-            break;
-
-          case 'c':
-            state.out[0].pwm = slider;
-            values["slider_c"] = state.out[0].pwm;
-            break;
-          
-          case 'd':
-            state.out[1].on = slider;
-            values["slider_d"] = state.out[1].on;
-            break;
-
-          case 'e':
-            state.out[1].off = slider;
-            values["slider_e"] = state.out[1].off;
-            break;
-
-          case 'f':
-            state.out[1].pwm = slider;
-            values["slider_f"] = state.out[1].pwm;
-            break;
-          
-          case 'g':
-            state.out[2].on = slider;
-            values["slider_g"] = state.out[2].on;
-            break;
-
-          case 'h':
-            state.out[2].off = slider;
-            values["slider_h"] = state.out[2].off;
-            break;
-
-          case 'i':
-            state.out[2].pwm = slider;
-            values["slider_i"] = state.out[2].pwm;
-            break;
-          
-          case 'j':
-            state.out[3].on = slider;
-            values["slider_j"] = state.out[3].on;
-            break;
-
-          case 'k':
-            state.out[3].off = slider;
-            values["slider_k"] = state.out[3].off;
-            break;
-
-          case 'l':
-            state.out[3].pwm = slider;
-            values["slider_l"] = state.out[3].pwm;
-            break;
-
-          case 'm':
-            state.pump.pwm = slider;
-            values["slider_m"] = state.pump.pwm;
-            break;
-          case 'n':
-            state.collar.strength = slider;
-            values["slider_n"] = state.collar.strength;
-            break;
-          case 'o':
-            state.buzzer.bpm = slider;
-            values["slider_o"] = state.buzzer.bpm;
-            break;
-          case 'p':
-            state.buzzer.volume = slider;
-            values["slider_p"] = state.buzzer.volume;
-            break;
-
+          // a-l: three sliders per channel (on, off, pwm)
+          int ch = (message[7] - 'a') / 3;
+          switch ((message[7] - 'a') % 3)
+          {
+            case 0: state_set(EV_OUT_ON, ch, slider); break;
+            case 1: state_set(EV_OUT_OFF, ch, slider); break;
+            case 2: state_set(EV_OUT_PWM, ch, slider); break;
+          }
+        }
+        else switch (message[7])
+        {
+          case 'm': state_set(EV_PUMP_PWM, 0, slider); break;
+          case 'n': state_set(EV_COLLAR_STRENGTH, 0, slider); break;
+          case 'o': state_set(EV_BUZZ_BPM, 0, slider); break;
+          case 'p': state_set(EV_BUZZ_VOL, 0, slider); break;
         }
         break;
 
       case 'b': //buzzer
         if (message[8] == 'n')//on
         {
-          state.buzzer.enabled = true;
+          state_set(EV_BUZZ_ENABLE, 0, 1);
         }
         else if (message[8] == 'f') //off
         {
-          state.buzzer.enabled = false;
+          state_set(EV_BUZZ_ENABLE, 0, 0);
         }
-        values["buzzer"] = state.buzzer.enabled ? "on" : "off";
         debugln("buzzer output");
-        debugln(values["buzzer"]);
         break;
 
       case 'c': // click button
@@ -1426,8 +1265,7 @@ void displayBluetoothMenu(){
 
     } // switch message[0] end
 
-    json_string = JSON.stringify(values);
-    ws.textAll(json_string);
+    ws_broadcast_req = true; // loop() sends the state to all clients (also answers "getValues")
   }
 } // handleWebSocketMessage_ws end
 
@@ -1455,8 +1293,30 @@ void displayBluetoothMenu(){
   }
 }
 
+// fill `values` (JSONVar, loop() only) from the state; keys as the web UI expects them
+  static void fill_values_from_state() {
+    static const char* const toggles[4] = {"toggle_a", "toggle_b", "toggle_c", "toggle_d"};
+    static const char* const sliders[12] = {"slider_a", "slider_b", "slider_c", "slider_d", "slider_e", "slider_f",
+                                            "slider_g", "slider_h", "slider_i", "slider_j", "slider_k", "slider_l"};
+    for (int i = 0; i < 4; i++) {
+      values[toggles[i]] = state.out[i].enabled;
+      values[sliders[i * 3]] = state.out[i].on;
+      values[sliders[i * 3 + 1]] = state.out[i].off;
+      values[sliders[i * 3 + 2]] = state.out[i].pwm;
+    }
+    values["slider_m"] = state.pump.pwm;
+    values["slider_n"] = state.collar.strength;
+    values["slider_o"] = state.buzzer.bpm;
+    values["slider_p"] = state.buzzer.volume;
+    values["toggle_e"] = state.pump.enabled;
+    values["toggle_f"] = state.collar.enabled;
+    values["toggle_g"] = state.buzzer.enabled;
+    values["buzzer"] = state.buzzer.enabled ? "on" : "off";
+  }
+
 // update websocket values
   void update_values_ws(){
+    fill_values_from_state();
     json_string = JSON.stringify(values);
     debugln(json_string);
     ws.textAll(json_string);
@@ -1472,16 +1332,7 @@ void displayBluetoothMenu(){
   void ws_failsafe(){
   debugln("websocket failsafe: web outputs off");
   ws_failsafe_armed = false;
-  outputs_all_off();
-  values["toggle_a"] = false;
-  values["toggle_b"] = false;
-  values["toggle_c"] = false;
-  values["toggle_d"] = false;
-  values["toggle_e"] = false; // pump
-  values["toggle_f"] = false; // collar
-  if (ws.count() > 0) {
-    update_values_ws();
-  }
+  state_set(EV_ALL_OFF, 0, 0); // loop() context: applied at once, marks the UI dirty
 }
 
 void setup() {
@@ -1530,33 +1381,7 @@ void setup() {
   init_ws();
 
   // Websocket stuff
-  values["slider_a"] = 0;
-  values["slider_b"] = 0;
-  values["slider_c"] = 0;
-  values["slider_d"] = 0;
-  values["slider_e"] = 0;
-  values["slider_f"] = 0;
-  values["slider_g"] = 0;
-  values["slider_h"] = 0;
-  values["slider_i"] = 0;
-  values["slider_j"] = 0;
-  values["slider_k"] = 0;
-  values["slider_l"] = 0;
-  values["slider_m"] = 0; // pump
-  values["slider_n"] = 0; // collar strength
-  values["slider_o"] = 60; // Buzzer Metronome BPM
-  values["slider_p"] = 5; // Buzzer Metronome Volume
-  values["toggle_a"] = false;
-  values["toggle_b"] = false;
-  values["toggle_c"] = false;
-  values["toggle_d"] = false;
-  values["toggle_e"] = false; // pump
-  values["toggle_f"] = false; // collar
-  values["toggle_g"] = false; // Buzzer Metronome
-  values["buzzer"] = "off";
-  // values["lb1"] = "off";
-  // values["lb2"] = "off";
-
+  fill_values_from_state();
   json_string = JSON.stringify(values);
 
   // Web Server Root URL
@@ -1681,6 +1506,15 @@ void loop() {
     ws_failsafe();
   }
 #endif
+
+  // state changes (web, BLE, device menu) go to the web clients, at most once per pass
+  if (state_ui_dirty || ws_broadcast_req) {
+    state_ui_dirty = false;
+    ws_broadcast_req = false;
+    if (ws.count() > 0) {
+      update_values_ws();
+    }
+  }
 
   outputs_arbitrate();
 
