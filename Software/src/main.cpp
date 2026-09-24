@@ -1492,22 +1492,12 @@ void displayBluetoothMenu(){
 // disable outputs 
   void disable_Outputs()
 {
-  if (!state.out[0].enabled && !bt_hold[1]) {
-    state.rt[0].paused = false;
-    ledcWrite(PWMOUT_1, 0);
+  for (int i = 0; i < 4; i++) {
+    if (!state.out[i].enabled && !bt_hold[i + 1]) {
+      state.rt[i].paused = false;
+      ledcWrite(pwmOutChannel[i], 0);
+    }
   }
-  if (!state.out[1].enabled && !bt_hold[2]) {
-    state.rt[1].paused = false;
-    ledcWrite(PWMOUT_2, 0);
-  }
-  if (!state.out[2].enabled && !bt_hold[3]) {
-    state.rt[2].paused = false;
-    ledcWrite(PWMOUT_3, 0);
-  }
- if (!state.out[3].enabled && !bt_hold[4]) {
-    state.rt[3].paused = false;
-    ledcWrite(PWMOUT_4,0);
- }
   if (!state.pump.enabled && !bt_hold[5]){
     ledcWrite(pumpOUT, 0);
     state.pump.enabled = false;
@@ -1586,106 +1576,38 @@ void displayBluetoothMenu(){
 
 // control pwm outputs in web or manual mode
   void PWM_Output(){
-  // rising edge of "enabled" (and not held by BLE): start with the On phase
-  // instead of the stale timeStarted / paused state of the last run
+  // Outputs 1-4 (channel i = Ch(i+1))
   for (int i = 0; i < 4; i++) {
+    // rising edge of "enabled" (and not held by BLE): start with the On phase
+    // instead of the stale timeStarted / paused state of the last run
     bool active = state.out[i].enabled && !bt_hold[i + 1];
     if (active && !state.rt[i].wasEnabled) {
       state.rt[i].timeStarted = millis();
       state.rt[i].paused = false;
     }
     state.rt[i].wasEnabled = active;
-  }
-  // Output 1
-  if (bt_hold[1]) {
-    // driven by BLE
-  }
-  else if ((state.rt[0].paused == false) && (state.out[0].enabled == true))
-  {
-     int mapped_Ch1_PWM;
-     mapped_Ch1_PWM = map(state.out[0].pwm, 0, 100, 0, 255);
-     ledcWrite(PWMOUT_1, mapped_Ch1_PWM);
-     if ((state.out[0].off > 0) && (millis() - state.rt[0].timeStarted >= state.out[0].on * 1000)) {
-      state.rt[0].paused = true;
-      state.rt[0].timeStopped = millis();
+
+    if (bt_hold[i + 1]) {
+      // driven by BLE
     }
-  }  
-  else if ((state.rt[0].paused == true) && (state.out[0].enabled == true))
-  {
-    ledcWrite(PWMOUT_1, 0);
-    if (millis() - state.rt[0].timeStopped >= state.out[0].off * 1000)
+    else if ((state.rt[i].paused == false) && (state.out[i].enabled == true))
     {
-      state.rt[0].paused = false;
-      state.rt[0].timeStarted = millis();
-    }
-  }
-  // Output 2
-  if (bt_hold[2]) {
-    // driven by BLE
-  }
-  else if ((state.rt[1].paused == false) && (state.out[1].enabled == true))
-  {
-     int mapped_Ch2_PWM;
-     mapped_Ch2_PWM = map(state.out[1].pwm, 0, 100, 0, 255);
-     ledcWrite(PWMOUT_2, mapped_Ch2_PWM);
-     if ((state.out[1].off > 0) && (millis() - state.rt[1].timeStarted >= state.out[1].on * 1000)) {
-      state.rt[1].paused = true;
-      state.rt[1].timeStopped = millis();
-    }
-  }  
-  else if ((state.rt[1].paused == true) && (state.out[1].enabled == true))
-  {
-    ledcWrite(PWMOUT_2, 0);
-    if (millis() - state.rt[1].timeStopped >= state.out[1].off * 1000)
+       int mapped_PWM;
+       mapped_PWM = map(state.out[i].pwm, 0, 100, 0, 255);
+       ledcWrite(pwmOutChannel[i], mapped_PWM);
+       if ((state.out[i].off > 0) && (millis() - state.rt[i].timeStarted >= state.out[i].on * 1000)) {
+        state.rt[i].paused = true;
+        state.rt[i].timeStopped = millis();
+      }
+    }  
+    else if ((state.rt[i].paused == true) && (state.out[i].enabled == true))
     {
-      state.rt[1].paused = false;
-      state.rt[1].timeStarted = millis();
-    }
-  }
-  // Output 3
-  if (bt_hold[3]) {
-    // driven by BLE
-  }
-  else if ((state.rt[2].paused == false) && (state.out[2].enabled == true))
-  {
-     int mapped_Ch3_PWM;
-     mapped_Ch3_PWM = map(state.out[2].pwm, 0, 100, 0, 255);
-     ledcWrite(PWMOUT_3, mapped_Ch3_PWM);
-     if ((state.out[2].off > 0) && (millis() - state.rt[2].timeStarted >= state.out[2].on * 1000)) {
-      state.rt[2].paused = true;
-      state.rt[2].timeStopped = millis();
-    }
-  }  
-  else if ((state.rt[2].paused == true) && (state.out[2].enabled == true))
-  {
-    ledcWrite(PWMOUT_3, 0);
-    if (millis() - state.rt[2].timeStopped >= state.out[2].off * 1000)
-    {
-      state.rt[2].paused = false;
-      state.rt[2].timeStarted = millis();
-    }
-  }
-  // Output 4
-  if (bt_hold[4]) {
-    // driven by BLE
-  }
-  else if ((state.rt[3].paused == false) && (state.out[3].enabled == true))
-  {
-     int mapped_Ch4_PWM;
-     mapped_Ch4_PWM = map(state.out[3].pwm, 0, 100, 0, 255);
-     ledcWrite(PWMOUT_4, mapped_Ch4_PWM);
-     if ((state.out[3].off > 0) && (millis() - state.rt[3].timeStarted >= state.out[3].on * 1000)) {
-      state.rt[3].paused = true;
-      state.rt[3].timeStopped = millis();
-    }
-  }  
-  else if ((state.rt[3].paused == true) && (state.out[3].enabled == true))
-  {
-    ledcWrite(PWMOUT_4, 0);
-    if (millis() - state.rt[3].timeStopped >= state.out[3].off * 1000)
-    {
-      state.rt[3].paused = false;
-      state.rt[3].timeStarted = millis();
+      ledcWrite(pwmOutChannel[i], 0);
+      if (millis() - state.rt[i].timeStopped >= state.out[i].off * 1000)
+      {
+        state.rt[i].paused = false;
+        state.rt[i].timeStarted = millis();
+      }
     }
   }
   // Pump Output 5

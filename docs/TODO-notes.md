@@ -26,8 +26,11 @@ Nur Notizen, kein Code. Bewusst verschobene Punkte aus dem Umbau
   `timeStarted = millis()` und `paused = false`. Der Kanal startet mit der
   On-Zeit. Gilt auch, wenn BLE einen Kanal wieder freigibt: der Zyklus
   beginnt dann von vorn mit der On-Phase.
-- Die vier Kanalblöcke in `PWM_Output()` und im Menü sind Kopien und
-  sollen später zu Schleifen über `state.out[i]` werden.
+- ~~Die vier Kanalblöcke in `PWM_Output()` (und `disable_Outputs()`) sind
+  Kopien.~~ **Erledigt:** Schleife über `state.out[i]` mit
+  `pwmOutChannel[i]` (`config.h`) und `bt_hold[i + 1]`. Offen: die
+  Kanalfälle im Manuell-Menü (`buttonMenuManual`, `displayMenuManual`) sind
+  noch Kopien.
 
 ## State / Architektur
 

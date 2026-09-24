@@ -37,6 +37,7 @@ const uint8_t* const font_wifi_symbol = u8g2_font_open_iconic_www_1x_t;
   const int buzzer = 4;
   const int pumpFrequency = 500;
   const int pumpOUT = 6; // Pump PWM Output
+  const int pwmOutChannel[4] = {PWMOUT_1, PWMOUT_2, PWMOUT_3, PWMOUT_4}; // index i = Ch(i+1)
   const int buzzerFrequency = 2000; // initial buzzerFrequency
 // LEDC: the channels share one timer (= one frequency) per pair (0,1) (2,3) (4,5) (6,7).
 // Two channels in the same pair with different frequencies would silently change
