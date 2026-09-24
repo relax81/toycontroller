@@ -20,12 +20,12 @@
 #endif
 
 #include <Arduino.h>
-#include "true-credentials.h"
 #include <U8g2lib.h>
 #include <Wire.h>
 #include <TickTwo.h>
 #include <AiEsp32RotaryEncoder.h>
 #include "config.h"
+#include "wifi_setup.h"
 #include <DNSServer.h>
 #include <WiFi.h>
 #include <AsyncTCP.h>
@@ -294,32 +294,7 @@ void disable_Outputs();
   JSONVar values;
   String json_string;
 
-// Initialize SPIFFS
-  void initFS() {
-    if (!SPIFFS.begin()) {
-      Serial.println("An error has occurred while mounting SPIFFS");
-    }
-    else{
-    Serial.println("SPIFFS mounted successfully");
-    }
-  }
-// Initialize WiFi
-  void initWiFi() {
-    WiFi.mode(WIFI_STA);
-    WiFi.begin(ssid, password);
-    Serial.print("Connecting to WiFi ..");
-    u8g2.clearBuffer();
-    u8g2.setFont(font_status_messages);
-    u8g2.drawStr(8, 20, "Connecting");
-    u8g2.drawStr(40, 45, "WiFi");
-    u8g2.sendBuffer();
-    // while (WiFi.status() != WL_CONNECTED) {
-    //   Serial.print('.');
-    //   delay(1000);
-    // }
-    WiFi_Enabled = true;
-    Serial.println(WiFi.localIP());
-  }
+// initFS(), initWiFi() and initWebServerRoot() live in wifi_setup.cpp
 
 
 // Bluetooth start (runs in parallel to WiFi)
@@ -1915,11 +1890,7 @@ void setup() {
   json_string = JSON.stringify(values);
 
   // Web Server Root URL
-  server.on("/", HTTP_GET, [](AsyncWebServerRequest *request){
-    request->send(SPIFFS, "/index.html", "text/html");
-  });
-  
-  server.serveStatic("/", SPIFFS, "/");
+  initWebServerRoot();
 
   // Start server
   server.begin();
