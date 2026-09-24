@@ -366,6 +366,13 @@ void update_values_ws();
       else {
         u8g2.drawStr(46, 10, "WiFi");
         u8g2.drawStr(8, 32, wifi_state_text());
+        if (wifi_state() == WifiState::Portal) {
+          u8g2.drawStr(8, 52, "Click: data");
+          if (buttonPressed == true) {
+            buttonPressed = false;
+            current_screen = 15;
+          }
+        }
       }
 
       if (buttonLongPressed == true) {      
@@ -412,6 +419,17 @@ void update_values_ws();
       }
     }
 
+    else if (current_screen == 15) {
+      rotaryEncoder.setBoundaries(1, 1, false);
+      wifi_draw_portal_screen();
+      if (!wifi_portal_active() || buttonPressed == true || buttonLongPressed == true) { // one click leaves
+        buttonPressed = false;
+        current_screen = 0;
+        item_selected = 1;
+        encoderPosition = 1;
+        rotaryEncoder.setEncoderValue(encoderPosition);
+      }
+    }
     else if (current_screen == 14) {
       rotaryEncoder.setBoundaries(0, 1, false);
       u8g2.setFont(font_main_menu);
@@ -1527,6 +1545,7 @@ void setup() {
   json_string = JSON.stringify(values);
 
   // Web Server Root URL
+  wifi_manager_attach(server);
   initWebServerRoot();
 
   // Start server
@@ -1586,6 +1605,9 @@ void loop() {
 #endif
   serial_commands();
   wifi_manager_update(currentMillis);
+  if (wifi_portal_take_show_request() && current_screen == 0) {
+    current_screen = 15; // show hotspot data once when the portal starts
+  }
   ws.cleanupClients();
   timer1.update(); // display blinking text timer
 

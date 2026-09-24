@@ -6,6 +6,7 @@
 #include "SPIFFS.h"
 #include "config.h"
 #include "wifi_setup.h"
+#include "wifi_manager.h"
 
 // globals defined in main.cpp
 extern AsyncWebServer server;
@@ -22,6 +23,7 @@ extern AsyncWebServer server;
 // Web Server Root URL
   void initWebServerRoot() {
   server.on("/", HTTP_GET, [](AsyncWebServerRequest *request){
+    if (wifi_portal_handle_root(request)) return; // hotspot: setup page
     request->send(SPIFFS, "/index.html", "text/html");
   });
   
