@@ -41,6 +41,24 @@ Nur Notizen, kein Code. Bewusst verschobene Punkte aus dem Umbau
 - Indizes: `state.out[0]` = Ch1 ... `state.out[3]` = Ch4, aber `bt_hold[]`
   und `OutputItems` zählen ab 1 (1-4 PWM, 5 Pumpe, 6 Halsband).
 
+## 433-MHz-Halsband (DogCollar3)
+
+- **`sendCollar()` blockiert.** Das Bitmuster wird mit `delayMicroseconds`
+  gesendet (je Bit ca. 1,1 ms, etwa 40 Bit, dazu Start und Pausen) und
+  3-mal wiederholt: grob **150 ms pro Aufruf** (Schätzung, nicht gemessen).
+- **Aufrufer aus zwei Tasks:** aus dem `async_tcp`-Task (WS-Klicks
+  Beep/Vibe/Shock in `handleWebSocketMessage_ws`) und aus `loop()`
+  (Keep-alive, `bluetooth_write_pwm` Fall 6). Sendet der Web-Klick, während
+  `loop()` gerade sendet, überlagern sich die Bitmuster am selben Pin und
+  beide Frames sind unbrauchbar. Außerdem blockiert der Klick den
+  `async_tcp`-Task für ca. 150 ms (WS/HTTP stehen).
+- **Geplante Lösung:** Klicks als Ereignisse einreihen, nur `loop()` sendet
+  (ein Sender, Rate-Limit), ggf. kritischer Abschnitt oder RMT.
+  **Erst mit Halsband- oder Empfängertest umstellen.** In Schritt 4 wird am
+  Sendeverhalten (DogCollar3, `previousShock`, Keep-alive, Aufrufer) nichts
+  geändert, nur umbenannt.
+- `dg` (DogCollar) ruft `pinMode` im Konstruktor beim statischen Init auf.
+
 ## Sonstiges
 
 - BLE-Anfragen `GetCap;`, `AutoTime;`, `AI,ai;`, `GetAS,<2>;`, `GetLight`,
