@@ -8,6 +8,9 @@
 #define debugln(x)
 #endif
 
+// activate deactivate LEDC (PWM) frequency diagnostics at startup
+#define DEBUG_LEDC 1
+
 // activate deactivate heap logging (free / min free / largest free block)
 #define DEBUG_HEAP 1
 #if DEBUG_HEAP == 1
@@ -30,6 +33,7 @@
 #include "SPIFFS.h"
 #include <Arduino_JSON.h>
 #include <NimBLEDevice.h>
+#include "driver/ledc.h"
 #include "DogCollar3.h"
 
 // software version
@@ -1848,6 +1852,19 @@ void setup() {
   ledcAttachPin(CH2_5V, PWMOUT_4);
   ledcAttachPin(buzzerPin, buzzer);
   ledcAttachPin(pumpPin, pumpOUT);
+#if DEBUG_LEDC == 1
+  // diagnostics only: configured vs. actual frequency; the ESP32 LEDC shares one
+  // timer between the channel pairs (0,1) (2,3) (4,5) (6,7).
+  // ledcReadFreq() returns 0 while the duty is 0, so the timer is read directly.
+  {
+    const char* ledcNames[] = {"PWM1", "PWM2", "PWM3", "PWM4", "buzzer", "pump"};
+    const int ledcChannels[] = {PWMOUT_1, PWMOUT_2, PWMOUT_3, PWMOUT_4, buzzer, pumpOUT};
+    const int ledcSetFreq[] = {freq, freq, freq, freq, buzzerFrequency, 500};
+    for (int i = 0; i < 6; i++) {
+      Serial.printf("[ledc] %-6s ch=%d timer=%d set=%d Hz actual=%u Hz\n", ledcNames[i], ledcChannels[i], (ledcChannels[i] / 2) % 4, ledcSetFreq[i], (unsigned int)ledc_get_freq(LEDC_HIGH_SPEED_MODE, (ledc_timer_t)((ledcChannels[i] / 2) % 4)));
+    }
+  }
+#endif
 
   //Encoder
   //we must initialize rotary encoder
