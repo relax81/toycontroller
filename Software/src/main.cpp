@@ -88,25 +88,6 @@ void disable_Outputs();
   int current_screen = 0;   // 0 = main menu, 
   int manualMenuSelect = 1; // from Manual Mode Menu
   int bluetoothMenuSelect = 1; // from bluetooth mode menu
-  // temporary bridge: the old names are references into the AppState (removed at the end of step 3)
-  bool& Ch1_Enable = state.out[0].enabled;
-  bool& Ch2_Enable = state.out[1].enabled;
-  bool& Ch3_Enable = state.out[2].enabled;
-  bool& Ch4_Enable = state.out[3].enabled;
-  bool& Pump_Enable = state.pump.enabled;
-  int& Ch1_On = state.out[0].on;
-  int& Ch1_Off = state.out[0].off;
-  int& Ch1_PWM = state.out[0].pwm;
-  int& Ch2_On = state.out[1].on;
-  int& Ch2_Off = state.out[1].off;
-  int& Ch2_PWM = state.out[1].pwm;
-  int& Ch3_On = state.out[2].on;
-  int& Ch3_Off = state.out[2].off;
-  int& Ch3_PWM = state.out[2].pwm;
-  int& Ch4_On = state.out[3].on;
-  int& Ch4_Off = state.out[3].off;
-  int& Ch4_PWM = state.out[3].pwm;
-  int& pump_PWM = state.pump.pwm;
 // Bluetooth Menu
   int BT_V1_Output = 0;
   int BT_V1_Min_PWM = 0;
@@ -116,19 +97,6 @@ void disable_Outputs();
   int BT_V2_Max_PWM = 255;
   bool BT_V1_Paused = true; // true = nothing sent to the output yet / already zeroed
   bool BT_V2_Paused = true;
-// PWM settings
-  bool& pwm1_paused = state.rt[0].paused;
-  bool& pwm2_paused = state.rt[1].paused;
-  bool& pwm3_paused = state.rt[2].paused;
-  bool& pwm4_paused = state.rt[3].paused;
-  unsigned long& pwm1_timeStarted = state.rt[0].timeStarted;
-  unsigned long& pwm1_timeStopped = state.rt[0].timeStopped;
-  unsigned long& pwm2_timeStarted = state.rt[1].timeStarted;
-  unsigned long& pwm2_timeStopped = state.rt[1].timeStopped;
-  unsigned long& pwm3_timeStarted = state.rt[2].timeStarted;
-  unsigned long& pwm3_timeStopped = state.rt[2].timeStopped;
-  unsigned long& pwm4_timeStarted = state.rt[3].timeStarted;
-  unsigned long& pwm4_timeStopped = state.rt[3].timeStopped;
   // String lb1_mode;
   // String lb2_mode;
   String tempString;
