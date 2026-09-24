@@ -78,10 +78,18 @@ struct BleInput {        // written by the NimBLE task, read by loop()
   int  airLevel = 0;
 };
 
+struct BleLatch {        // BLE keeps an output at level 0 too (loop() only)
+  bool active = false;   // BLE has commanded `output` and nothing else changed it since
+  int  output = 0;       // OutputId the latch belongs to
+  int  prevVib = 0;      // vib value seen in the previous loop()
+  int  snap[4] = {};     // web/manual settings of the output at the last BLE command
+};
+
 struct BleState {
   BleInput in;
   bool wasConnected = false;             // loop() only
   BtMap map[2] = { BtMap(0), BtMap(1) }; // V1 -> OFF, V2 -> PWM1 (as before)
+  BleLatch latch[2];                     // per vibration channel
   bool hold[OUT_ID_COUNT] = {};          // BLE holds this output id (loop() only)
   bool collarMapped = false;
 };
