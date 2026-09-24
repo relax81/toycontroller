@@ -304,6 +304,17 @@ void disable_Outputs();
   AsyncWebServer server(80);
   // Create a WebSocket object
   AsyncWebSocket ws("/ws");
+
+// WebSocket failsafe: web-controlled outputs go to 0 when the last WS client
+// is gone or nothing (command or ping answer) was heard for the timeout.
+// BLE-held outputs are not touched. Only armed after a WS command, so local
+// manual control without any web client is not affected.
+  #define WS_FAILSAFE 1
+  const unsigned long WS_FAILSAFE_TIMEOUT_MS = 15000;
+  const unsigned long WS_PING_INTERVAL_MS = 5000; // browsers answer ping frames automatically
+  volatile unsigned long ws_last_seen = 0;
+  volatile bool ws_failsafe_armed = false;
+  unsigned long ws_last_ping = 0;
   //Json Variable to Hold Slider Values
   JSONVar values;
   String json_string;
@@ -1526,15 +1537,20 @@ void displayBluetoothMenu(){
   switch (type)
   {
     case WS_EVT_CONNECT:
+      ws_last_seen = millis();
       //serial.printf("WebSocket client #%u connected from %s\n", client->id(), client->remoteIP().toString().c_str());
       break;
     case WS_EVT_DISCONNECT:
       //serial.printf("WebSocket client #%u disconnected\n", client->id());
       break;
     case WS_EVT_DATA:
+      ws_last_seen = millis();
+      ws_failsafe_armed = true;
       handleWebSocketMessage_ws(arg, data, len);
       break;
     case WS_EVT_PONG:
+      ws_last_seen = millis();
+      break;
     case WS_EVT_ERROR:
       break;
   }
@@ -1575,6 +1591,27 @@ void displayBluetoothMenu(){
   if (!Pump_Enable && !bt_hold[5]){
     ledcWrite(pumpOUT, 0);
     Pump_Enable = false;
+  }
+}
+
+// websocket failsafe: switch off everything the web interface controls
+  void ws_failsafe(){
+  debugln("websocket failsafe: web outputs off");
+  ws_failsafe_armed = false;
+  Ch1_Enable = false;
+  Ch2_Enable = false;
+  Ch3_Enable = false;
+  Ch4_Enable = false;
+  Pump_Enable = false;
+  Collar_Enable = false;
+  values["toggle_a"] = false;
+  values["toggle_b"] = false;
+  values["toggle_c"] = false;
+  values["toggle_d"] = false;
+  values["toggle_e"] = false; // pump
+  values["toggle_f"] = false; // collar
+  if (ws.count() > 0) {
+    update_values_ws();
   }
 }
 
@@ -1909,6 +1946,16 @@ void loop() {
 #endif
   ws.cleanupClients();
   timer1.update(); // display blinking text timer
+
+#if WS_FAILSAFE == 1
+  if (currentMillis - ws_last_ping >= WS_PING_INTERVAL_MS) {
+    ws_last_ping = currentMillis;
+    ws.pingAll();
+  }
+  if (ws_failsafe_armed && (ws.count() == 0 || currentMillis - ws_last_seen >= WS_FAILSAFE_TIMEOUT_MS)) {
+    ws_failsafe();
+  }
+#endif
 
   // BLE has priority on an output while its level is > 0
   for (int i = 0; i < 7; i++) bt_hold[i] = false;
