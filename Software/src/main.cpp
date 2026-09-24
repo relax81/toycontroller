@@ -85,17 +85,26 @@ void update_values_ws();
   #define CHARACTERISTIC_RX_UUID "6e400002-b5a3-f393-e0a9-e50e24dcca9e"
   #define CHARACTERISTIC_TX_UUID "6e400003-b5a3-f393-e0a9-e50e24dcca9e"
   // CONFIGURATION:                           ^ Replace X and Y with values that suit you.
+  // BLE callbacks run in the NimBLE task and must not write the state: they queue events.
+  // bleVib[] is the last vibration pair queued by this task (both values travel in one
+  // event, so V1/V2 are always applied together).
+  static int bleVib[2] = {0, 0};
+  static void ble_queue_vib(int v1, int v2) {
+    bleVib[0] = v1;
+    bleVib[1] = v2;
+    state_set(EV_BLE_VIB, 0, (int32_t)((uint32_t)(v1 & 0xFFFF) | ((uint32_t)(v2 & 0xFFFF) << 16)));
+  }
   class MyServerCallbacks: public NimBLEServerCallbacks {
       void onConnect(NimBLEServer* pServer) {
-        state.ble.in.connected = true;
+        state_set(EV_BLE_CONN, 0, 1);
         NimBLEDevice::startAdvertising();
       };
 
       void onDisconnect(NimBLEServer* pServer) {
-        state.ble.in.connected = false;
-        // failsafe: no client, no output
-        state.ble.in.vib[0] = 0;
-        state.ble.in.vib[1] = 0;
+        // failsafe: no client, no output (EV_BLE_CONN 0 also zeroes vib[])
+        bleVib[0] = 0;
+        bleVib[1] = 0;
+        state_set(EV_BLE_CONN, 0, 0);
       }
   };
   class MySerialCallbacks: public NimBLECharacteristicCallbacks {
@@ -139,38 +148,42 @@ void update_values_ws();
           pTxCharacteristic->setValue(messageBuf, 2);
           pTxCharacteristic->notify();
         } else if (rxValue.rfind("Vibrate:", 0) == 0) {
-          state.ble.in.vib[0] = std::atoi(rxValue.substr(8).c_str());
-          state.ble.in.vib[1] = std::atoi(rxValue.substr(8).c_str());
+          int v = std::atoi(rxValue.substr(8).c_str());
+          ble_queue_vib(v, v);
           debug("V:");
-          debugln(state.ble.in.vib[0]);
+          debugln(v);
           memmove(messageBuf, "OK;", 3);
           pTxCharacteristic->setValue(messageBuf, 3);
           pTxCharacteristic->notify();
         } else if (rxValue.rfind("Rotate:", 0) == 0) {
-          state.ble.in.rotation = std::atoi(rxValue.substr(7).c_str());
+          int r = std::atoi(rxValue.substr(7).c_str());
+          state_set(EV_BLE_ROT, 0, r);
           debug("R:");
-          debugln(state.ble.in.rotation);
+          debugln(r);
           memmove(messageBuf, "OK;", 3);
           pTxCharacteristic->setValue(messageBuf, 3);
           pTxCharacteristic->notify();
         } else if (rxValue.rfind("Vibrate1:", 0) == 0) {
-          state.ble.in.vib[0] = std::atoi(rxValue.substr(9).c_str());
+          int v = std::atoi(rxValue.substr(9).c_str());
+          ble_queue_vib(v, bleVib[1]);
           debug("V1:");
-          debugln(state.ble.in.vib[0]);
+          debugln(v);
           memmove(messageBuf, "OK;", 3);
           pTxCharacteristic->setValue(messageBuf, 3);
           pTxCharacteristic->notify();
         } else if (rxValue.rfind("Vibrate2:", 0) == 0) {
-          state.ble.in.vib[1] = std::atoi(rxValue.substr(9).c_str());
+          int v = std::atoi(rxValue.substr(9).c_str());
+          ble_queue_vib(bleVib[0], v);
           debug("V2:");
-          debugln(state.ble.in.vib[1]);
+          debugln(v);
           memmove(messageBuf, "OK;", 3);
           pTxCharacteristic->setValue(messageBuf, 3);
           pTxCharacteristic->notify();
         } else if (rxValue.rfind("Air:Level:", 0) == 0) {
-          state.ble.in.airLevel = std::atoi(rxValue.substr(10).c_str());
+          int a = std::atoi(rxValue.substr(10).c_str());
+          state_set(EV_BLE_AIR, 0, a);
           debug("AL:");
-          debugln(state.ble.in.airLevel);
+          debugln(a);
           memmove(messageBuf, "OK;", 3);
           pTxCharacteristic->setValue(messageBuf, 3);
           pTxCharacteristic->notify();
