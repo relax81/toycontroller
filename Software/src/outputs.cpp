@@ -176,43 +176,22 @@ void buzzer_Metronome(unsigned long nowMs) {
     }
 }
 
-// web / manual settings of an output id, to detect a change after a BLE command
-static void webSettings(int id, int s[4]) {
-  s[0] = s[1] = s[2] = s[3] = 0;
-  if (id >= 1 && id <= 4) {
-    const OutputChannel& c = state.out[id - 1];
-    s[0] = c.enabled; s[1] = c.on; s[2] = c.off; s[3] = c.pwm;
-  }
-  else if (id == 5) {
-    s[0] = state.pump.enabled; s[1] = state.pump.pwm;
-  }
-  else if (id == 6) {
-    s[0] = state.collar.enabled;
-  }
-}
-
-// BLE has priority on an output while its level is > 0. A BLE command also counts at
-// level 0: the latch keeps the priority while connected until the web / encoder changes
-// the output afterwards (last source wins) or BLE disconnects.
+// While BLE is connected it owns the outputs its vibration channels are mapped to (also
+// at level 0); the web / manual control only drives the others. After a disconnect the
+// web / manual control drives everything again.
 void outputs_arbitrate() {
-  for (int i = 0; i < 7; i++) state.ble.hold[i] = false;
-  for (int k = 0; k < 2; k++) {
-    BleLatch& l = state.ble.latch[k];
-    int out = state.ble.map[k].output;
-    int vib = state.ble.in.vib[k];
-    if (!state.ble.in.connected || out != l.output) l.active = false;
-    if (out > 0 && state.ble.in.connected && vib != l.prevVib) {
-      l.active = true;                 // new BLE command
-      l.output = out;
-      webSettings(out, l.snap);
+  bool owned[OUT_ID_COUNT] = {};
+  if (state.ble.in.connected) {
+    for (int k = 0; k < 2; k++) {
+      int out = state.ble.map[k].output;
+      if (out > 0) owned[out] = true;
     }
-    else if (l.active && vib == 0) {
-      int now[4];
-      webSettings(out, now);
-      for (int j = 0; j < 4; j++) if (now[j] != l.snap[j]) l.active = false; // web / encoder changed it
-    }
-    l.prevVib = vib;
-    if ((out > 0) && (vib > 0 || l.active)) state.ble.hold[out] = true;
+  }
+  for (int i = 0; i < OUT_ID_COUNT; i++) {
+    // an output that just fell to BLE would keep the last web duty: zero it once
+    // (not the collar, it only reacts to BLE commands)
+    if (owned[i] && !state.ble.hold[i] && i >= 1 && i <= 5) bluetooth_write_pwm(i, 0);
+    state.ble.hold[i] = owned[i];
   }
   state.ble.collarMapped = (state.ble.map[0].output == 6 || state.ble.map[1].output == 6);
 }
