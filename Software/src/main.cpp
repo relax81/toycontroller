@@ -1171,65 +1171,65 @@ void displayBluetoothMenu(){
           case 'a':
           if (message[9] == 't')//true
             {
-            Ch1_Enable = true;
-            values["toggle_a"] = Ch1_Enable;
+            state.out[0].enabled = true;
+            values["toggle_a"] = state.out[0].enabled;
             }
           else if (message[9] == 'f')//false
             {
-            Ch1_Enable = false;
-            values["toggle_a"] = Ch1_Enable;
+            state.out[0].enabled = false;
+            values["toggle_a"] = state.out[0].enabled;
             } 
           break;
 
           case 'b':
           if (message[9] == 't')//true
             {
-            Ch2_Enable = true;
-            values["toggle_b"] = Ch2_Enable;
+            state.out[1].enabled = true;
+            values["toggle_b"] = state.out[1].enabled;
             }
           else if (message[9] == 'f')//false
             {
-            Ch2_Enable = false;
-            values["toggle_b"] = Ch2_Enable;
+            state.out[1].enabled = false;
+            values["toggle_b"] = state.out[1].enabled;
             } 
           break;
 
           case 'c':
           if (message[9] == 't')//true
             {
-            Ch3_Enable = true;
-            values["toggle_c"] = Ch3_Enable;
+            state.out[2].enabled = true;
+            values["toggle_c"] = state.out[2].enabled;
             }
           else if (message[9] == 'f')//false
             {
-            Ch3_Enable = false;
-            values["toggle_c"] = Ch3_Enable;
+            state.out[2].enabled = false;
+            values["toggle_c"] = state.out[2].enabled;
             } 
           break;
 
           case 'd':
           if (message[9] == 't')//true
             {
-            Ch4_Enable = true;
-            values["toggle_d"] = Ch4_Enable;
+            state.out[3].enabled = true;
+            values["toggle_d"] = state.out[3].enabled;
             }
           else if (message[9] == 'f')//false
             {
-            Ch4_Enable = false;
-            values["toggle_d"] = Ch4_Enable;
+            state.out[3].enabled = false;
+            values["toggle_d"] = state.out[3].enabled;
             } 
           break;          
 
           case 'e':
           if (message[9] == 't')//true
             {
-            Pump_Enable = true;
-            values["toggle_e"] = Pump_Enable;
+            state.pump.enabled = true;
+            values["toggle_e"] = state.pump.enabled;
             }
           else if (message[9] == 'f')//false
             {
-            Pump_Enable = false;
-            values["toggle_e"] = Pump_Enable;
+            state.pump.enabled = false;
+            values["toggle_e"] = state.pump.enabled;
             } 
           break; 
 
@@ -1269,68 +1269,68 @@ void displayBluetoothMenu(){
         switch (message[7])
         {
           case 'a':
-            Ch1_On = slider;
-            values["slider_a"] = Ch1_On;
+            state.out[0].on = slider;
+            values["slider_a"] = state.out[0].on;
             break;
 
           case 'b':
-            Ch1_Off = slider;
-            values["slider_b"] = Ch1_Off;
+            state.out[0].off = slider;
+            values["slider_b"] = state.out[0].off;
             break;
 
           case 'c':
-            Ch1_PWM = slider;
-            values["slider_c"] = Ch1_PWM;
+            state.out[0].pwm = slider;
+            values["slider_c"] = state.out[0].pwm;
             break;
           
           case 'd':
-            Ch2_On = slider;
-            values["slider_d"] = Ch2_On;
+            state.out[1].on = slider;
+            values["slider_d"] = state.out[1].on;
             break;
 
           case 'e':
-            Ch2_Off = slider;
-            values["slider_e"] = Ch2_Off;
+            state.out[1].off = slider;
+            values["slider_e"] = state.out[1].off;
             break;
 
           case 'f':
-            Ch2_PWM = slider;
-            values["slider_f"] = Ch2_PWM;
+            state.out[1].pwm = slider;
+            values["slider_f"] = state.out[1].pwm;
             break;
           
           case 'g':
-            Ch3_On = slider;
-            values["slider_g"] = Ch3_On;
+            state.out[2].on = slider;
+            values["slider_g"] = state.out[2].on;
             break;
 
           case 'h':
-            Ch3_Off = slider;
-            values["slider_h"] = Ch3_Off;
+            state.out[2].off = slider;
+            values["slider_h"] = state.out[2].off;
             break;
 
           case 'i':
-            Ch3_PWM = slider;
-            values["slider_i"] = Ch3_PWM;
+            state.out[2].pwm = slider;
+            values["slider_i"] = state.out[2].pwm;
             break;
           
           case 'j':
-            Ch4_On = slider;
-            values["slider_j"] = Ch4_On;
+            state.out[3].on = slider;
+            values["slider_j"] = state.out[3].on;
             break;
 
           case 'k':
-            Ch4_Off = slider;
-            values["slider_k"] = Ch4_Off;
+            state.out[3].off = slider;
+            values["slider_k"] = state.out[3].off;
             break;
 
           case 'l':
-            Ch4_PWM = slider;
-            values["slider_l"] = Ch4_PWM;
+            state.out[3].pwm = slider;
+            values["slider_l"] = state.out[3].pwm;
             break;
 
           case 'm':
-            pump_PWM = slider;
-            values["slider_m"] = pump_PWM;
+            state.pump.pwm = slider;
+            values["slider_m"] = state.pump.pwm;
             break;
           case 'n':
             collar_strength = slider;
