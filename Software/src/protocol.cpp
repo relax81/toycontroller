@@ -3,6 +3,7 @@
 #include "ESPAsyncWebServer.h"
 #include "config.h"
 #include "state.h"
+#include "outputs.h"
 #include "protocol.h"
 
 // ---------------------------------------------------------------------------
@@ -227,6 +228,35 @@ static void handle_get(AsyncWebSocketClient* c, JSONVar& m) {
   }
 }
 
+// Commands. The collar sends run here in the async_tcp task, exactly like the old click_* messages
+// (the blocking sender is not moved into loop()).
+static void handle_cmd(AsyncWebSocketClient* c, JSONVar& m) {
+  if (!m.hasOwnProperty("c") || JSONVar::typeof_(m["c"]) != "string") {
+    send_err(c, m, "type", "cmd needs a \"c\" string");
+    return;
+  }
+  String cmd = (const char*)m["c"];
+  if (cmd == "all_off") {
+    state_set(EV_ALL_OFF, 0, 0);
+  }
+  else if (cmd == "collar.beep" || cmd == "collar.vibe" || cmd == "collar.shock") {
+    if (!state.collar.enabled) {
+      send_err(c, m, "disabled", "collar is not enabled");
+      return;
+    }
+    CollarMode mode = (cmd == "collar.beep") ? CollarMode::Beep : (cmd == "collar.vibe") ? CollarMode::Vibe : CollarMode::Shock;
+    collar_send(mode, state.collar.strength);
+    debugln(cmd);
+  }
+  else {
+    send_err(c, m, "unknown_cmd", "unknown command");
+    return;
+  }
+  JSONVar r;
+  reply_head(r, "ack", m);
+  send_json(c, r);
+}
+
 void protocol_handle(AsyncWebSocketClient* c, const char* msg, size_t len) {
   JSONVar none; // "message" for errors before the message is parsed
   if (len > 512) {
@@ -245,6 +275,7 @@ void protocol_handle(AsyncWebSocketClient* c, const char* msg, size_t len) {
   String t = (const char*)m["t"];
   if (t == "set") handle_set(c, m);
   else if (t == "get") handle_get(c, m);
+  else if (t == "cmd") handle_cmd(c, m);
   else send_err(c, m, "unknown_type", "unknown message type");
 }
 

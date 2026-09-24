@@ -7,6 +7,7 @@
 //   {"t":"get"}                         full state (answer: "state"); the first get marks the client as v2
 //   {"t":"get","k":["ch1.pwm"]}         only these keys
 //   {"t":"set","id":7,"d":{"ch1.pwm":50,"ble.map0.min":10}}   one or more keys
+//   {"t":"cmd","id":8,"c":"collar.beep"}   c: collar.beep | collar.vibe | collar.shock | all_off
 // Server -> client:
 //   {"t":"ack","id":7}                          all keys accepted (queued, the state follows as patch)
 //   {"t":"err","id":7,"applied":1,"errors":[{"k":"buzzer.bpm","code":"range","min":1,"max":255}]}
