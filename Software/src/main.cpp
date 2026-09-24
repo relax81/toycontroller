@@ -1210,13 +1210,13 @@ void displayBluetoothMenu(){
           case 'g':
           if (message[9] == 't')//true
             {
-            buzzer_Metronome_Enabled = true;
-            values["toggle_g"] = buzzer_Metronome_Enabled;
+            state.buzzer.enabled = true;
+            values["toggle_g"] = state.buzzer.enabled;
             }
           else if (message[9] == 'f')//false
             {
-            buzzer_Metronome_Enabled = false;
-            values["toggle_g"] = buzzer_Metronome_Enabled;
+            state.buzzer.enabled = false;
+            values["toggle_g"] = state.buzzer.enabled;
             } 
           break; 
 
@@ -1298,12 +1298,12 @@ void displayBluetoothMenu(){
             values["slider_n"] = collar_strength;
             break;
           case 'o':
-            buzzerBPM = slider;
-            values["slider_o"] = buzzerBPM;
+            state.buzzer.bpm = slider;
+            values["slider_o"] = state.buzzer.bpm;
             break;
           case 'p':
-            buzzerVolume = slider;
-            values["slider_p"] = buzzerVolume;
+            state.buzzer.volume = slider;
+            values["slider_p"] = state.buzzer.volume;
             break;
 
         }
@@ -1312,13 +1312,13 @@ void displayBluetoothMenu(){
       case 'b': //buzzer
         if (message[8] == 'n')//on
         {
-          buzzer_Metronome_Enabled = true;
+          state.buzzer.enabled = true;
         }
         else if (message[8] == 'f') //off
         {
-          buzzer_Metronome_Enabled = false;
+          state.buzzer.enabled = false;
         }
-        values["buzzer"] = buzzer_Metronome_Enabled ? "on" : "off";
+        values["buzzer"] = state.buzzer.enabled ? "on" : "off";
         debugln("buzzer output");
         debugln(values["buzzer"]);
         break;
@@ -1605,19 +1605,19 @@ void bluetooth_write_pwm(int output, int mapped_PWM) {
 }
 
 void buzzer_Metronome () {
-    beatInterval = 60000 / buzzerBPM;
-    int buzzerPWM = map(buzzerVolume, 0, 10, 0, 140);
-    if (!buzzerIsPlaying) { // turn on after the pause between the beeps
-      if ((long)(currentMillis - buzzerPreviousMillis) >= (long)beatInterval - buzzerOnTimeMS) {
+    state.buzzer.beatInterval = 60000 / state.buzzer.bpm;
+    int buzzerPWM = map(state.buzzer.volume, 0, 10, 0, 140);
+    if (!state.buzzer.isPlaying) { // turn on after the pause between the beeps
+      if ((long)(currentMillis - state.buzzer.previousMillis) >= (long)state.buzzer.beatInterval - state.buzzer.onTimeMs) {
         ledcWrite (buzzer, buzzerPWM);
-        buzzerIsPlaying = true;
-        buzzerPreviousMillis = currentMillis;
+        state.buzzer.isPlaying = true;
+        state.buzzer.previousMillis = currentMillis;
       }
     }
-    else if (currentMillis - buzzerPreviousMillis >= (unsigned long)buzzerOnTimeMS) { // turn off
+    else if (currentMillis - state.buzzer.previousMillis >= (unsigned long)state.buzzer.onTimeMs) { // turn off
       ledcWrite (buzzer, 0);
-      buzzerIsPlaying = false;
-      buzzerPreviousMillis = currentMillis;
+      state.buzzer.isPlaying = false;
+      state.buzzer.previousMillis = currentMillis;
     }
 }
 
@@ -1874,10 +1874,10 @@ void loop() {
   }
 
 // buzzer start
-  if (buzzer_Metronome_Enabled == true) {
+  if (state.buzzer.enabled == true) {
   buzzer_Metronome();
   }
-  else if (buzzer_Metronome_Enabled == false) {
+  else if (state.buzzer.enabled == false) {
     ledcWrite(buzzer, 0);
   }
 // buzzer end
