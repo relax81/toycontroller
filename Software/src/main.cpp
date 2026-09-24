@@ -1721,7 +1721,7 @@ void displayBluetoothMenu(){
      int mapped_Ch3_PWM;
      mapped_Ch3_PWM = map(Ch3_PWM, 0, 100, 0, 255);
      ledcWrite(PWMOUT_3, mapped_Ch3_PWM);
-     if ((Ch3_Off > 0) && (millis() - pwm4_timeStarted >= Ch3_On * 1000)) {
+     if ((Ch3_Off > 0) && (millis() - pwm3_timeStarted >= Ch3_On * 1000)) {
       pwm3_paused = true;
       pwm3_timeStopped = millis();
     }
