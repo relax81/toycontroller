@@ -595,41 +595,41 @@ void disable_Outputs();
   u8g2.drawVLine(95,0,64);
   // 1st line
   u8g2.setCursor(1,25);
-  u8g2.print(Ch1_Enable ? "ON" : "OFF");
+  u8g2.print(state.out[0].enabled ? "ON" : "OFF");
   u8g2.setCursor(36,25);
-  u8g2.print(Ch2_Enable ? "ON" : "OFF");
+  u8g2.print(state.out[1].enabled ? "ON" : "OFF");
   u8g2.setCursor(69,25);
-  u8g2.print(Ch3_Enable ? "ON" : "OFF");
+  u8g2.print(state.out[2].enabled ? "ON" : "OFF");
   u8g2.setCursor(102,25);
-  u8g2.print(Ch4_Enable ? "ON" : "OFF");
+  u8g2.print(state.out[3].enabled ? "ON" : "OFF");
 
   // 2nd line  
   u8g2.setCursor(1,37);
-  u8g2.print(Ch1_On);
+  u8g2.print(state.out[0].on);
   u8g2.setCursor(36,37);
-  u8g2.print(Ch2_On);
+  u8g2.print(state.out[1].on);
   u8g2.setCursor(69,37);
-  u8g2.print(Ch3_On);
+  u8g2.print(state.out[2].on);
   u8g2.setCursor(102,37);
-  u8g2.print(Ch4_On);
+  u8g2.print(state.out[3].on);
   // 3rd line
   u8g2.setCursor(1, 49);
-  u8g2.print(Ch1_Off);
+  u8g2.print(state.out[0].off);
   u8g2.setCursor(36,49);
-  u8g2.print(Ch2_Off);
+  u8g2.print(state.out[1].off);
   u8g2.setCursor(69,49);
-  u8g2.print(Ch3_Off);
+  u8g2.print(state.out[2].off);
   u8g2.setCursor(102,49);
-  u8g2.print(Ch4_Off);
+  u8g2.print(state.out[3].off);
   // 4th line
   u8g2.setCursor(1, 61);
-  u8g2.print(Ch1_PWM);
+  u8g2.print(state.out[0].pwm);
   u8g2.setCursor(36,61);
-  u8g2.print(Ch2_PWM);
+  u8g2.print(state.out[1].pwm);
   u8g2.setCursor(69,61);
-  u8g2.print(Ch3_PWM);
+  u8g2.print(state.out[2].pwm);
   u8g2.setCursor(102,61);
-  u8g2.print(Ch4_PWM);
+  u8g2.print(state.out[3].pwm);
   }
 // menu System controls
   void buttonMenuManual() {
