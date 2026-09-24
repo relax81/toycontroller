@@ -82,7 +82,7 @@ stellen, `reboot` senden. Boot-Log und `[ledc]`-Diagnose ohne Reset-Knopf.
 | `150ec7b` | Stufe 1: NVS-Zugangsdaten, Zustandsautomat, mDNS, `wifi-reset` | getestet |
 | `7dead0a` | Stufe 2: Hotspot, Captive-DNS, Portalseite, Scan, pending-Logik | getestet |
 | `54608e1` | Portal-OLED: größere Schrift, Auswahl zur Laufzeit | getestet |
-| Stufe 3 | 3-min-Regel bei Verlust, Encoder-Langdruck beim Boot, Doku | Build, Test offen |
+| `d1fad23` | Stufe 3: 3-min-Regel bei Verlust, Encoder-Langdruck beim Boot, Doku | getestet |
 
 - Zugangsdaten im NVS-Namespace `wifi` (`ssid`, `pass`, Flag `seeded`,
   `p_ssid`/`p_pass` für noch unbestätigte Portal-Daten). `true-credentials.h`
@@ -105,8 +105,8 @@ stellen, `reboot` senden. Boot-Log und `[ledc]`-Diagnose ohne Reset-Knopf.
 - Rücksetzen: Serial `wifi-reset`, oder Encoder-Taster (GPIO32, kein
   Strapping-Pin) beim Einschalten halten: innerhalb der ersten 3 s nach dem
   Setup drücken und 3 s halten.
-- Offen zu testen: Verlust im Betrieb mit dem mobilen Hotspot (Netz aus,
-  nach 3 min Portal, Netz an, Hotspot aus, mDNS wieder da), Langdruck beim Boot.
+- Alles auf der Hardware getestet (2026-09-24), inkl. Verlust im Betrieb mit dem
+  mobilen Hotspot und Langdruck beim Boot.
 - Das WLAN-Passwort steht nirgends im Log. Flash: 1370570 Byte (41,0 %),
   RAM 58180 Byte.
 
