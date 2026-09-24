@@ -329,18 +329,8 @@ void disable_Outputs();
   }
 
 
-// Bluetooth/WiFi Switching start
-  void turn_OFF_WIFI() {
-      Serial.println("WIFI OFF");
-      WiFi.mode( WIFI_MODE_NULL );
-      WiFi_Enabled = false;
-      delay(1000);
-    }
+// Bluetooth start (runs in parallel to WiFi)
   void turn_ON_Bluetooth() {
-  if (BT_Enabled == false)
-    {
-      reset_Outputs();
-    }
     // Bluetooth
     // Create the BLE Device
   debugln("ble init");  
@@ -380,19 +370,7 @@ void disable_Outputs();
   BT_Enabled = true;
   heap_log("ble init");
 }
-  void turn_OFF_Bluetooth() {
-  reset_Outputs();
-  disable_Outputs();
-  u8g2.clearBuffer();
-  u8g2.setFont(font_status_messages);
-  u8g2.drawStr(15, 20, "Disabling");
-  u8g2.drawStr(15, 45, "Bluetooth");
-  u8g2.sendBuffer();
-  NimBLEDevice::deinit(false);
-  BT_Enabled = false;
-  delay(1000);
-}
-//Bluetooth/WiFi Switching end
+//Bluetooth start end
 
 // Timer
   void blinktext();
@@ -1892,6 +1870,9 @@ void setup() {
 
   // Start server
   server.begin();
+
+  // Bluetooth (Lovense emulation) runs in parallel to WiFi
+  turn_ON_Bluetooth();
   heap_log("setup");
 }
 
@@ -1907,10 +1888,8 @@ void loop() {
   ws.cleanupClients();
   timer1.update(); // display blinking text timer
 
-  // controls pwm outputs if system isn't in bluetooth mode / sub menu
-  if (BT_Enabled == false) {
+  // controls pwm outputs (web / manual)
   PWM_Output();
-  }
 
   // disable Outputs
   disable_Outputs();
@@ -1947,24 +1926,6 @@ void loop() {
   displayMainMenu();
 
   u8g2.sendBuffer();
-// switch from wifi to bluetooth
-  if ((current_screen == 12) && (WiFi_Enabled == true)){
-    turn_OFF_WIFI();
-    WiFi_Enabled = false;
-    debugln("disabling WiFi");
-    delay(2000);
-    debugln("trying to start bluetooth again");
-        turn_ON_Bluetooth();
-  }
-// switch from bluetooth to wifi
-  if ((WiFi_Enabled == false) && (current_screen != 12)) {
-    turn_OFF_Bluetooth();
-    debugln("enabling WiFi");
-    initWiFi();
-    reset_Outputs();
-    update_values_ws();
-    }
-
   // Bluetooth start
   // Bluetooth connection status
   if (!deviceConnected && oldDeviceConnected && WiFi_Enabled == false) {
