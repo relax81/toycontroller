@@ -953,18 +953,18 @@ void displayBluetoothMenu(){
   u8g2.drawVLine(80,0,64);
   // V1
   u8g2.drawStr(50, 11, "V1");
-  u8g2.drawStr(40, 30, OutputItems[BT_V1_Output]);
+  u8g2.drawStr(40, 30, OutputItems[state.ble.map[0].output]);
   u8g2.setCursor(48, 44);
-  u8g2.print(BT_V1_Min_PWM);
+  u8g2.print(state.ble.map[0].minPwm);
   u8g2.setCursor(48, 58);
-  u8g2.print(BT_V1_Max_PWM);
+  u8g2.print(state.ble.map[0].maxPwm);
   // V2
   u8g2.drawStr(95, 10, "V2");
-  u8g2.drawStr(86, 30, OutputItems[BT_V2_Output]);
+  u8g2.drawStr(86, 30, OutputItems[state.ble.map[1].output]);
   u8g2.setCursor(93,44);
-  u8g2.print(BT_V2_Min_PWM);
+  u8g2.print(state.ble.map[1].minPwm);
   u8g2.setCursor(93,58);
-  u8g2.print(BT_V2_Max_PWM);
+  u8g2.print(state.ble.map[1].maxPwm);
 }
 // Bluetooth Menu Controls
   void buttonMenuBluetooth() {
@@ -979,8 +979,8 @@ void displayBluetoothMenu(){
       if (buttonPressed == true) {
           buttonPressed = false;
           rotaryEncoder.setBoundaries(0, (OutputNumItems - 1), false);
-          rotaryEncoder.setEncoderValue(BT_V1_Output);
-          encoderPosition = BT_V1_Output;
+          rotaryEncoder.setEncoderValue(state.ble.map[0].output);
+          encoderPosition = state.ble.map[0].output;
           bluetoothMenuSelect = bluetoothMenuSelect * 10;
           }
       break;
@@ -993,60 +993,60 @@ void displayBluetoothMenu(){
       if (buttonPressed == true) {
           buttonPressed = false;
           rotaryEncoder.setBoundaries(0, (OutputNumItems - 1), false);
-          rotaryEncoder.setEncoderValue(BT_V2_Output);
-          encoderPosition = BT_V2_Output;
+          rotaryEncoder.setEncoderValue(state.ble.map[1].output);
+          encoderPosition = state.ble.map[1].output;
           bluetoothMenuSelect = bluetoothMenuSelect * 10;
           }
       break;
 
       case 10: // 
-      BT_V1_Output = encoderPosition;
-      if (BT_V1_Output == 6) {
-        BT_V1_Max_PWM = 100;
+      state.ble.map[0].output = encoderPosition;
+      if (state.ble.map[0].output == 6) {
+        state.ble.map[0].maxPwm = 100;
       }
       u8g2.setCursor(40,30);
       u8g2.setDrawColor(drawcolorstate);
-      u8g2.drawStr(40, 30, OutputItems[BT_V1_Output]);
+      u8g2.drawStr(40, 30, OutputItems[state.ble.map[0].output]);
       u8g2.setDrawColor(1);
       if (buttonPressed == true) {
           buttonPressed = false;
-          if (BT_V1_Output != 6){
+          if (state.ble.map[0].output != 6){
           rotaryEncoder.setBoundaries(0, 255, false);
           }
             else 
             {rotaryEncoder.setBoundaries(0, 100, false); }
-          rotaryEncoder.setEncoderValue(BT_V1_Min_PWM);
-          encoderPosition = BT_V1_Min_PWM;
+          rotaryEncoder.setEncoderValue(state.ble.map[0].minPwm);
+          encoderPosition = state.ble.map[0].minPwm;
           bluetoothMenuSelect++;
           }
       break;
 
     case 11: // 
-      BT_V1_Min_PWM = encoderPosition;
+      state.ble.map[0].minPwm = encoderPosition;
       u8g2.setCursor(48,44);
       u8g2.setDrawColor(drawcolorstate);
-      u8g2.print(BT_V1_Min_PWM); 
+      u8g2.print(state.ble.map[0].minPwm); 
       u8g2.setDrawColor(1);
       if (buttonPressed == true) {
           buttonPressed = false;
-          if (BT_V1_Output != 6){
+          if (state.ble.map[0].output != 6){
 		        rotaryEncoder.setBoundaries(0, 255, false);
             }
             else 
             {
             rotaryEncoder.setBoundaries(0, 100, false); 
             }
-          rotaryEncoder.setEncoderValue(BT_V1_Max_PWM);
-          encoderPosition = BT_V1_Max_PWM;
+          rotaryEncoder.setEncoderValue(state.ble.map[0].maxPwm);
+          encoderPosition = state.ble.map[0].maxPwm;
           bluetoothMenuSelect++;
           }
       break;
 
     case 12: // 
-      BT_V1_Max_PWM = encoderPosition;
+      state.ble.map[0].maxPwm = encoderPosition;
       u8g2.setCursor(48,58);
       u8g2.setDrawColor(drawcolorstate);
-      u8g2.print(BT_V1_Max_PWM);
+      u8g2.print(state.ble.map[0].maxPwm);
       u8g2.setDrawColor(1);
       if (buttonPressed == true) {
           buttonPressed = false;
@@ -1057,43 +1057,43 @@ void displayBluetoothMenu(){
       break;
 
     case 20: //
-      BT_V2_Output = encoderPosition;
-      if (BT_V2_Output == 6) {
-        BT_V2_Max_PWM = 100;
+      state.ble.map[1].output = encoderPosition;
+      if (state.ble.map[1].output == 6) {
+        state.ble.map[1].maxPwm = 100;
       }
       u8g2.setCursor(86,30);
       u8g2.setDrawColor(drawcolorstate);
-      u8g2.drawStr(86, 30, OutputItems[BT_V2_Output]);
+      u8g2.drawStr(86, 30, OutputItems[state.ble.map[1].output]);
       u8g2.setDrawColor(1);
       if (buttonPressed == true) {
           buttonPressed = false;
           rotaryEncoder.setBoundaries(0, 255, false);
-          rotaryEncoder.setEncoderValue(BT_V2_Min_PWM);
-          encoderPosition = BT_V2_Min_PWM;
+          rotaryEncoder.setEncoderValue(state.ble.map[1].minPwm);
+          encoderPosition = state.ble.map[1].minPwm;
           bluetoothMenuSelect++;
           }
       break;
 
     case 21: // 
-      BT_V2_Min_PWM = encoderPosition;
+      state.ble.map[1].minPwm = encoderPosition;
       u8g2.setCursor(93,44);
       u8g2.setDrawColor(drawcolorstate);
-      u8g2.print(BT_V2_Min_PWM);
+      u8g2.print(state.ble.map[1].minPwm);
       u8g2.setDrawColor(1);
       if (buttonPressed == true) {
           buttonPressed = false;
 		  rotaryEncoder.setBoundaries(0, 255, false);
-          rotaryEncoder.setEncoderValue(BT_V2_Max_PWM);
-          encoderPosition = BT_V2_Max_PWM;
+          rotaryEncoder.setEncoderValue(state.ble.map[1].maxPwm);
+          encoderPosition = state.ble.map[1].maxPwm;
           bluetoothMenuSelect++;
           }
       break;
 
     case 22: // 
-      BT_V2_Max_PWM = encoderPosition;
+      state.ble.map[1].maxPwm = encoderPosition;
       u8g2.setCursor(93,58);
       u8g2.setDrawColor(drawcolorstate);
-      u8g2.print(BT_V2_Max_PWM);
+      u8g2.print(state.ble.map[1].maxPwm);
       u8g2.setDrawColor(1);
       if (buttonPressed == true) {
           buttonPressed = false;
@@ -1777,9 +1777,9 @@ void loop() {
 
   // BLE has priority on an output while its level is > 0
   for (int i = 0; i < 7; i++) bt_hold[i] = false;
-  if ((BT_V1_Output > 0) && (state.ble.in.vib[0] > 0)) bt_hold[BT_V1_Output] = true;
-  if ((BT_V2_Output > 0) && (state.ble.in.vib[1] > 0)) bt_hold[BT_V2_Output] = true;
-  bt_collar_mapped = (BT_V1_Output == 6 || BT_V2_Output == 6);
+  if ((state.ble.map[0].output > 0) && (state.ble.in.vib[0] > 0)) bt_hold[state.ble.map[0].output] = true;
+  if ((state.ble.map[1].output > 0) && (state.ble.in.vib[1] > 0)) bt_hold[state.ble.map[1].output] = true;
+  bt_collar_mapped = (state.ble.map[0].output == 6 || state.ble.map[1].output == 6);
 
   // controls pwm outputs (web / manual), skips outputs held by BLE
   PWM_Output();
@@ -1844,24 +1844,24 @@ void loop() {
   //Bluetooth Output Control
   if (BT_Enabled == true) {
     int BT_mapped_PWM[2];
-    BT_mapped_PWM[0] = map(state.ble.in.vib[0], 1, 20, BT_V1_Min_PWM, BT_V1_Max_PWM);
-    BT_mapped_PWM[1] = map(state.ble.in.vib[1], 1, 20, BT_V2_Min_PWM, BT_V2_Max_PWM);
+    BT_mapped_PWM[0] = map(state.ble.in.vib[0], 1, 20, state.ble.map[0].minPwm, state.ble.map[0].maxPwm);
+    BT_mapped_PWM[1] = map(state.ble.in.vib[1], 1, 20, state.ble.map[1].minPwm, state.ble.map[1].maxPwm);
 
-    if ((BT_V1_Output > 0) && (state.ble.in.vib[0] > 0)) {
-      BT_V1_Paused = false;
-      bluetooth_write_pwm(BT_V1_Output, BT_mapped_PWM[0]);
+    if ((state.ble.map[0].output > 0) && (state.ble.in.vib[0] > 0)) {
+      state.ble.map[0].paused = false;
+      bluetooth_write_pwm(state.ble.map[0].output, BT_mapped_PWM[0]);
     }
-    else if ((BT_V1_Output > 0) && (state.ble.in.vib[0] == 0) && (BT_V1_Paused == false)){
-      BT_V1_Paused = true;
-      bluetooth_write_pwm(BT_V1_Output, 0);
+    else if ((state.ble.map[0].output > 0) && (state.ble.in.vib[0] == 0) && (state.ble.map[0].paused == false)){
+      state.ble.map[0].paused = true;
+      bluetooth_write_pwm(state.ble.map[0].output, 0);
     }
-    if ((BT_V2_Output > 0) && (state.ble.in.vib[1] > 0)) {
-      BT_V2_Paused = false;
-      bluetooth_write_pwm(BT_V2_Output, BT_mapped_PWM[1]);
+    if ((state.ble.map[1].output > 0) && (state.ble.in.vib[1] > 0)) {
+      state.ble.map[1].paused = false;
+      bluetooth_write_pwm(state.ble.map[1].output, BT_mapped_PWM[1]);
     }
-    else if ((BT_V2_Output > 0) && (state.ble.in.vib[1] == 0) && (BT_V2_Paused == false)) {
-      BT_V2_Paused = true;
-      bluetooth_write_pwm(BT_V2_Output, 0);
+    else if ((state.ble.map[1].output > 0) && (state.ble.in.vib[1] == 0) && (state.ble.map[1].paused == false)) {
+      state.ble.map[1].paused = true;
+      bluetooth_write_pwm(state.ble.map[1].output, 0);
     }
 
   }
