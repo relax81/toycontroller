@@ -33,7 +33,11 @@ function onClose(event) {
 function update_slider(element) {
     var value = document.getElementById(element.id).value;
     document.getElementById(element.id + "_value").innerHTML = value;
-    websocket.send(element.id + "?" + value.toString());
+    var key = element.getAttribute("data-key");
+    if (key)
+        send({ t: "set", d: { [key]: Number(value) } });
+    else
+        websocket.send(element.id + "?" + value.toString());
 }
 
 function update_radio(element) {
@@ -45,7 +49,11 @@ function update_radio(element) {
 
 function update_switch(element){
     var value = document.getElementById(element.id).checked;
-    websocket.send(element.id + "?" + value.toString());
+    var key = element.getAttribute("data-key");
+    if (key)
+        send({ t: "set", d: { [key]: value } });
+    else
+        websocket.send(element.id + "?" + value.toString());
 }
 
 function update_button(element) {
