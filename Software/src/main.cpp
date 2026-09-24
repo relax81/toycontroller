@@ -27,7 +27,6 @@
 #ifndef GIT_HASH
 #define GIT_HASH "unknown" // set by git_hash.py
 #endif
-#include "DogCollar3.h"
 
 // software version
 String version = "0.1";
@@ -37,13 +36,6 @@ void buttonMenuManual();
 void displayBluetoothMenu();
 void buttonMenuBluetooth();
 void update_values_ws();
-void bluetooth_write_pwm(int, int);
-
-// DogCollar 
-  // Unique ID (16 bit) of the Shock Collar. You can also keep this and use pairing mode of the collar
-  String uniqueKeyOfDevice = "0010110011011000";
-  DogCollar dg(PIN_TRANSMITTER,uniqueKeyOfDevice);
-  // temporary bridge (step 4): the old names are references into the AppState (removed at the end of step 4)
 
 // Random - name later
   unsigned long currentMillis;
@@ -1284,14 +1276,14 @@ void displayBluetoothMenu(){
         {
           case 'b': // collar beep
           if (state.collar.enabled == true) {
-          dg.sendCollar(CollarChannel::CH1, CollarMode::Beep, state.collar.strength);
+          collar_send(CollarMode::Beep, state.collar.strength);
           debugln("collar beeped");
           }
           break;
 
         case 'v':  // collar vib
           if (state.collar.enabled == true) {
-          dg.sendCollar(CollarChannel::CH1, CollarMode::Vibe, state.collar.strength);
+          collar_send(CollarMode::Vibe, state.collar.strength);
           debug("collar vibrates at level: ");
           debugln(state.collar.strength);
           }
@@ -1299,7 +1291,7 @@ void displayBluetoothMenu(){
 
         case 's': // collar shock
           if (state.collar.enabled == true) {
-          dg.sendCollar(CollarChannel::CH1, CollarMode::Shock, state.collar.strength);
+          collar_send(CollarMode::Shock, state.collar.strength);
           debug("collar shocks at level: ");
           debugln(state.collar.strength);
           }
@@ -1456,41 +1448,6 @@ void displayBluetoothMenu(){
   values["toggle_f"] = false; // collar
   if (ws.count() > 0) {
     update_values_ws();
-  }
-}
-
-// control pwm outputs in bluetooth mode
-void bluetooth_write_pwm(int output, int mapped_PWM) {
-  switch (output) {
-    case 1:
-      ledcWrite(PWMOUT_1, mapped_PWM);
-      break;
-    case 2:
-      ledcWrite(PWMOUT_2, mapped_PWM);
-      break;
-    case 3:
-      ledcWrite(PWMOUT_3, mapped_PWM);
-      break;
-    case 4:
-      ledcWrite(PWMOUT_4, mapped_PWM);
-      break;
-    case 5:
-      ledcWrite(pumpOUT, mapped_PWM);
-      break;
-    case 6: 
-
-      if (state.collar.btOnlyChanges == true) {
-        if (mapped_PWM != state.collar.previousShock){
-          dg.sendCollar(CollarChannel::CH1, CollarMode::Shock, mapped_PWM);
-        }
-      state.collar.previousShock = mapped_PWM;
-      }
-
-      else {
-        dg.sendCollar(CollarChannel::CH1, CollarMode::Shock, mapped_PWM);
-      }
-
-      break;
   }
 }
 
@@ -1720,7 +1677,7 @@ void loop() {
   if ((currentMillis - state.collar.lastWakeup >= state.collar.keepAwakeMs) && (state.collar.enabled == true || (state.ble.in.connected && state.ble.collarMapped))) {
     debugln("keeping collar awake");
     state.collar.lastWakeup = millis();
-    dg.sendCollar(CollarChannel::CH1, CollarMode::Blink, 100);
+    collar_send(CollarMode::Blink, 100);
   }
 
 // buzzer start

@@ -4,6 +4,15 @@
 #include "state.h"
 #include "outputs.h"
 
+// DogCollar (433 MHz), all sends go through collar_send()
+  // Unique ID (16 bit) of the Shock Collar. You can also keep this and use pairing mode of the collar
+  String uniqueKeyOfDevice = "0010110011011000";
+  DogCollar dg(PIN_TRANSMITTER,uniqueKeyOfDevice);
+
+void collar_send(CollarMode mode, int strength) {
+  dg.sendCollar(CollarChannel::CH1, mode, strength);
+}
+
 void outputs_init() {
   // Pins
   pinMode(buzzerPin, OUTPUT);
@@ -112,5 +121,40 @@ void debug_ledc() {
   if (!state.pump.enabled && !state.ble.hold[5]){
     ledcWrite(pumpOUT, 0);
     state.pump.enabled = false;
+  }
+}
+
+// control pwm outputs in bluetooth mode
+void bluetooth_write_pwm(int output, int mapped_PWM) {
+  switch (output) {
+    case 1:
+      ledcWrite(PWMOUT_1, mapped_PWM);
+      break;
+    case 2:
+      ledcWrite(PWMOUT_2, mapped_PWM);
+      break;
+    case 3:
+      ledcWrite(PWMOUT_3, mapped_PWM);
+      break;
+    case 4:
+      ledcWrite(PWMOUT_4, mapped_PWM);
+      break;
+    case 5:
+      ledcWrite(pumpOUT, mapped_PWM);
+      break;
+    case 6: 
+
+      if (state.collar.btOnlyChanges == true) {
+        if (mapped_PWM != state.collar.previousShock){
+          collar_send(CollarMode::Shock, mapped_PWM);
+        }
+      state.collar.previousShock = mapped_PWM;
+      }
+
+      else {
+        collar_send(CollarMode::Shock, mapped_PWM);
+      }
+
+      break;
   }
 }
