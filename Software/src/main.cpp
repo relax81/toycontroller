@@ -126,11 +126,15 @@ void disable_Outputs();
 // PWM settings
   const int freq = 5000;
   const int resolution = 8;
-  const int PWMOUT_1 = 1; // max 30v ch1
-  const int PWMOUT_2 = 2; // max 30v ch2
-  const int PWMOUT_3 = 3; // 5v ch1
-  const int PWMOUT_4 = 4; // 5v ch2
-  const int buzzer = 5;
+  // LEDC channels: PWM1-4 use the pairs (0,1) (2,3) at 5 kHz, the buzzer has the
+  // pair (4,5) and the pump the pair (6,7) for itself, because each pair shares one
+  // timer / frequency
+  const int PWMOUT_1 = 0; // max 30v ch1
+  const int PWMOUT_2 = 1; // max 30v ch2
+  const int PWMOUT_3 = 2; // 5v ch1
+  const int PWMOUT_4 = 3; // 5v ch2
+  const int buzzer = 4;
+  const int pumpFrequency = 500;
   const int pumpOUT = 6; // Pump PWM Output
   bool pwm1_paused = false;
   bool pwm2_paused = false;
@@ -159,6 +163,27 @@ void disable_Outputs();
   bool buzzer_Metronome_Enabled = false;
   int buzzerVolume = 5; // 0 - 10
   const int buzzerFrequency = 2000; // initial buzzerFrequency
+// LEDC: the channels share one timer (= one frequency) per pair (0,1) (2,3) (4,5) (6,7).
+// Two channels in the same pair with different frequencies would silently change
+// each other's frequency, so this is checked at compile time.
+#define LEDC_PAIR_OK(a, fa, b, fb) ((a) != (b) && ((a) / 2 != (b) / 2 || (fa) == (fb)))
+static_assert(
+  LEDC_PAIR_OK(PWMOUT_1,freq,PWMOUT_2,freq) &&
+  LEDC_PAIR_OK(PWMOUT_1,freq,PWMOUT_3,freq) &&
+  LEDC_PAIR_OK(PWMOUT_1,freq,PWMOUT_4,freq) &&
+  LEDC_PAIR_OK(PWMOUT_1,freq,buzzer,buzzerFrequency) &&
+  LEDC_PAIR_OK(PWMOUT_1,freq,pumpOUT,pumpFrequency) &&
+  LEDC_PAIR_OK(PWMOUT_2,freq,PWMOUT_3,freq) &&
+  LEDC_PAIR_OK(PWMOUT_2,freq,PWMOUT_4,freq) &&
+  LEDC_PAIR_OK(PWMOUT_2,freq,buzzer,buzzerFrequency) &&
+  LEDC_PAIR_OK(PWMOUT_2,freq,pumpOUT,pumpFrequency) &&
+  LEDC_PAIR_OK(PWMOUT_3,freq,PWMOUT_4,freq) &&
+  LEDC_PAIR_OK(PWMOUT_3,freq,buzzer,buzzerFrequency) &&
+  LEDC_PAIR_OK(PWMOUT_3,freq,pumpOUT,pumpFrequency) &&
+  LEDC_PAIR_OK(PWMOUT_4,freq,buzzer,buzzerFrequency) &&
+  LEDC_PAIR_OK(PWMOUT_4,freq,pumpOUT,pumpFrequency) &&
+  LEDC_PAIR_OK(buzzer,buzzerFrequency,pumpOUT,pumpFrequency),
+  "LEDC channel pair conflict: two channels with different frequencies share a timer (ch/2)");
   unsigned long buzzerPreviousMillis = 0;
   int buzzerBPM = 60; // 1 - 255
   int beatInterval = 60000 / buzzerBPM; // duration of one beat in milliseconds
@@ -1832,9 +1857,10 @@ void buzzer_Metronome (int buzzerBPM, int buzzerOnTimeMS, int buzzerVolume) {
 void debug_ledc() {
   const char* ledcNames[] = {"PWM1", "PWM2", "PWM3", "PWM4", "buzzer", "pump"};
   const int ledcChannels[] = {PWMOUT_1, PWMOUT_2, PWMOUT_3, PWMOUT_4, buzzer, pumpOUT};
-  const int ledcSetFreq[] = {freq, freq, freq, freq, buzzerFrequency, 500};
+  const int ledcSetFreq[] = {freq, freq, freq, freq, buzzerFrequency, pumpFrequency};
   for (int i = 0; i < 6; i++) {
-    Serial.printf("[ledc] %-6s ch=%d timer=%d set=%d Hz actual=%u Hz\n", ledcNames[i], ledcChannels[i], (ledcChannels[i] / 2) % 4, ledcSetFreq[i], (unsigned int)ledc_get_freq(LEDC_HIGH_SPEED_MODE, (ledc_timer_t)((ledcChannels[i] / 2) % 4)));
+    unsigned int actual = (unsigned int)ledc_get_freq(LEDC_HIGH_SPEED_MODE, (ledc_timer_t)((ledcChannels[i] / 2) % 4));
+    Serial.printf("[ledc] %-6s ch=%d timer=%d set=%d Hz actual=%u Hz%s\n", ledcNames[i], ledcChannels[i], (ledcChannels[i] / 2) % 4, ledcSetFreq[i], actual, (actual == (unsigned int)ledcSetFreq[i]) ? "" : "  <-- MISMATCH");
   }
 }
 #endif
@@ -1864,7 +1890,7 @@ void setup() {
   ledcSetup(PWMOUT_3, freq, resolution);
   ledcSetup(PWMOUT_4, freq, resolution);
   ledcSetup(buzzer, buzzerFrequency, resolution);
-  ledcSetup(pumpOUT, 500, resolution);
+  ledcSetup(pumpOUT, pumpFrequency, resolution);
   ledcAttachPin(CH1_30VMax, PWMOUT_1);
   ledcAttachPin(CH2_30VMax, PWMOUT_2);
   ledcAttachPin(CH1_5V, PWMOUT_3);
