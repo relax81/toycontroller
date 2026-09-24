@@ -48,3 +48,69 @@ void debug_ledc() {
   }
 }
 #endif
+
+// control pwm outputs in web or manual mode
+  void PWM_Output(){
+  // Outputs 1-4 (channel i = Ch(i+1))
+  for (int i = 0; i < 4; i++) {
+    // rising edge of "enabled" (and not held by BLE): start with the On phase
+    // instead of the stale timeStarted / paused state of the last run
+    bool active = state.out[i].enabled && !state.ble.hold[outputId(i)];
+    if (active && !state.rt[i].wasEnabled) {
+      state.rt[i].timeStarted = millis();
+      state.rt[i].paused = false;
+    }
+    state.rt[i].wasEnabled = active;
+
+    if (state.ble.hold[outputId(i)]) {
+      // driven by BLE
+    }
+    else if ((state.rt[i].paused == false) && (state.out[i].enabled == true))
+    {
+       int mapped_PWM;
+       mapped_PWM = map(state.out[i].pwm, 0, 100, 0, 255);
+       ledcWrite(pwmOutChannel[i], mapped_PWM);
+       if ((state.out[i].off > 0) && (millis() - state.rt[i].timeStarted >= state.out[i].on * 1000)) {
+        state.rt[i].paused = true;
+        state.rt[i].timeStopped = millis();
+      }
+    }  
+    else if ((state.rt[i].paused == true) && (state.out[i].enabled == true))
+    {
+      ledcWrite(pwmOutChannel[i], 0);
+      if (millis() - state.rt[i].timeStopped >= state.out[i].off * 1000)
+      {
+        state.rt[i].paused = false;
+        state.rt[i].timeStarted = millis();
+      }
+    }
+  }
+  // Pump Output 5
+  if (state.ble.hold[5]) {
+    // driven by BLE
+  }
+  else if (state.pump.enabled == true)
+    {
+      int mapped_pump_PWM;
+      mapped_pump_PWM = map(state.pump.pwm, 0, 100, 0, 255);
+      ledcWrite(pumpOUT, mapped_pump_PWM);
+    }
+  else {
+    ledcWrite(pumpOUT, 0);
+    }
+}
+
+// disable outputs 
+  void disable_Outputs()
+{
+  for (int i = 0; i < 4; i++) {
+    if (!state.out[i].enabled && !state.ble.hold[outputId(i)]) {
+      state.rt[i].paused = false;
+      ledcWrite(pwmOutChannel[i], 0);
+    }
+  }
+  if (!state.pump.enabled && !state.ble.hold[5]){
+    ledcWrite(pumpOUT, 0);
+    state.pump.enabled = false;
+  }
+}

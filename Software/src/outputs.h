@@ -8,6 +8,9 @@
 
 void outputs_init();   // output pins and LEDC channels, call once from setup()
 
+void PWM_Output();     // web / manual mode, skips outputs held by BLE
+void disable_Outputs(); // zero what is neither enabled nor held by BLE
+
 #if DEBUG_LEDC == 1
 void debug_ledc();     // diagnostics only: configured vs. actual LEDC frequency
 #endif
