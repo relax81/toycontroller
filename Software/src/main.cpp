@@ -1310,7 +1310,7 @@ void displayBluetoothMenu(){
     fill_values_from_state();
     json_string = JSON.stringify(values);
     debugln(json_string);
-    ws.textAll(json_string);
+    protocol_send_legacy(ws, json_string); // old clients only, JSON clients get patches
 }
 
 // initialize Websocket
@@ -1523,13 +1523,11 @@ void loop() {
   }
 #endif
 
-  protocol_loop(ws); // answers "get" requests of JSON clients
-
   // state changes (web, BLE, device menu) go to the web clients, at most once per pass
   if (state_ui_dirty || ws_broadcast_req) {
     state_ui_dirty = false;
     ws_broadcast_req = false;
-    if (ws.count() > 0) {
+    if (ws.count() > 0 && protocol_v1_count() > 0) {
       update_values_ws();
     }
   }
@@ -1542,6 +1540,7 @@ void loop() {
   hadWsClient = hasWsClient;
 
   outputs_arbitrate();
+  protocol_loop(ws); // patches / state for the JSON clients (after the arbitration: ble.hold.*)
 
   // controls pwm outputs (web / manual), skips outputs held by BLE
   PWM_Output();

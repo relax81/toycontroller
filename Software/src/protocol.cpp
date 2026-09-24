@@ -58,6 +58,8 @@ static const KeyDef KEYS[] = {
 static const int NKEYS = sizeof(KEYS) / sizeof(KEYS[0]);
 static_assert(sizeof(KEYS) / sizeof(KEYS[0]) <= 64, "key masks are 64 bit");
 
+static const uint64_t ALL_KEYS_MASK = (sizeof(KEYS) / sizeof(KEYS[0]) >= 64) ? ~(uint64_t)0 : (((uint64_t)1 << (sizeof(KEYS) / sizeof(KEYS[0]))) - 1);
+
 static int key_find(const char* name) {
   for (int i = 0; i < NKEYS; i++) if (strcmp(KEYS[i].name, name) == 0) return i;
   return -1;
@@ -210,7 +212,7 @@ static void handle_get(AsyncWebSocketClient* c, JSONVar& m) {
     }
   }
   else {
-    mask = (NKEYS >= 64) ? ~(uint64_t)0 : (((uint64_t)1 << NKEYS) - 1);
+    mask = ALL_KEYS_MASK;
   }
   portENTER_CRITICAL(&slotMux);
   Slot* s = slot_find(c->id());
@@ -271,19 +273,110 @@ static String build_state(uint64_t mask) {
   return s;
 }
 
+static const uint64_t ALL_KEYS = ALL_KEYS_MASK;
+
+// keys that changed since the last patch (loop() only)
+static int32_t lastSent[NKEYS];
+static bool haveSnapshot = false;
+
+static String build_patch(uint64_t mask) {
+  String s;
+  s.reserve(200);
+  s += "{\"t\":\"patch\",\"n\":";
+  s += stateSeq;
+  s += ",\"d\":{";
+  bool first = true;
+  for (int i = 0; i < NKEYS; i++) {
+    if (!(mask & ((uint64_t)1 << i))) continue;
+    if (!first) s += ',';
+    first = false;
+    s += '"';
+    s += KEYS[i].name;
+    s += "\":";
+    int32_t v = key_value(KEYS[i]);
+    if (KEYS[i].kind == K_BOOL) s += v ? "true" : "false";
+    else s += v;
+  }
+  s += "}}";
+  return s;
+}
+
+// Call once per loop() pass after outputs_arbitrate() (the ble.hold.* keys are read-only state):
+//  1. keys changed since the last pass -> "patch" (new sequence number n) to all v2 clients
+//     that have already received a "state"
+//  2. pending "get" requests -> "state" (with the current n) to the requesting client
+// Everything is sent from this one place, so patch and state cannot overtake each other.
 void protocol_loop(AsyncWebSocket& ws) {
+  // pending get requests
+  uint32_t getId[MAX_SLOTS];
+  uint64_t getMask[MAX_SLOTS];
+  bool known[MAX_SLOTS];   // v2 client that already has a state (it gets patches)
+  uint32_t ids[MAX_SLOTS];
+  int nGet = 0, nKnown = 0;
+  portENTER_CRITICAL(&slotMux);
   for (int i = 0; i < MAX_SLOTS; i++) {
-    uint32_t id = 0;
-    uint64_t mask = 0;
-    portENTER_CRITICAL(&slotMux);
-    if (slots[i].used && slots[i].getMask != 0) {
-      id = slots[i].id;
-      mask = slots[i].getMask;
+    if (!slots[i].used || !slots[i].v2) continue;
+    if (slots[i].getMask != 0) {
+      getId[nGet] = slots[i].id;
+      getMask[nGet++] = slots[i].getMask;
       slots[i].getMask = 0;
     }
-    portEXIT_CRITICAL(&slotMux);
-    if (mask == 0) continue;
-    AsyncWebSocketClient* c = ws.client(id);
-    if (c && c->status() == WS_CONNECTED) c->text(build_state(mask));
+    else {
+      ids[nKnown++] = slots[i].id;
+    }
   }
+  portEXIT_CRITICAL(&slotMux);
+  (void)known;
+
+  // changes
+  uint64_t changed = 0;
+  for (int i = 0; i < NKEYS; i++) {
+    int32_t v = key_value(KEYS[i]);
+    if (!haveSnapshot || v != lastSent[i]) {
+      if (haveSnapshot) changed |= (uint64_t)1 << i;
+      lastSent[i] = v;
+    }
+  }
+  haveSnapshot = true;
+  if (changed != 0) {
+    stateSeq++;
+    String p = build_patch(changed);
+    for (int i = 0; i < nKnown; i++) {
+      AsyncWebSocketClient* c = ws.client(ids[i]);
+      if (c == nullptr || c->status() != WS_CONNECTED) continue;
+      if (c->canSend()) {
+        c->text(p);
+      }
+      else { // the client is behind: it gets the full state as soon as possible
+        portENTER_CRITICAL(&slotMux);
+        Slot* s = slot_find(ids[i]);
+        if (s) s->getMask = ALL_KEYS;
+        portEXIT_CRITICAL(&slotMux);
+      }
+    }
+  }
+
+  // state for the requesting clients (n = current sequence number)
+  for (int i = 0; i < nGet; i++) {
+    AsyncWebSocketClient* c = ws.client(getId[i]);
+    if (c && c->status() == WS_CONNECTED) c->text(build_state(getMask[i]));
+  }
+}
+
+// old (v1) clients get the flat legacy JSON, v2 clients get patches instead
+int protocol_v1_count() {
+  int n = 0;
+  portENTER_CRITICAL(&slotMux);
+  for (int i = 0; i < MAX_SLOTS; i++) if (slots[i].used && !slots[i].v2) n++;
+  portEXIT_CRITICAL(&slotMux);
+  return n;
+}
+
+void protocol_send_legacy(AsyncWebSocket& ws, const String& json) {
+  uint32_t ids[MAX_SLOTS];
+  int n = 0;
+  portENTER_CRITICAL(&slotMux);
+  for (int i = 0; i < MAX_SLOTS; i++) if (slots[i].used && !slots[i].v2) ids[n++] = slots[i].id;
+  portEXIT_CRITICAL(&slotMux);
+  for (int i = 0; i < n; i++) ws.text(ids[i], json);
 }
