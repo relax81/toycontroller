@@ -15,6 +15,7 @@ void settings_load();   // once in setup(), before the servers start; invalid or
 // only the keys that differ from the NVS. Never called per encoder tick.
 void settings_mark_dirty();
 void settings_update(unsigned long nowMs); // loop(): saves once the delay has passed
+void settings_reset();                     // delete namespace "cfg" (defaults at the next start), "wifi" is untouched
 void settings_flush();                     // saves at once if something changed (menu exit, before a restart)
 
 #endif

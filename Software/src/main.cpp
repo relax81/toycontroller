@@ -1416,8 +1416,30 @@ void serial_commands() {
         Serial.flush();
         ESP.restart();
       }
+      else if (strcmp(line, "cfg") == 0) {
+        Serial.printf("[cfg] failsafe %d s, V1 out=%d %d-%d, V2 out=%d %d-%d, buzzer vol=%d bpm=%d, collar btOnlyChanges=%d (cfg failsafe <3-120>, cfg reset)\n",
+                      state.failsafeTimeoutS, state.ble.map[0].output, state.ble.map[0].minPwm, state.ble.map[0].maxPwm,
+                      state.ble.map[1].output, state.ble.map[1].minPwm, state.ble.map[1].maxPwm,
+                      state.buzzer.volume, state.buzzer.bpm, state.collar.btOnlyChanges ? 1 : 0);
+      }
+      else if (strncmp(line, "cfg failsafe ", 13) == 0) {
+        int sec = atoi(line + 13);
+        if (sec >= 3 && sec <= 120) {
+          state_set(EV_FAILSAFE_TO, 0, sec);
+          Serial.printf("[cfg] failsafe timeout %d s (saved after 5 s)\n", sec);
+        }
+        else {
+          Serial.println("[cfg] failsafe timeout must be 3-120 s");
+        }
+      }
+      else if (strcmp(line, "cfg reset") == 0) {
+        settings_reset();
+        Serial.println("[cmd] settings deleted (wifi untouched), restarting");
+        Serial.flush();
+        ESP.restart();
+      }
       else if (line[0] != '\0') {
-        Serial.printf("[cmd] unknown command \"%s\" (available: reboot, wifi-reset)\n", line);
+        Serial.printf("[cmd] unknown command \"%s\" (available: reboot, wifi-reset, cfg, cfg failsafe <s>, cfg reset)\n", line);
       }
     }
     else if (len < sizeof(line) - 1) {

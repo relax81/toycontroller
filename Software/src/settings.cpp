@@ -113,3 +113,12 @@ void settings_update(unsigned long nowMs) {
 void settings_flush() {
   if (dirty) settings_save();
 }
+
+void settings_reset() {
+  Preferences prefs;
+  if (prefs.begin(NS, false)) {
+    prefs.clear();
+    prefs.end();
+  }
+  dirty = false;
+}
