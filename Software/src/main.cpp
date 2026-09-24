@@ -1,7 +1,8 @@
 // activate deactivate heap logging (free / min free / largest free block)
 #define DEBUG_HEAP 1
 #if DEBUG_HEAP == 1
-#define heap_log(tag) Serial.printf("[heap] %-12s free=%u min=%u maxblock=%u\n", tag, ESP.getFreeHeap(), ESP.getMinFreeHeap(), ESP.getMaxAllocHeap())
+extern volatile unsigned long loop_max_us; // longest loop() pass of the last full 5 s window
+#define heap_log(tag) Serial.printf("[heap] %-12s free=%u min=%u maxblock=%u loopmax=%lu us\n", tag, ESP.getFreeHeap(), ESP.getMinFreeHeap(), ESP.getMaxAllocHeap(), loop_max_us)
 #else
 #define heap_log(tag)
 #endif
@@ -1471,6 +1472,7 @@ void displayBluetoothMenu(){
 }
 
 void setup() {
+  state_init(); // event queue, remembers the loop task
   Serial.begin(115200);
   Serial.printf("[fw] %s %s %s\n", __DATE__, __TIME__, GIT_HASH);
   debugln("setup started");
@@ -1628,7 +1630,11 @@ void boot_wifi_reset_gesture(unsigned long nowMs) {
   }
 }
 
+volatile unsigned long loop_max_us = 0;
+
 void loop() {
+  const unsigned long loopStartUs = micros();
+  state_drain(); // apply queued events first (loop() is the only writer of the state)
   currentMillis = millis();
 #if DEBUG_LEDC == 1
   static bool ledcLogged = false;
@@ -1765,6 +1771,16 @@ void loop() {
     ledcWrite(buzzer, 0);
   }
 // buzzer end
+
+  // longest pass of the last 5 s, reported in the [heap] line
+  static unsigned long loopWindowStart = 0, loopWindowMax = 0;
+  unsigned long loopUs = micros() - loopStartUs;
+  if (loopUs > loopWindowMax) loopWindowMax = loopUs;
+  if (currentMillis - loopWindowStart >= 5000) {
+    loop_max_us = loopWindowMax;
+    loopWindowMax = 0;
+    loopWindowStart = currentMillis;
+  }
 
 } // Loop end
 

@@ -103,6 +103,55 @@ struct AppState {
   BleState      ble;
 };
 
+// ---------------------------------------------------------------------------
+// Event queue: loop() is the only writer of `state`. Other tasks (async_tcp for the
+// WebSocket, the NimBLE task) call state_set(), which queues an event. state_drain()
+// applies the queued events at the start of every loop() pass. Called from loop()
+// itself, state_set() applies the event immediately.
+// ---------------------------------------------------------------------------
+#include <stdint.h>
+
+enum EventType : uint8_t {
+  EV_OUT_ENABLE,      // idx = 0-3 (Ch1-4), val = 0/1
+  EV_OUT_ON,          // idx, val = seconds
+  EV_OUT_OFF,         // idx, val = seconds
+  EV_OUT_PWM,         // idx, val = 0-100
+  EV_PUMP_ENABLE,     // val = 0/1
+  EV_PUMP_PWM,        // val = 0-100
+  EV_COLLAR_ENABLE,   // val = 0/1
+  EV_COLLAR_STRENGTH, // val = 0-100
+  EV_COLLAR_BTONLY,   // val = 0/1
+  EV_BUZZ_ENABLE,     // val = 0/1
+  EV_BUZZ_BPM,        // val = 1-255
+  EV_BUZZ_VOL,        // val = 0-10
+  EV_BLE_CONN,        // val = 0/1 (0 also zeroes vib[])
+  EV_BLE_VIB,         // val = vib[0] | vib[1] << 16 (both values at once)
+  EV_BLE_ROT,         // val
+  EV_BLE_AIR,         // val
+  EV_BT_OUT,          // idx = 0/1 (V1/V2), val = OutputId
+  EV_BT_MIN,          // idx, val
+  EV_BT_MAX,          // idx, val
+  EV_ALL_OFF,         // Ch1-4, pump and collar disabled
+  EV_TYPE_COUNT
+};
+
+struct Event {
+  uint8_t type;   // EventType
+  uint8_t idx;
+  int32_t val;
+};
+
+void state_init();                                       // call once at the start of setup() (in the loop task)
+bool state_set(EventType type, int idx, int32_t val);    // false: the event was dropped
+void state_drain();                                      // loop() only, call first in every pass
+void state_apply(const Event& e);                        // loop() only
+
+// set true by state_apply() for changes the web UI must be told about (loop() only)
+extern bool state_ui_dirty;
+// event diagnostics ([evq] log lines are printed from state_drain())
+extern volatile uint32_t evq_dropped;      // value events dropped on overflow
+extern volatile uint32_t evq_crit_failed;  // critical events that did not fit (fallback flags set)
+
 extern AppState state;
 
 #endif
