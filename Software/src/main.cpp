@@ -196,6 +196,9 @@ void disable_Outputs();
 
       void onDisconnect(NimBLEServer* pServer) {
         deviceConnected = false;
+        // failsafe: no client, no output
+        bt_vibration1 = 0;
+        bt_vibration2 = 0;
       }
   };
   class MySerialCallbacks: public NimBLECharacteristicCallbacks {
@@ -1928,16 +1931,23 @@ void loop() {
   u8g2.sendBuffer();
   // Bluetooth start
   // Bluetooth connection status
-  if (!deviceConnected && oldDeviceConnected && WiFi_Enabled == false) {
-        delay(500); // give the bluetooth stack the chance to get things ready
-        pServer->startAdvertising(); // restart advertising
-        debugln("start advertising");
+  static bool bleAdvRestartPending = false;
+  static unsigned long bleAdvRestartAt = 0;
+  if (!deviceConnected && oldDeviceConnected) {
+        // give the bluetooth stack the chance to get things ready (non-blocking)
+        bleAdvRestartPending = true;
+        bleAdvRestartAt = currentMillis + 500;
         oldDeviceConnected = deviceConnected;
     }
     // connecting
-  if (deviceConnected && !oldDeviceConnected && WiFi_Enabled == false) {
+  if (deviceConnected && !oldDeviceConnected) {
         // do stuff here on connecting
         oldDeviceConnected = deviceConnected;
+    }
+  if (bleAdvRestartPending && (long)(currentMillis - bleAdvRestartAt) >= 0) {
+        bleAdvRestartPending = false;
+        pServer->startAdvertising(); // restart advertising
+        debugln("start advertising");
     }
   // Bluetooth end
 
