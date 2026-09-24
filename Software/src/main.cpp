@@ -1531,6 +1531,33 @@ void setup() {
   heap_log("setup");
 }
 
+// serial terminal commands (line based, non-blocking): "reboot" restarts the ESP
+// as a replacement for the reset button
+void serial_commands() {
+  static char line[32];
+  static size_t len = 0;
+  while (Serial.available()) {
+    char c = Serial.read();
+    if (c == '
+' || c == '') {
+      line[len] = ' ';
+      len = 0;
+      if (strcmp(line, "reboot") == 0 || strcmp(line, "restart") == 0) {
+        Serial.println("[cmd] restarting");
+        Serial.flush();
+        ESP.restart();
+      }
+      else if (line[0] != ' ') {
+        Serial.printf("[cmd] unknown command \"%s\" (available: reboot)
+", line);
+      }
+    }
+    else if (len < sizeof(line) - 1) {
+      line[len++] = c;
+    }
+  }
+}
+
 void loop() {
   currentMillis = millis();
 #if DEBUG_LEDC == 1
@@ -1547,6 +1574,7 @@ void loop() {
     heap_log("loop");
   }
 #endif
+  serial_commands();
   ws.cleanupClients();
   timer1.update(); // display blinking text timer
 
