@@ -373,30 +373,58 @@ bool wifi_portal_take_show_request() {
   return r;
 }
 
-// OLED: SSID, password, IP, the biggest font in which all three lines fit
+// OLED: SSID, password, IP. Fonts are picked at runtime: the password gets the biggest
+// digit font that fits the width, then SSID and IP the biggest fonts that fit the rest
+// of the 64 px height (candidate lists are ordered big to small).
 void wifi_draw_portal_screen() {
-  const uint8_t* fonts[] = {font_status_messages, font_main_menu, font_manual_menu};
-  const char* lines[3] = {s_apSsid, s_apPass, "192.168.4.1"};
-  int chosen = 2;
-  for (int f = 0; f < 3; f++) {
-    u8g2.setFont(fonts[f]);
-    bool fits = (3 * u8g2.getMaxCharHeight() <= 64);
-    for (int l = 0; l < 3; l++) fits = fits && (u8g2.getStrWidth(lines[l]) <= 128);
-    if (fits) {
-      chosen = f;
-      break;
+  const uint8_t* pwFonts[] = {u8g2_font_fub20_tn, u8g2_font_fub17_tn, u8g2_font_fub14_tn, font_status_messages};
+  const uint8_t* ssidFonts[] = {u8g2_font_fub14_tr, u8g2_font_fub11_tr, font_main_menu, font_manual_menu};
+  const uint8_t* ipFonts[] = {u8g2_font_fub11_tr, font_manual_menu};
+  const char* ip = "192.168.4.1";
+  const int NPW = 4, NSSID = 4, NIP = 2;
+  const int fit = 64 - 4;       // some air between the lines
+  int bp = NPW - 1, bs = NSSID - 1, bi = NIP - 1; // smallest as fallback
+  int hp = 0, hs = 0, hi = 0;
+  bool found = false;
+  for (int p = 0; p < NPW && !found; p++) {
+    u8g2.setFont(pwFonts[p]);
+    if (u8g2.getStrWidth(s_apPass) > 128) continue;
+    int h1 = u8g2.getAscent() - u8g2.getDescent();
+    for (int s = 0; s < NSSID && !found; s++) {
+      u8g2.setFont(ssidFonts[s]);
+      if (u8g2.getStrWidth(s_apSsid) > 128) continue;
+      int h2 = u8g2.getAscent() - u8g2.getDescent();
+      for (int i = 0; i < NIP && !found; i++) {
+        u8g2.setFont(ipFonts[i]);
+        if (u8g2.getStrWidth(ip) > 128) continue;
+        int h3 = u8g2.getAscent() - u8g2.getDescent();
+        if (h1 + h2 + h3 <= fit) {
+          bp = p; bs = s; bi = i;
+          hp = h1; hs = h2; hi = h3;
+          found = true;
+        }
+      }
     }
   }
-  u8g2.setFont(fonts[chosen]);
-  u8g2.setFontPosTop();
-  int h = u8g2.getMaxCharHeight();
-  int slot = 64 / 3;
+  const uint8_t* fonts[3] = {ssidFonts[bs], pwFonts[bp], ipFonts[bi]};
+  const char* lines[3] = {s_apSsid, s_apPass, ip};
+  if (!found) { // fallback: smallest fonts, measure them
+    hp = hs = hi = 0;
+    u8g2.setFont(fonts[0]); hs = u8g2.getAscent() - u8g2.getDescent();
+    u8g2.setFont(fonts[1]); hp = u8g2.getAscent() - u8g2.getDescent();
+    u8g2.setFont(fonts[2]); hi = u8g2.getAscent() - u8g2.getDescent();
+  }
+  int heights[3] = {hs, hp, hi};
+  int gap = (64 - (hs + hp + hi)) / 4;
+  if (gap < 0) gap = 0;
+  int top = gap;
   for (int l = 0; l < 3; l++) {
+    u8g2.setFont(fonts[l]);
     int x = (128 - u8g2.getStrWidth(lines[l])) / 2;
     if (x < 0) x = 0;
-    u8g2.drawStr(x, l * slot + (slot - h) / 2, lines[l]);
+    u8g2.drawStr(x, top + u8g2.getAscent(), lines[l]);
+    top += heights[l] + gap;
   }
-  u8g2.setFontPosBaseline();
 }
 
 // ---------------------------------------------------------------- state machine
