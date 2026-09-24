@@ -1451,23 +1451,6 @@ void displayBluetoothMenu(){
   }
 }
 
-void buzzer_Metronome () {
-    state.buzzer.beatInterval = 60000 / state.buzzer.bpm;
-    int buzzerPWM = map(state.buzzer.volume, 0, 10, 0, 140);
-    if (!state.buzzer.isPlaying) { // turn on after the pause between the beeps
-      if ((long)(currentMillis - state.buzzer.previousMillis) >= (long)state.buzzer.beatInterval - state.buzzer.onTimeMs) {
-        ledcWrite (buzzer, buzzerPWM);
-        state.buzzer.isPlaying = true;
-        state.buzzer.previousMillis = currentMillis;
-      }
-    }
-    else if (currentMillis - state.buzzer.previousMillis >= (unsigned long)state.buzzer.onTimeMs) { // turn off
-      ledcWrite (buzzer, 0);
-      state.buzzer.isPlaying = false;
-      state.buzzer.previousMillis = currentMillis;
-    }
-}
-
 void setup() {
   Serial.begin(115200);
   Serial.printf("[fw] %s %s %s\n", __DATE__, __TIME__, GIT_HASH);
@@ -1682,7 +1665,7 @@ void loop() {
 
 // buzzer start
   if (state.buzzer.enabled == true) {
-  buzzer_Metronome();
+  buzzer_Metronome(currentMillis);
   }
   else if (state.buzzer.enabled == false) {
     ledcWrite(buzzer, 0);

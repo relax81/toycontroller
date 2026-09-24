@@ -158,3 +158,20 @@ void bluetooth_write_pwm(int output, int mapped_PWM) {
       break;
   }
 }
+
+void buzzer_Metronome(unsigned long nowMs) {
+    state.buzzer.beatInterval = 60000 / state.buzzer.bpm;
+    int buzzerPWM = map(state.buzzer.volume, 0, 10, 0, 140);
+    if (!state.buzzer.isPlaying) { // turn on after the pause between the beeps
+      if ((long)(nowMs - state.buzzer.previousMillis) >= (long)state.buzzer.beatInterval - state.buzzer.onTimeMs) {
+        ledcWrite (buzzer, buzzerPWM);
+        state.buzzer.isPlaying = true;
+        state.buzzer.previousMillis = nowMs;
+      }
+    }
+    else if (nowMs - state.buzzer.previousMillis >= (unsigned long)state.buzzer.onTimeMs) { // turn off
+      ledcWrite (buzzer, 0);
+      state.buzzer.isPlaying = false;
+      state.buzzer.previousMillis = nowMs;
+    }
+}

@@ -15,6 +15,8 @@ void disable_Outputs(); // zero what is neither enabled nor held by BLE
 void collar_send(CollarMode mode, int strength); // channel 1
 void bluetooth_write_pwm(int output, int mappedPwm); // output id 1-6
 
+void buzzer_Metronome(unsigned long nowMs);     // one step of the non-blocking metronome
+
 #if DEBUG_LEDC == 1
 void debug_ledc();     // diagnostics only: configured vs. actual LEDC frequency
 #endif
