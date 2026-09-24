@@ -1,6 +1,6 @@
 # Stand des Umbaus (Branch `dev-wifi-ble-parallel`)
 
-Stand: 2026-09-24, letzter Commit `64d491d`. Zum Weitermachen morgen: erst
+Stand: 2026-09-24, Schritt 4 abgeschlossen (letzter Code-Commit `3b90924`). Zum Weitermachen morgen: erst
 diese Datei und `docs/TODO-notes.md` lesen.
 
 ## Arbeitsregeln (kurz)
@@ -13,8 +13,9 @@ diese Datei und `docs/TODO-notes.md` lesen.
   `monitor_port` (COM7) in der `platformio.ini` nicht ändern. Plattform
   `espressif32 @ ~3.5.0` bleibt.
 - CRLF-Zeilenenden erhalten. Dateien einzeln mit `git add` hinzufügen.
-- Pumpe und 433-MHz-Halsband sind derzeit nicht testbar (Hardware fehlt).
-  In Testlisten nur als "später" führen. Der Metronom-Buzzer ist bewusst
+- Nur die Pumpe ist derzeit nicht testbar (Hardware fehlt), in Testlisten nur
+  als "später" führen. Das 433-MHz-Halsband ist am 2026-09-24 auf der Hardware
+  bestätigt. Der Metronom-Buzzer ist bewusst
   nicht Teil des Failsafes.
 - HTerm muss getrennt sein, wenn geflasht wird. Beim Öffnen von COM5 aus
   Python gibt es keinen Reset; Boot-Log nur per EN-Taste sichtbar. Ein
@@ -36,7 +37,7 @@ diese Datei und `docs/TODO-notes.md` lesen.
   `state.pump`, `state.rt[i]`), `PWM_Output` und `disable_Outputs` sind
   Schleifen, ein Kanal startet beim Einschalten mit der On-Phase.
 
-## Schritt 4 (Collar, Buzzer, BT-Zuordnung, BLE-Eingang, `bt_hold` in den State)
+## Schritt 4 (Collar, Buzzer, BT-Zuordnung, BLE-Eingang, `bt_hold` in den State): abgeschlossen
 
 Methode wie Schritt 3: erst Brücke (die alten Namen werden Referenzen auf
 `state.*`), dann Region für Region per Skript umbenennen (Zuordnungstabelle,
@@ -50,30 +51,16 @@ Prüfung pro Block, Rundlauf), am Ende die Brücke entfernen.
 | `998378b` | `buzzer_Metronome()` ohne Parameter | getestet |
 | `ed723d6` | Brücke für Collar, Buzzer, BT-Map, BLE-Eingang, `bt_hold` (29 Referenzen) | getestet |
 | `164ca3d` | Buzzer auf `state.buzzer.*` (26 Ersetzungen) | getestet |
-| `64d491d` | Collar auf `state.collar.*` (25 Ersetzungen) | nur Build (Halsband fehlt) |
+| `64d491d` | Collar auf `state.collar.*` (25 Ersetzungen) | getestet |
+| `e00e7d5` | 6a: BLE-Callbacks, Verbindungsstatus, Loop-Block auf `state.ble.in.*` | getestet |
+| `dbf01b5` | 6b: BT-Menü und Mapping auf `state.ble.map[0/1].*` (60 Ersetzungen) | getestet |
+| `00d827a` | 7: `state.ble.hold/collarMapped`, Helfer `outputId(i)` | getestet |
+| `3b90924` | 8: Brücke entfernt, keine alten Namen mehr | getestet |
 
-### Noch offen in Schritt 4
+Der Gesamt-Smoke-Test nach Schritt 8 (inkl. Halsband) ist bestanden. Offen ist
+nur die Pumpe (Hardware fehlt).
 
-1. **6a:** BLE-Callbacks (`onConnect`, `onDisconnect`, `onWrite`),
-   `deviceConnected`/`oldDeviceConnected`, BLE-Block in `loop()`, Anzeige in
-   Screen 12 auf `state.ble.in.*` / `state.ble.wasConnected`
-   (`bt_vibration1/2` -> `in.vib[0/1]`, `bt_rotation`, `bt_airlevel`).
-   Danach flasht und testet der Nutzer (App verbindet, Vibrate, Trennen).
-2. **6b:** BT-Menü (`displayBluetoothMenu`, `buttonMenuBluetooth`,
-   `BT_V1/V2_*` -> `state.ble.map[0/1].*`, ca. 60 Stellen). Skript prüft V1 <->
-   `[0]`, V2 <-> `[1]` pro Fall. Danach Test (BT-Menü, Startwerte V1 = OFF,
-   V2 = PWM1).
-3. **7:** `bt_hold`, `bt_collar_mapped` auf `state.ble.hold/collarMapped`;
-   das `i + 1` in den Kanalschleifen durch einen Helfer `outputId(i)`
-   ersetzen (Indexfalle: Ausgangs-IDs zählen ab 1, `state.out[]` ab 0).
-   Danach Test.
-4. **8:** Brücke entfernen, Abschlusssuche nach den alten Namen. Danach
-   voller Smoke-Test.
-
-Getestet wird nach 2b, 3, 4, 6a, 6b, 7 und 8 (Nutzer flasht/testet auf COM5),
-sonst genügt ein Build.
-
-## Danach: `outputs.h/.cpp` herauslösen
+## Jetzt: `outputs.h/.cpp` herauslösen
 
 Geplant (Details im Schritt-4-Plan): `outputs_init()` (Pins, LEDC, `debug_ledc`),
 `PWM_Output`, `disable_Outputs`, `bluetooth_write_pwm`, `buzzer_Metronome`,
