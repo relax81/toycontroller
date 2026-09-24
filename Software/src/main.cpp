@@ -464,7 +464,7 @@ void disable_Outputs();
       u8g2.drawStr(2, 10, "Shock BT trigger"); 
       u8g2.drawStr(10, 24, "only on Level");
       u8g2.drawStr(28, 38, "change");
-      if (collar_bt_only_changes == true) {
+      if (state.collar.btOnlyChanges == true) {
         u8g2.drawStr(28,55, "ENABLED");
       }
       else {
@@ -472,10 +472,10 @@ void disable_Outputs();
       }
 
       if (encoderPosition == 0) {
-        collar_bt_only_changes = false;
+        state.collar.btOnlyChanges = false;
         }
         else if (encoderPosition == 1) {
-          collar_bt_only_changes = true;
+          state.collar.btOnlyChanges = true;
         }
 
       if (buttonLongPressed == true) {      
@@ -1197,13 +1197,13 @@ void displayBluetoothMenu(){
           case 'f':
           if (message[9] == 't')//true
             {
-            Collar_Enable = true;
-            values["toggle_f"] = Collar_Enable;
+            state.collar.enabled = true;
+            values["toggle_f"] = state.collar.enabled;
             }
           else if (message[9] == 'f')//false
             {
-            Collar_Enable = false;
-            values["toggle_f"] = Collar_Enable;
+            state.collar.enabled = false;
+            values["toggle_f"] = state.collar.enabled;
             } 
           break; 
 
@@ -1294,8 +1294,8 @@ void displayBluetoothMenu(){
             values["slider_m"] = state.pump.pwm;
             break;
           case 'n':
-            collar_strength = slider;
-            values["slider_n"] = collar_strength;
+            state.collar.strength = slider;
+            values["slider_n"] = state.collar.strength;
             break;
           case 'o':
             state.buzzer.bpm = slider;
@@ -1327,25 +1327,25 @@ void displayBluetoothMenu(){
         switch (message[6])
         {
           case 'b': // collar beep
-          if (Collar_Enable == true) {
-          dg.sendCollar(CollarChannel::CH1, CollarMode::Beep, collar_strength);
+          if (state.collar.enabled == true) {
+          dg.sendCollar(CollarChannel::CH1, CollarMode::Beep, state.collar.strength);
           debugln("collar beeped");
           }
           break;
 
         case 'v':  // collar vib
-          if (Collar_Enable == true) {
-          dg.sendCollar(CollarChannel::CH1, CollarMode::Vibe, collar_strength);
+          if (state.collar.enabled == true) {
+          dg.sendCollar(CollarChannel::CH1, CollarMode::Vibe, state.collar.strength);
           debug("collar vibrates at level: ");
-          debugln(collar_strength);
+          debugln(state.collar.strength);
           }
           break;
 
         case 's': // collar shock
-          if (Collar_Enable == true) {
-          dg.sendCollar(CollarChannel::CH1, CollarMode::Shock, collar_strength);
+          if (state.collar.enabled == true) {
+          dg.sendCollar(CollarChannel::CH1, CollarMode::Shock, state.collar.strength);
           debug("collar shocks at level: ");
-          debugln(collar_strength);
+          debugln(state.collar.strength);
           }
           break;
           }
@@ -1506,7 +1506,7 @@ void displayBluetoothMenu(){
   state.out[2].enabled = false;
   state.out[3].enabled = false;
   state.pump.enabled = false;
-  Collar_Enable = false;
+  state.collar.enabled = false;
   values["toggle_a"] = false;
   values["toggle_b"] = false;
   values["toggle_c"] = false;
@@ -1589,11 +1589,11 @@ void bluetooth_write_pwm(int output, int mapped_PWM) {
       break;
     case 6: 
 
-      if (collar_bt_only_changes == true) {
-        if (mapped_PWM != previous_shock){
+      if (state.collar.btOnlyChanges == true) {
+        if (mapped_PWM != state.collar.previousShock){
           dg.sendCollar(CollarChannel::CH1, CollarMode::Shock, mapped_PWM);
         }
-      previous_shock = mapped_PWM;
+      state.collar.previousShock = mapped_PWM;
       }
 
       else {
@@ -1867,9 +1867,9 @@ void loop() {
   }
 
   // Keep collar awake if enabled
-  if ((currentMillis - previous_Collar_Wakeup >= keep_Collar_Awake_Interval) && (Collar_Enable == true || (deviceConnected && bt_collar_mapped))) {
+  if ((currentMillis - state.collar.lastWakeup >= state.collar.keepAwakeMs) && (state.collar.enabled == true || (deviceConnected && bt_collar_mapped))) {
     debugln("keeping collar awake");
-    previous_Collar_Wakeup = millis();
+    state.collar.lastWakeup = millis();
     dg.sendCollar(CollarChannel::CH1, CollarMode::Blink, 100);
   }
 
