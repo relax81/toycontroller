@@ -5,15 +5,11 @@ Nur Notizen, kein Code. Bewusst verschobene Punkte aus dem Umbau
 
 ## Nebenläufigkeit
 
-- **`values` (JSONVar) ist nicht thread-sicher.** Der WS-Handler
-  (`handleWebSocketMessage_ws`, Task `async_tcp`) ändert und serialisiert
-  `values`, während `ws_failsafe()` und `reset_Outputs()` (Task `loop`)
-  ebenfalls hineinschreiben. Selten, aber ein Absturz ist möglich.
-  Lösung: Ereignis-Queue (siehe unten), `values` nur noch aus `loop()`.
-- Die Ausgangswerte (`ChN_*`) schreibt der `async_tcp`-Task direkt, `loop()`
-  liest sie. Mehrere Felder (z. B. `on`/`off`) sind nicht atomar konsistent.
-- BLE-Callbacks (NimBLE-Task) dürfen keinen State schreiben, nur
-  `bt_vibration1/2` (und künftig Ereignisse einreihen).
+- ~~`values` (JSONVar) und die Ausgangswerte wurden aus mehreren Tasks
+  geschrieben.~~ **Erledigt (Block A):** Ereignis-Queue, `loop()` schreibt den State
+  und baut `values`; BLE-Callbacks und WS-Handler reihen nur ein.
+- Offen: `sendCollar()` blockiert weiterhin (siehe 433-MHz-Abschnitt), die
+  Collar-Klicks laufen aus dem `async_tcp`-Task und lesen `state.collar.*` ohne Sperre.
 
 ## Ausgangslogik
 
@@ -34,8 +30,7 @@ Nur Notizen, kein Code. Bewusst verschobene Punkte aus dem Umbau
 
 ## State / Architektur
 
-- **Ereignis-Queue und `state_set()`** kommen in einem späteren Schritt:
-  WS, BLE und Menü reihen Änderungen ein, nur `loop()` schreibt den State.
+- ~~Ereignis-Queue und `state_set()`~~ **Erledigt (Block A, siehe STATUS.md).**
 - **`Collar_Enable` und `bt_hold[]` sind noch nicht im State** (bleiben
   vorerst in `main.cpp`), ebenso BT-Zuordnung, Buzzer und Menüvariablen.
 - Indizes: `state.out[0]` = Ch1 ... `state.out[3]` = Ch4, aber `bt_hold[]`

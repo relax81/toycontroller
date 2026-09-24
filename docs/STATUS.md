@@ -110,10 +110,34 @@ stellen, `reboot` senden. Boot-Log und `[ledc]`-Diagnose ohne Reset-Knopf.
 - Das WLAN-Passwort steht nirgends im Log. Flash: 1370570 Byte (41,0 %),
   RAM 58180 Byte.
 
+## Block A: Ereignis-Queue und Persistenz (umgesetzt, Hardware-Test offen)
+
+| Commit | Inhalt |
+|---|---|
+| `e44c335` | `state_set()`/`state_drain()`, Queue (64 Einträge), `loopmax` in der `[heap]`-Zeile |
+| `4eb4ef6` | BLE-Callbacks reihen Ereignisse ein (V1/V2 als ein Paar-Event) |
+| `79efa6e` | WS-Handler reiht ein, `values` (JSONVar) nur noch in `loop()` aus dem State gebaut |
+| `277e899` | `settings_load()` (NVS `cfg`, validiert), `state.failsafeTimeoutS` |
+| `de24468` | verzögertes Speichern (5 s nach der letzten Änderung, nur geänderte Schlüssel), BT-Menü und `co_chg` über `state_set()` |
+| Serial-Commit | `cfg`, `cfg failsafe <3-120>`, `cfg reset` |
+
+- `loop()` ist der einzige State-Schreiber. `state_set()` wendet im `loop`-Task sofort
+  an, aus anderen Tasks wird eingereiht. Kritische Ereignisse (`ALL_OFF`, `*_ENABLE`
+  mit 0, `OUT_OFF`, BLE) warten bis 10 ms; scheitert das, setzt `state.cpp` die
+  Flags `all_off_req` / `ble_disc_req` (alles aus bzw. BLE getrennt) und loggt
+  `[evq]`. Wert-Ereignisse (PWM, bpm, vol) werden bei Überlauf verworfen und gezählt.
+- Der Web-Broadcast kommt aus `loop()` (Dirty-Flag, höchstens einmal pro Durchlauf);
+  die JSON-Schlüssel und `script.js` sind unverändert. Der Broadcast enthält jetzt
+  immer den aktuellen State (auch uncommittete Encoder-Werte im Manuell-Menü).
+- NVS `cfg` (Version 1): `ver`, `b0_out`/`b1_out` (u8), `b0_min`/`b0_max`/
+  `b1_min`/`b1_max` (u16), `fs_to` (u16, s), `bz_vol`/`bz_bpm` (u8), `bz_on` (u16, ms),
+  `co_chg` (u8). Nie gespeichert: Enable-Flags und Laufzeitwerte. Grenzen (min <= max,
+  Ausgang 6 max <= 100) setzt `state_apply()` immer, auch zur Laufzeit.
+- Collar-Klicks (`sendCollar`, blockierend) laufen unverändert aus dem `async_tcp`-Task.
+- Toy-Modell kommt in Block B.
+
 ## Weitere Ideen (nicht begonnen)
 
-- Ereignis-Queue und `state_set()` (WS, BLE, Menü reihen ein, nur `loop()`
-  schreibt den State); `values` (JSONVar) ist nicht thread-sicher.
 - Kanalfälle im Manuell-Menü tabellengetrieben machen.
 - Visueller Indikator in der Web-UI: zeigt pro Kanal, ob gerade BLE oder Web
   den Ausgang steuert (BLE-Kanäle ausgegraut bzw. markiert), live ohne
@@ -124,9 +148,8 @@ stellen, `reboot` senden. Boot-Log und `[ledc]`-Diagnose ohne Reset-Knopf.
   hält die Verbindung nach dem Schließen lange offen, deshalb taugt "verbunden"
   nicht als Kriterium. Der Server muss bei jeder Änderung des Zustands ein
   Update senden.
-- Persistente Einstellungen über Preferences (NVS), JSON-Protokoll für den
-  WebSocket und Migration von `data/script.js` (siehe Plan in der
-  Unterhaltung; nichts davon ist umgesetzt).
+- JSON-Protokoll für den WebSocket und Migration von `data/script.js` (siehe Plan
+  in der Unterhaltung; nicht umgesetzt).
 - Optional: kleine WLAN-Diagnose (Status im Log, Neuverbinden). Einmal blieb
   das WLAN nach dem Start aus, bei erneutem Flashen desselben Stands war es
   wieder da (vermutlich Router/Koexistenz, nicht reproduzierbar).
