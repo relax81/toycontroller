@@ -1,6 +1,6 @@
 # Stand des Umbaus (Branch `dev-wifi-ble-parallel`)
 
-Stand: 2026-09-24, Schritt 4 abgeschlossen (letzter Code-Commit `3b90924`). Zum Weitermachen morgen: erst
+Stand: 2026-09-24, Schritt 4 und `outputs.h/.cpp` abgeschlossen und getestet (letzter Code-Commit `de6562c`). Zum Weitermachen morgen: erst
 diese Datei und `docs/TODO-notes.md` lesen.
 
 ## Arbeitsregeln (kurz)
@@ -60,14 +60,20 @@ Prüfung pro Block, Rundlauf), am Ende die Brücke entfernen.
 Der Gesamt-Smoke-Test nach Schritt 8 (inkl. Halsband) ist bestanden. Offen ist
 nur die Pumpe (Hardware fehlt).
 
-## Jetzt: `outputs.h/.cpp` herauslösen
+## `outputs.h/.cpp` herausgelöst (abgeschlossen, getestet)
 
-Geplant (Details im Schritt-4-Plan): `outputs_init()` (Pins, LEDC, `debug_ledc`),
-`PWM_Output`, `disable_Outputs`, `bluetooth_write_pwm`, `buzzer_Metronome`,
-Collar-Wrapper, `outputs_update(nowMs)`, `outputs_arbitrate()`. `ws_failsafe()`
-wird geteilt: Zustandsteil in `outputs`, Spiegeln nach `values`/`ws` bleibt im
-Web-Teil. `DogCollar3` und das Sendeverhalten werden **nicht** geändert (siehe
-Abschnitt 433 MHz in `TODO-notes.md`).
+| Commit | Inhalt |
+|---|---|
+| `e406d9e` | `outputs_init()` (Pins, LEDC), `debug_ledc`; Debug-Makros nach `config.h` |
+| `de40fe8` | `PWM_Output`, `disable_Outputs` |
+| `a594e08` | `bluetooth_write_pwm`, `dg`/`uniqueKeyOfDevice`, Wrapper `collar_send(mode, strength)` |
+| `7ac843a` | `buzzer_Metronome(nowMs)` |
+| `701f45f` | `outputs_arbitrate()`, `outputs_all_off()`; `ws_failsafe()` behält die `values`-Spiegelung |
+| `523b6a1`, `de6562c` | Serial-Befehl `reboot`/`restart` (Ersatz für den Reset-Knopf); `523b6a1` baut nicht, `de6562c` repariert das (bei bisect überspringen) |
+
+`DogCollar3` und das Sendeverhalten sind unverändert (siehe Abschnitt 433 MHz
+in `TODO-notes.md`). Serielles Terminal (z. B. HTerm): "Send on enter" auf LF
+stellen, `reboot` senden. Boot-Log und `[ledc]`-Diagnose ohne Reset-Knopf.
 
 ## Weitere Ideen (nicht begonnen)
 
