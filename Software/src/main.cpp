@@ -139,15 +139,15 @@ void disable_Outputs();
   // CONFIGURATION:                           ^ Replace X and Y with values that suit you.
   class MyServerCallbacks: public NimBLEServerCallbacks {
       void onConnect(NimBLEServer* pServer) {
-        deviceConnected = true;
+        state.ble.in.connected = true;
         NimBLEDevice::startAdvertising();
       };
 
       void onDisconnect(NimBLEServer* pServer) {
-        deviceConnected = false;
+        state.ble.in.connected = false;
         // failsafe: no client, no output
-        bt_vibration1 = 0;
-        bt_vibration2 = 0;
+        state.ble.in.vib[0] = 0;
+        state.ble.in.vib[1] = 0;
       }
   };
   class MySerialCallbacks: public NimBLECharacteristicCallbacks {
@@ -191,38 +191,38 @@ void disable_Outputs();
           pTxCharacteristic->setValue(messageBuf, 2);
           pTxCharacteristic->notify();
         } else if (rxValue.rfind("Vibrate:", 0) == 0) {
-          bt_vibration1 = std::atoi(rxValue.substr(8).c_str());
-          bt_vibration2 = std::atoi(rxValue.substr(8).c_str());
+          state.ble.in.vib[0] = std::atoi(rxValue.substr(8).c_str());
+          state.ble.in.vib[1] = std::atoi(rxValue.substr(8).c_str());
           debug("V:");
-          debugln(bt_vibration1);
+          debugln(state.ble.in.vib[0]);
           memmove(messageBuf, "OK;", 3);
           pTxCharacteristic->setValue(messageBuf, 3);
           pTxCharacteristic->notify();
         } else if (rxValue.rfind("Rotate:", 0) == 0) {
-          bt_rotation = std::atoi(rxValue.substr(7).c_str());
+          state.ble.in.rotation = std::atoi(rxValue.substr(7).c_str());
           debug("R:");
-          debugln(bt_rotation);
+          debugln(state.ble.in.rotation);
           memmove(messageBuf, "OK;", 3);
           pTxCharacteristic->setValue(messageBuf, 3);
           pTxCharacteristic->notify();
         } else if (rxValue.rfind("Vibrate1:", 0) == 0) {
-          bt_vibration1 = std::atoi(rxValue.substr(9).c_str());
+          state.ble.in.vib[0] = std::atoi(rxValue.substr(9).c_str());
           debug("V1:");
-          debugln(bt_vibration1);
+          debugln(state.ble.in.vib[0]);
           memmove(messageBuf, "OK;", 3);
           pTxCharacteristic->setValue(messageBuf, 3);
           pTxCharacteristic->notify();
         } else if (rxValue.rfind("Vibrate2:", 0) == 0) {
-          bt_vibration2 = std::atoi(rxValue.substr(9).c_str());
+          state.ble.in.vib[1] = std::atoi(rxValue.substr(9).c_str());
           debug("V2:");
-          debugln(bt_vibration2);
+          debugln(state.ble.in.vib[1]);
           memmove(messageBuf, "OK;", 3);
           pTxCharacteristic->setValue(messageBuf, 3);
           pTxCharacteristic->notify();
         } else if (rxValue.rfind("Air:Level:", 0) == 0) {
-          bt_airlevel = std::atoi(rxValue.substr(10).c_str());
+          state.ble.in.airLevel = std::atoi(rxValue.substr(10).c_str());
           debug("AL:");
-          debugln(bt_airlevel);
+          debugln(state.ble.in.airLevel);
           memmove(messageBuf, "OK;", 3);
           pTxCharacteristic->setValue(messageBuf, 3);
           pTxCharacteristic->notify();
@@ -423,7 +423,7 @@ void disable_Outputs();
     }
 
     else if (current_screen == 12) {
-      if (deviceConnected == 0){
+      if (state.ble.in.connected == 0){
         u8g2.setFont(font_status_messages);
         u8g2.clearBuffer();
         u8g2.drawStr(25, 16, "Waiting");
@@ -431,7 +431,7 @@ void disable_Outputs();
         u8g2.drawStr(8, 56, "Connection");
         u8g2.sendBuffer();
         }
-      if (deviceConnected == 1) {
+      if (state.ble.in.connected == 1) {
         displayBluetoothMenu();
         buttonMenuBluetooth();
         }
@@ -1777,8 +1777,8 @@ void loop() {
 
   // BLE has priority on an output while its level is > 0
   for (int i = 0; i < 7; i++) bt_hold[i] = false;
-  if ((BT_V1_Output > 0) && (bt_vibration1 > 0)) bt_hold[BT_V1_Output] = true;
-  if ((BT_V2_Output > 0) && (bt_vibration2 > 0)) bt_hold[BT_V2_Output] = true;
+  if ((BT_V1_Output > 0) && (state.ble.in.vib[0] > 0)) bt_hold[BT_V1_Output] = true;
+  if ((BT_V2_Output > 0) && (state.ble.in.vib[1] > 0)) bt_hold[BT_V2_Output] = true;
   bt_collar_mapped = (BT_V1_Output == 6 || BT_V2_Output == 6);
 
   // controls pwm outputs (web / manual), skips outputs held by BLE
@@ -1823,16 +1823,16 @@ void loop() {
   // Bluetooth connection status
   static bool bleAdvRestartPending = false;
   static unsigned long bleAdvRestartAt = 0;
-  if (!deviceConnected && oldDeviceConnected) {
+  if (!state.ble.in.connected && state.ble.wasConnected) {
         // give the bluetooth stack the chance to get things ready (non-blocking)
         bleAdvRestartPending = true;
         bleAdvRestartAt = currentMillis + 500;
-        oldDeviceConnected = deviceConnected;
+        state.ble.wasConnected = state.ble.in.connected;
     }
     // connecting
-  if (deviceConnected && !oldDeviceConnected) {
+  if (state.ble.in.connected && !state.ble.wasConnected) {
         // do stuff here on connecting
-        oldDeviceConnected = deviceConnected;
+        state.ble.wasConnected = state.ble.in.connected;
     }
   if (bleAdvRestartPending && (long)(currentMillis - bleAdvRestartAt) >= 0) {
         bleAdvRestartPending = false;
@@ -1844,22 +1844,22 @@ void loop() {
   //Bluetooth Output Control
   if (BT_Enabled == true) {
     int BT_mapped_PWM[2];
-    BT_mapped_PWM[0] = map(bt_vibration1, 1, 20, BT_V1_Min_PWM, BT_V1_Max_PWM);
-    BT_mapped_PWM[1] = map(bt_vibration2, 1, 20, BT_V2_Min_PWM, BT_V2_Max_PWM);
+    BT_mapped_PWM[0] = map(state.ble.in.vib[0], 1, 20, BT_V1_Min_PWM, BT_V1_Max_PWM);
+    BT_mapped_PWM[1] = map(state.ble.in.vib[1], 1, 20, BT_V2_Min_PWM, BT_V2_Max_PWM);
 
-    if ((BT_V1_Output > 0) && (bt_vibration1 > 0)) {
+    if ((BT_V1_Output > 0) && (state.ble.in.vib[0] > 0)) {
       BT_V1_Paused = false;
       bluetooth_write_pwm(BT_V1_Output, BT_mapped_PWM[0]);
     }
-    else if ((BT_V1_Output > 0) && (bt_vibration1 == 0) && (BT_V1_Paused == false)){
+    else if ((BT_V1_Output > 0) && (state.ble.in.vib[0] == 0) && (BT_V1_Paused == false)){
       BT_V1_Paused = true;
       bluetooth_write_pwm(BT_V1_Output, 0);
     }
-    if ((BT_V2_Output > 0) && (bt_vibration2 > 0)) {
+    if ((BT_V2_Output > 0) && (state.ble.in.vib[1] > 0)) {
       BT_V2_Paused = false;
       bluetooth_write_pwm(BT_V2_Output, BT_mapped_PWM[1]);
     }
-    else if ((BT_V2_Output > 0) && (bt_vibration2 == 0) && (BT_V2_Paused == false)) {
+    else if ((BT_V2_Output > 0) && (state.ble.in.vib[1] == 0) && (BT_V2_Paused == false)) {
       BT_V2_Paused = true;
       bluetooth_write_pwm(BT_V2_Output, 0);
     }
@@ -1867,7 +1867,7 @@ void loop() {
   }
 
   // Keep collar awake if enabled
-  if ((currentMillis - state.collar.lastWakeup >= state.collar.keepAwakeMs) && (state.collar.enabled == true || (deviceConnected && bt_collar_mapped))) {
+  if ((currentMillis - state.collar.lastWakeup >= state.collar.keepAwakeMs) && (state.collar.enabled == true || (state.ble.in.connected && bt_collar_mapped))) {
     debugln("keeping collar awake");
     state.collar.lastWakeup = millis();
     dg.sendCollar(CollarChannel::CH1, CollarMode::Blink, 100);
