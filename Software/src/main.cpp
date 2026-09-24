@@ -1811,18 +1811,18 @@ void bluetooth_write_pwm(int output, int mapped_PWM) {
 void buzzer_Metronome (int buzzerBPM, int buzzerOnTimeMS, int buzzerVolume) {
     beatInterval = 60000 / buzzerBPM;
     int buzzerPWM = map(buzzerVolume, 0, 10, 0, 140);
-    if ((currentMillis - buzzerPreviousMillis >= beatInterval - buzzerOnTimeMS) && (!buzzerIsPlaying)) { // turn on
+    if (!buzzerIsPlaying) { // turn on after the pause between the beeps
+      if ((long)(currentMillis - buzzerPreviousMillis) >= (long)beatInterval - buzzerOnTimeMS) {
         ledcWrite (buzzer, buzzerPWM);
         buzzerIsPlaying = true;
         buzzerPreviousMillis = currentMillis;
-  } else { // turn off
-    if (currentMillis - buzzerPreviousMillis >= buzzerOnTimeMS) {
-        ledcWrite (buzzer, 0);
-        buzzerIsPlaying = false;
-        buzzerPreviousMillis = currentMillis;
-        delay(beatInterval - buzzerOnTimeMS);
+      }
     }
-  }
+    else if (currentMillis - buzzerPreviousMillis >= (unsigned long)buzzerOnTimeMS) { // turn off
+      ledcWrite (buzzer, 0);
+      buzzerIsPlaying = false;
+      buzzerPreviousMillis = currentMillis;
+    }
 }
 
 void setup() {
