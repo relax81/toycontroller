@@ -48,7 +48,6 @@ void displayMenuManual();
 void buttonMenuManual();
 void displayBluetoothMenu();
 void buttonMenuBluetooth();
-void reset_Outputs();
 void update_values_ws();
 void bluetooth_write_pwm(int, int);
 void disable_Outputs();
@@ -57,16 +56,9 @@ void disable_Outputs();
   // Unique ID (16 bit) of the Shock Collar. You can also keep this and use pairing mode of the collar
   String uniqueKeyOfDevice = "0010110011011000";
   DogCollar dg(PIN_TRANSMITTER,uniqueKeyOfDevice);
-  int vibration;
-  int shock;
-  int beep;
-  int keepawake;
   int collar_strength;
   int previous_shock = 30;
   bool Collar_Enable = false;
-  bool button_beep = false;
-  bool button_vib = false;
-  bool button_shock = false;
   bool collar_bt_only_changes = true;
   unsigned long previous_Collar_Wakeup = 0; 
   unsigned long keep_Collar_Awake_Interval = 120000; // 2 Minutes
@@ -1523,55 +1515,6 @@ void displayBluetoothMenu(){
   if (ws.count() > 0) {
     update_values_ws();
   }
-}
-
-// reset outputs
-  void reset_Outputs(){
-  state.out[0].enabled = false;
-  state.out[1].enabled = false;
-  state.out[2].enabled = false;
-  state.out[3].enabled = false;
-  state.pump.enabled = false;
-  state.out[0].on = 0;
-  state.out[0].off = 0;
-  state.out[0].pwm = 0;
-  state.out[1].on = 0;
-  state.out[1].off = 0;
-  state.out[1].pwm = 0;
-  state.out[2].on = 0;
-  state.out[2].off = 0;
-  state.out[2].pwm = 0;
-  state.out[3].on = 0;
-  state.out[3].off = 0;
-  state.out[3].pwm = 0;
-  state.pump.pwm = 0;
-    // Websocket stuff
-  values["slider_a"] = 0;
-  values["slider_b"] = 0;
-  values["slider_c"] = 0;
-  values["slider_d"] = 0;
-  values["slider_e"] = 0;
-  values["slider_f"] = 0;
-  values["slider_g"] = 0;
-  values["slider_h"] = 0;
-  values["slider_i"] = 0;
-  values["slider_j"] = 0;
-  values["slider_k"] = 0;
-  values["slider_l"] = 0;
-  values["slider_m"] = 0; // pump
-  values["slider_n"] = 0; // collar strength
-  values["slider_o"] = 60; // Buzzer Metronome BPM
-  values["slider_p"] = 5; // Buzzer Metronome Volume
-  values["toggle_a"] = false;
-  values["toggle_b"] = false;
-  values["toggle_c"] = false;
-  values["toggle_d"] = false;
-  values["toggle_e"] = false; // pump
-  values["toggle_f"] = false; // collar
-  values["toggle_g"] = false; // Buzzer Metronome
-  // values["buzzer"] = "off";
-  // values["lb1"] = "off";
-  // values["lb2"] = "off";
 }
 
 // control pwm outputs in web or manual mode
