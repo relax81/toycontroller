@@ -17,6 +17,9 @@ void bluetooth_write_pwm(int output, int mappedPwm); // output id 1-6
 
 void buzzer_Metronome(unsigned long nowMs);     // one step of the non-blocking metronome
 
+void outputs_arbitrate(); // fills state.ble.hold[] / collarMapped, call once per loop() before PWM_Output()
+void outputs_all_off();   // Ch1-4, pump and collar to "disabled" in the state
+
 #if DEBUG_LEDC == 1
 void debug_ledc();     // diagnostics only: configured vs. actual LEDC frequency
 #endif

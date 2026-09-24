@@ -175,3 +175,21 @@ void buzzer_Metronome(unsigned long nowMs) {
       state.buzzer.previousMillis = nowMs;
     }
 }
+
+// BLE has priority on an output while its level is > 0
+void outputs_arbitrate() {
+  for (int i = 0; i < 7; i++) state.ble.hold[i] = false;
+  if ((state.ble.map[0].output > 0) && (state.ble.in.vib[0] > 0)) state.ble.hold[state.ble.map[0].output] = true;
+  if ((state.ble.map[1].output > 0) && (state.ble.in.vib[1] > 0)) state.ble.hold[state.ble.map[1].output] = true;
+  state.ble.collarMapped = (state.ble.map[0].output == 6 || state.ble.map[1].output == 6);
+}
+
+// switch off everything the web interface controls (state only)
+void outputs_all_off() {
+  state.out[0].enabled = false;
+  state.out[1].enabled = false;
+  state.out[2].enabled = false;
+  state.out[3].enabled = false;
+  state.pump.enabled = false;
+  state.collar.enabled = false;
+}

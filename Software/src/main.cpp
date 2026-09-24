@@ -1434,12 +1434,7 @@ void displayBluetoothMenu(){
   void ws_failsafe(){
   debugln("websocket failsafe: web outputs off");
   ws_failsafe_armed = false;
-  state.out[0].enabled = false;
-  state.out[1].enabled = false;
-  state.out[2].enabled = false;
-  state.out[3].enabled = false;
-  state.pump.enabled = false;
-  state.collar.enabled = false;
+  outputs_all_off();
   values["toggle_a"] = false;
   values["toggle_b"] = false;
   values["toggle_c"] = false;
@@ -1565,11 +1560,7 @@ void loop() {
   }
 #endif
 
-  // BLE has priority on an output while its level is > 0
-  for (int i = 0; i < 7; i++) state.ble.hold[i] = false;
-  if ((state.ble.map[0].output > 0) && (state.ble.in.vib[0] > 0)) state.ble.hold[state.ble.map[0].output] = true;
-  if ((state.ble.map[1].output > 0) && (state.ble.in.vib[1] > 0)) state.ble.hold[state.ble.map[1].output] = true;
-  state.ble.collarMapped = (state.ble.map[0].output == 6 || state.ble.map[1].output == 6);
+  outputs_arbitrate();
 
   // controls pwm outputs (web / manual), skips outputs held by BLE
   PWM_Output();
