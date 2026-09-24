@@ -1486,12 +1486,12 @@ void displayBluetoothMenu(){
   void disable_Outputs()
 {
   for (int i = 0; i < 4; i++) {
-    if (!state.out[i].enabled && !bt_hold[i + 1]) {
+    if (!state.out[i].enabled && !state.ble.hold[outputId(i)]) {
       state.rt[i].paused = false;
       ledcWrite(pwmOutChannel[i], 0);
     }
   }
-  if (!state.pump.enabled && !bt_hold[5]){
+  if (!state.pump.enabled && !state.ble.hold[5]){
     ledcWrite(pumpOUT, 0);
     state.pump.enabled = false;
   }
@@ -1524,14 +1524,14 @@ void displayBluetoothMenu(){
   for (int i = 0; i < 4; i++) {
     // rising edge of "enabled" (and not held by BLE): start with the On phase
     // instead of the stale timeStarted / paused state of the last run
-    bool active = state.out[i].enabled && !bt_hold[i + 1];
+    bool active = state.out[i].enabled && !state.ble.hold[outputId(i)];
     if (active && !state.rt[i].wasEnabled) {
       state.rt[i].timeStarted = millis();
       state.rt[i].paused = false;
     }
     state.rt[i].wasEnabled = active;
 
-    if (bt_hold[i + 1]) {
+    if (state.ble.hold[outputId(i)]) {
       // driven by BLE
     }
     else if ((state.rt[i].paused == false) && (state.out[i].enabled == true))
@@ -1555,7 +1555,7 @@ void displayBluetoothMenu(){
     }
   }
   // Pump Output 5
-  if (bt_hold[5]) {
+  if (state.ble.hold[5]) {
     // driven by BLE
   }
   else if (state.pump.enabled == true)
@@ -1776,10 +1776,10 @@ void loop() {
 #endif
 
   // BLE has priority on an output while its level is > 0
-  for (int i = 0; i < 7; i++) bt_hold[i] = false;
-  if ((state.ble.map[0].output > 0) && (state.ble.in.vib[0] > 0)) bt_hold[state.ble.map[0].output] = true;
-  if ((state.ble.map[1].output > 0) && (state.ble.in.vib[1] > 0)) bt_hold[state.ble.map[1].output] = true;
-  bt_collar_mapped = (state.ble.map[0].output == 6 || state.ble.map[1].output == 6);
+  for (int i = 0; i < 7; i++) state.ble.hold[i] = false;
+  if ((state.ble.map[0].output > 0) && (state.ble.in.vib[0] > 0)) state.ble.hold[state.ble.map[0].output] = true;
+  if ((state.ble.map[1].output > 0) && (state.ble.in.vib[1] > 0)) state.ble.hold[state.ble.map[1].output] = true;
+  state.ble.collarMapped = (state.ble.map[0].output == 6 || state.ble.map[1].output == 6);
 
   // controls pwm outputs (web / manual), skips outputs held by BLE
   PWM_Output();
@@ -1867,7 +1867,7 @@ void loop() {
   }
 
   // Keep collar awake if enabled
-  if ((currentMillis - state.collar.lastWakeup >= state.collar.keepAwakeMs) && (state.collar.enabled == true || (state.ble.in.connected && bt_collar_mapped))) {
+  if ((currentMillis - state.collar.lastWakeup >= state.collar.keepAwakeMs) && (state.collar.enabled == true || (state.ble.in.connected && state.ble.collarMapped))) {
     debugln("keeping collar awake");
     state.collar.lastWakeup = millis();
     dg.sendCollar(CollarChannel::CH1, CollarMode::Blink, 100);

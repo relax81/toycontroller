@@ -22,6 +22,9 @@ enum OutputId {
   OUT_ID_COUNT   // 7, size of hold[]
 };
 
+// state.out[] index (0-based) -> output id (1-based)
+constexpr int outputId(int i) { return i + 1; }
+
 struct OutputChannel {   // Ch1 .. Ch4
   bool enabled = false;
   int  on  = 0;          // seconds
