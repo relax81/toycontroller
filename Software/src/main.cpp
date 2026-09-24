@@ -1586,6 +1586,16 @@ void displayBluetoothMenu(){
 
 // control pwm outputs in web or manual mode
   void PWM_Output(){
+  // rising edge of "enabled" (and not held by BLE): start with the On phase
+  // instead of the stale timeStarted / paused state of the last run
+  for (int i = 0; i < 4; i++) {
+    bool active = state.out[i].enabled && !bt_hold[i + 1];
+    if (active && !state.rt[i].wasEnabled) {
+      state.rt[i].timeStarted = millis();
+      state.rt[i].paused = false;
+    }
+    state.rt[i].wasEnabled = active;
+  }
   // Output 1
   if (bt_hold[1]) {
     // driven by BLE

@@ -17,11 +17,15 @@ Nur Notizen, kein Code. Bewusst verschobene Punkte aus dem Umbau
 
 ## Ausgangslogik
 
-- **`timeStarted` wird beim Einschalten eines Kanals nicht gesetzt**
+- ~~**`timeStarted` wird beim Einschalten eines Kanals nicht gesetzt**
   (Ch1-4, `PWM_Output()`): Ein Kanal mit Off > 0, der lange nach dem Start
   eingeschaltet wird, pausiert im ersten Durchlauf sofort, holt die
-  Off-Zeit nach und läuft erst dann normal. Fix: beim Einschalten
-  `timeStarted = millis()` und `paused = false` setzen.
+  Off-Zeit nach und läuft erst dann normal.~~ **Erledigt:** `PWM_Output()`
+  erkennt pro Kanal die steigende Flanke von "aktiv" (`enabled` und nicht
+  von BLE gehalten, `PwmRuntime::wasEnabled`) und setzt dann
+  `timeStarted = millis()` und `paused = false`. Der Kanal startet mit der
+  On-Zeit. Gilt auch, wenn BLE einen Kanal wieder freigibt: der Zyklus
+  beginnt dann von vorn mit der On-Phase.
 - Die vier Kanalblöcke in `PWM_Output()` und im Menü sind Kopien und
   sollen später zu Schleifen über `state.out[i]` werden.
 

@@ -20,6 +20,7 @@ struct PumpChannel {
 
 struct PwmRuntime {      // runtime state of PWM_Output(), not user state
   bool paused = false;
+  bool wasEnabled = false; // enabled and not held by BLE in the previous PWM_Output() call
   unsigned long timeStarted = 0;
   unsigned long timeStopped = 0;
 };
