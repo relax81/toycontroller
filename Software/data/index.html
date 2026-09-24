@@ -159,9 +159,9 @@
                             <input type="range" onchange="update_slider(this)" id="slider_n" data-key="collar.strength" min="0" max="100" step="1" value ="0" class="slider">
                         </p>
                         <p class="state">Level: <span id="slider_n_value"></span></p>                           
-                            <input type="button" onclick="update_button(this)" name="Collar Beep" id="click_b" value="Beep" class="button"></button>
-                            <input type="button" onclick="update_button(this)" name="Collar Vibrate" id="click_v" value="Vib" class="button"></button>
-                            <input type="button" onclick="update_button(this)" name="Collar Shock" id="click_s" value="Shock" class="button"></button>
+                            <input type="button" onclick="update_button(this)" name="Collar Beep" id="click_b" data-cmd="collar.beep" value="Beep" class="button"></button>
+                            <input type="button" onclick="update_button(this)" name="Collar Vibrate" id="click_v" data-cmd="collar.vibe" value="Vib" class="button"></button>
+                            <input type="button" onclick="update_button(this)" name="Collar Shock" id="click_s" data-cmd="collar.shock" value="Shock" class="button"></button>
                     </div>
           
                     <!-- <div class="card">

@@ -57,7 +57,11 @@ function update_switch(element){
 }
 
 function update_button(element) {
-    websocket.send(element.id);
+    var cmd = element.getAttribute("data-cmd");
+    if (cmd)
+        send({ t: "cmd", c: cmd });
+    else
+        websocket.send(element.id);
 }
 
 function SetValueToElementChecked(id, value)
