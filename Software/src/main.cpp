@@ -29,10 +29,7 @@
 #include "ESPAsyncWebServer.h"
 #include "SPIFFS.h"
 #include <Arduino_JSON.h>
-#include <BLEDevice.h>
-#include <BLEServer.h>
-#include <BLEUtils.h>
-#include <BLE2902.h>
+#include <NimBLEDevice.h>
 #include "DogCollar3.h"
 
 // software version
@@ -174,9 +171,9 @@ void disable_Outputs();
   AiEsp32RotaryEncoder rotaryEncoder = AiEsp32RotaryEncoder(ROTARY_ENCODER_A_PIN, ROTARY_ENCODER_B_PIN, ROTARY_ENCODER_BUTTON_PIN, ROTARY_ENCODER_VCC_PIN, ROTARY_ENCODER_STEPS);
 
 // Bluetooth start
-  BLEServer* pServer = NULL;
-  BLECharacteristic* pTxCharacteristic = NULL;
-  BLECharacteristic* pRxCharacteristic = NULL;
+  NimBLEServer* pServer = NULL;
+  NimBLECharacteristic* pTxCharacteristic = NULL;
+  NimBLECharacteristic* pRxCharacteristic = NULL;
   // String bleAddress = "C0:42:3D:01:28:34"; // CONFIGURATION: < Use the real device BLE address here.
   String bleAddress = "FF:FF:FF:FF:FF:FF"; // CONFIGURATION: < Use the real device BLE address here.
   bool deviceConnected = false;
@@ -191,18 +188,18 @@ void disable_Outputs();
   #define CHARACTERISTIC_RX_UUID "6e400002-b5a3-f393-e0a9-e50e24dcca9e"
   #define CHARACTERISTIC_TX_UUID "6e400003-b5a3-f393-e0a9-e50e24dcca9e"
   // CONFIGURATION:                           ^ Replace X and Y with values that suit you.
-  class MyServerCallbacks: public BLEServerCallbacks {
-      void onConnect(BLEServer* pServer) {
+  class MyServerCallbacks: public NimBLEServerCallbacks {
+      void onConnect(NimBLEServer* pServer) {
         deviceConnected = true;
-        BLEDevice::startAdvertising();
+        NimBLEDevice::startAdvertising();
       };
 
-      void onDisconnect(BLEServer* pServer) {
+      void onDisconnect(NimBLEServer* pServer) {
         deviceConnected = false;
       }
   };
-  class MySerialCallbacks: public BLECharacteristicCallbacks {
-      void onWrite(BLECharacteristic *pCharacteristic) {
+  class MySerialCallbacks: public NimBLECharacteristicCallbacks {
+      void onWrite(NimBLECharacteristic *pCharacteristic) {
         static uint8_t messageBuf[64];
         assert(pCharacteristic == pRxCharacteristic);
         std::string rxValue = pRxCharacteristic->getValue();
@@ -347,26 +344,25 @@ void disable_Outputs();
     // Bluetooth
     // Create the BLE Device
   debugln("ble init");  
-  BLEDevice::init("LVS-Z001"); // CONFIGURATION: The name doesn't actually matter, The app identifies it by the reported id.
+  NimBLEDevice::init("LVS-Z001"); // CONFIGURATION: The name doesn't actually matter, The app identifies it by the reported id.
   // Create the BLE Server
   debugln("create ble server");
-  pServer = BLEDevice::createServer();
+  pServer = NimBLEDevice::createServer();
   pServer->setCallbacks(new MyServerCallbacks());
   debugln("create ble service");
   // Create the BLE Service
-  BLEService *pService = pServer->createService(SERVICE_UUID);
+  NimBLEService *pService = pServer->createService(SERVICE_UUID);
   debugln("create ble characteristics");
     // Create a BLE Characteristics
   pTxCharacteristic = pService->createCharacteristic(
                       CHARACTERISTIC_TX_UUID,
-                      BLECharacteristic::PROPERTY_NOTIFY
+                      NIMBLE_PROPERTY::NOTIFY
                     );
-  pTxCharacteristic->addDescriptor(new BLE2902());
 
   pRxCharacteristic = pService->createCharacteristic(
                       CHARACTERISTIC_RX_UUID,
-                      BLECharacteristic::PROPERTY_WRITE  |
-                      BLECharacteristic::PROPERTY_WRITE_NR
+                      NIMBLE_PROPERTY::WRITE  |
+                      NIMBLE_PROPERTY::WRITE_NR
                     );
   pRxCharacteristic->setCallbacks(new MySerialCallbacks());
     // Create the BLE Service
@@ -375,11 +371,11 @@ void disable_Outputs();
   pService->start();
   debugln("bt start advertising");
   // Start advertising
-  BLEAdvertising *pAdvertising = BLEDevice::getAdvertising();
+  NimBLEAdvertising *pAdvertising = NimBLEDevice::getAdvertising();
   pAdvertising->addServiceUUID(SERVICE_UUID);
   pAdvertising->setScanResponse(false);
   pAdvertising->setMinPreferred(0x0);  // set value to 0x00 to not advertise this parameter
-  BLEDevice::startAdvertising();
+  NimBLEDevice::startAdvertising();
   debugln("Waiting a client connection to notify...");
   BT_Enabled = true;
   heap_log("ble init");
@@ -392,7 +388,7 @@ void disable_Outputs();
   u8g2.drawStr(15, 20, "Disabling");
   u8g2.drawStr(15, 45, "Bluetooth");
   u8g2.sendBuffer();
-  BLEDevice::deinit(false);
+  NimBLEDevice::deinit(false);
   BT_Enabled = false;
   delay(1000);
 }
