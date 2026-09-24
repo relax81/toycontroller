@@ -10,4 +10,11 @@
 
 void settings_load();   // once in setup(), before the servers start; invalid or missing values -> defaults
 
+// Saving: state_apply() calls settings_mark_dirty() when a stored value really changed. The
+// values are written SETTINGS_SAVE_DELAY_MS after the last change (bundled, spares the flash),
+// only the keys that differ from the NVS. Never called per encoder tick.
+void settings_mark_dirty();
+void settings_update(unsigned long nowMs); // loop(): saves once the delay has passed
+void settings_flush();                     // saves at once if something changed (menu exit, before a restart)
+
 #endif

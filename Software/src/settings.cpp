@@ -4,6 +4,9 @@
 #include "settings.h"
 
 static const char* const NS = "cfg";
+static const unsigned long SETTINGS_SAVE_DELAY_MS = 5000;
+static bool dirty = false;
+static unsigned long lastChangeMs = 0;
 static const uint8_t SETTINGS_VERSION = 1;
 
 // accepted ranges (a stored value outside falls back to the default of that key)
@@ -57,9 +60,56 @@ void settings_load() {
   prefs.end();
 
   state_ui_dirty = false;
+  dirty = false; // loading is not a change
   Serial.printf("[cfg] loaded v%u: V1 out=%d %d-%d, V2 out=%d %d-%d, failsafe %d s, buzzer vol=%d bpm=%d on=%d ms, collar btOnlyChanges=%d\n",
                 ver, state.ble.map[0].output, state.ble.map[0].minPwm, state.ble.map[0].maxPwm,
                 state.ble.map[1].output, state.ble.map[1].minPwm, state.ble.map[1].maxPwm,
                 state.failsafeTimeoutS, state.buzzer.volume, state.buzzer.bpm, state.buzzer.onTimeMs,
                 state.collar.btOnlyChanges ? 1 : 0);
+}
+
+void settings_mark_dirty() {
+  dirty = true;
+  lastChangeMs = millis();
+}
+
+// write one key only if it differs from what the NVS holds
+static int written = 0;
+static void put_u8(Preferences& p, const char* key, uint8_t v) {
+  if (!p.isKey(key) || p.getUChar(key, (uint8_t)~v) != v) { p.putUChar(key, v); written++; }
+}
+static void put_u16(Preferences& p, const char* key, uint16_t v) {
+  if (!p.isKey(key) || p.getUShort(key, (uint16_t)~v) != v) { p.putUShort(key, v); written++; }
+}
+
+static void settings_save() {
+  dirty = false;
+  Preferences prefs;
+  if (!prefs.begin(NS, false)) {
+    Serial.println("[cfg] save failed (NVS)");
+    return;
+  }
+  written = 0;
+  put_u8(prefs, "ver", SETTINGS_VERSION);
+  put_u8(prefs, "b0_out", (uint8_t)state.ble.map[0].output);
+  put_u8(prefs, "b1_out", (uint8_t)state.ble.map[1].output);
+  put_u16(prefs, "b0_min", (uint16_t)state.ble.map[0].minPwm);
+  put_u16(prefs, "b0_max", (uint16_t)state.ble.map[0].maxPwm);
+  put_u16(prefs, "b1_min", (uint16_t)state.ble.map[1].minPwm);
+  put_u16(prefs, "b1_max", (uint16_t)state.ble.map[1].maxPwm);
+  put_u16(prefs, "fs_to", (uint16_t)state.failsafeTimeoutS);
+  put_u8(prefs, "bz_vol", (uint8_t)state.buzzer.volume);
+  put_u8(prefs, "bz_bpm", (uint8_t)state.buzzer.bpm);
+  put_u16(prefs, "bz_on", (uint16_t)state.buzzer.onTimeMs);
+  put_u8(prefs, "co_chg", state.collar.btOnlyChanges ? 1 : 0);
+  prefs.end();
+  Serial.printf("[cfg] saved (%d keys written)\n", written);
+}
+
+void settings_update(unsigned long nowMs) {
+  if (dirty && nowMs - lastChangeMs >= SETTINGS_SAVE_DELAY_MS) settings_save();
+}
+
+void settings_flush() {
+  if (dirty) settings_save();
 }

@@ -1,5 +1,6 @@
 #include <Arduino.h>
 #include "state.h"
+#include "settings.h"
 #include <type_traits>
 
 // The state must be initialized at compile time (no dynamic initializer).
@@ -72,10 +73,18 @@ void state_apply(const Event& e) {
     case EV_PUMP_PWM:        state.pump.pwm = e.val;          state_ui_dirty = true; break;
     case EV_COLLAR_ENABLE:   state.collar.enabled = b;        state_ui_dirty = true; break;
     case EV_COLLAR_STRENGTH: state.collar.strength = e.val;   state_ui_dirty = true; break;
-    case EV_COLLAR_BTONLY:   state.collar.btOnlyChanges = b;  break;
+    case EV_COLLAR_BTONLY:
+      if (state.collar.btOnlyChanges != b) { state.collar.btOnlyChanges = b; settings_mark_dirty(); }
+      break;
     case EV_BUZZ_ENABLE:     state.buzzer.enabled = b;        state_ui_dirty = true; break;
-    case EV_BUZZ_BPM:        state.buzzer.bpm = e.val;        state_ui_dirty = true; break;
-    case EV_BUZZ_VOL:        state.buzzer.volume = e.val;     state_ui_dirty = true; break;
+    case EV_BUZZ_BPM:
+      if (state.buzzer.bpm != e.val) { state.buzzer.bpm = e.val; settings_mark_dirty(); }
+      state_ui_dirty = true;
+      break;
+    case EV_BUZZ_VOL:
+      if (state.buzzer.volume != e.val) { state.buzzer.volume = e.val; settings_mark_dirty(); }
+      state_ui_dirty = true;
+      break;
     case EV_BLE_CONN:
       state.ble.in.connected = b;
       if (!b) { // failsafe: no client, no output
@@ -90,16 +99,20 @@ void state_apply(const Event& e) {
     case EV_BLE_ROT:         state.ble.in.rotation = e.val;   break;
     case EV_BLE_AIR:         state.ble.in.airLevel = e.val;   break;
     case EV_BT_OUT:
-      if (i < 2 && e.val >= 0 && e.val < OUT_ID_COUNT) { state.ble.map[i].output = e.val; bt_clamp(state.ble.map[i]); }
-      break;
     case EV_BT_MIN:
-      if (i < 2) { state.ble.map[i].minPwm = e.val; bt_clamp(state.ble.map[i]); }
-      break;
     case EV_BT_MAX:
-      if (i < 2) { state.ble.map[i].maxPwm = e.val; bt_clamp(state.ble.map[i]); }
+      if (i < 2) {
+        BtMap& m = state.ble.map[i];
+        const BtMap before = m;
+        if (e.type == EV_BT_OUT) { if (e.val >= 0 && e.val < OUT_ID_COUNT) m.output = e.val; }
+        else if (e.type == EV_BT_MIN) m.minPwm = e.val;
+        else m.maxPwm = e.val;
+        bt_clamp(m);
+        if (m.output != before.output || m.minPwm != before.minPwm || m.maxPwm != before.maxPwm) settings_mark_dirty();
+      }
       break;
     case EV_FAILSAFE_TO:
-      if (e.val >= 3 && e.val <= 120) state.failsafeTimeoutS = e.val;
+      if (e.val >= 3 && e.val <= 120 && state.failsafeTimeoutS != e.val) { state.failsafeTimeoutS = e.val; settings_mark_dirty(); }
       break;
     case EV_ALL_OFF:
       outputs_all_off();

@@ -412,6 +412,7 @@ void update_values_ws();
         buttonMenuBluetooth();
         }
       if (buttonLongPressed == true) {      
+        settings_flush();
         current_screen = 0;
         item_selected = 2;
         encoderPosition = 2;
@@ -459,13 +460,14 @@ void update_values_ws();
       }
 
       if (encoderPosition == 0) {
-        state.collar.btOnlyChanges = false;
+        state_set(EV_COLLAR_BTONLY, 0, 0);
         }
         else if (encoderPosition == 1) {
-          state.collar.btOnlyChanges = true;
+          state_set(EV_COLLAR_BTONLY, 0, 1);
         }
 
       if (buttonLongPressed == true) {      
+        settings_flush();
         current_screen = 0;
         item_selected = 4;
         encoderPosition = 4;
@@ -971,10 +973,7 @@ void displayBluetoothMenu(){
       break;
 
       case 10: // 
-      state.ble.map[0].output = encoderPosition;
-      if (state.ble.map[0].output == 6) {
-        state.ble.map[0].maxPwm = 100;
-      }
+      state_set(EV_BT_OUT, 0, encoderPosition); // limits (collar <= 100) are applied by the state
       u8g2.setCursor(40,30);
       u8g2.setDrawColor(drawcolorstate);
       u8g2.drawStr(40, 30, OutputItems[state.ble.map[0].output]);
@@ -993,7 +992,7 @@ void displayBluetoothMenu(){
       break;
 
     case 11: // 
-      state.ble.map[0].minPwm = encoderPosition;
+      state_set(EV_BT_MIN, 0, encoderPosition);
       u8g2.setCursor(48,44);
       u8g2.setDrawColor(drawcolorstate);
       u8g2.print(state.ble.map[0].minPwm); 
@@ -1014,7 +1013,7 @@ void displayBluetoothMenu(){
       break;
 
     case 12: // 
-      state.ble.map[0].maxPwm = encoderPosition;
+      state_set(EV_BT_MAX, 0, encoderPosition);
       u8g2.setCursor(48,58);
       u8g2.setDrawColor(drawcolorstate);
       u8g2.print(state.ble.map[0].maxPwm);
@@ -1028,10 +1027,7 @@ void displayBluetoothMenu(){
       break;
 
     case 20: //
-      state.ble.map[1].output = encoderPosition;
-      if (state.ble.map[1].output == 6) {
-        state.ble.map[1].maxPwm = 100;
-      }
+      state_set(EV_BT_OUT, 1, encoderPosition); // limits (collar <= 100) are applied by the state
       u8g2.setCursor(86,30);
       u8g2.setDrawColor(drawcolorstate);
       u8g2.drawStr(86, 30, OutputItems[state.ble.map[1].output]);
@@ -1046,7 +1042,7 @@ void displayBluetoothMenu(){
       break;
 
     case 21: // 
-      state.ble.map[1].minPwm = encoderPosition;
+      state_set(EV_BT_MIN, 1, encoderPosition);
       u8g2.setCursor(93,44);
       u8g2.setDrawColor(drawcolorstate);
       u8g2.print(state.ble.map[1].minPwm);
@@ -1061,7 +1057,7 @@ void displayBluetoothMenu(){
       break;
 
     case 22: // 
-      state.ble.map[1].maxPwm = encoderPosition;
+      state_set(EV_BT_MAX, 1, encoderPosition);
       u8g2.setCursor(93,58);
       u8g2.setDrawColor(drawcolorstate);
       u8g2.print(state.ble.map[1].maxPwm);
@@ -1408,11 +1404,13 @@ void serial_commands() {
       line[len] = '\0';
       len = 0;
       if (strcmp(line, "reboot") == 0 || strcmp(line, "restart") == 0) {
+        settings_flush();
         Serial.println("[cmd] restarting");
         Serial.flush();
         ESP.restart();
       }
       else if (strcmp(line, "wifi-reset") == 0) {
+        settings_flush();
         wifi_forget();
         Serial.println("[cmd] wifi credentials deleted, restarting");
         Serial.flush();
@@ -1516,6 +1514,8 @@ void loop() {
       update_values_ws();
     }
   }
+
+  settings_update(currentMillis); // debounced NVS save of changed settings
 
   outputs_arbitrate();
 
