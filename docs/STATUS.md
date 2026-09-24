@@ -137,6 +137,30 @@ stellen, `reboot` senden. Boot-Log und `[ledc]`-Diagnose ohne Reset-Knopf.
 - Collar-Klicks (`sendCollar`, blockierend) laufen unverändert aus dem `async_tcp`-Task.
 - Toy-Modell kommt in Block B.
 
+## Block B, Teil 1: JSON-Protokoll für den WebSocket (umgesetzt, Hardware-Test offen)
+
+| Commit | Inhalt |
+|---|---|
+| `9d301a5` | `protocol.h/.cpp`: Schlüsseltabelle, `get`/`set`/`ack`/`err`/`state`, Dispatch am führenden `{` |
+| `833c906` | alte `toggle_*`/`slider_*`/`buzzer?`-Nachrichten laufen über dieselbe Tabelle (Bereichsprüfung, Verwerfen mit Log) |
+| `a8ce607` | `patch` mit Sequenznummer `n` für JSON-Clients, flaches Alt-JSON nur noch für alte Clients |
+| `3189172` | `cmd` (`collar.beep/vibe/shock`, `all_off`) |
+| `0b0e714`, `5bf20a8`, `7693f27` | `data/`: `data-key`/`data-cmd`, `script.js` empfängt `state`/`patch`, sendet `set`/`cmd` |
+
+- Protokoll und Beispiele stehen im Kopf von `protocol.h`. Schlüssel: `ch1..4.{en,on,off,pwm}`,
+  `pump.{en,pwm}`, `collar.{en,strength,btonly}`, `buzzer.{en,bpm,vol}`,
+  `ble.map0/1.{out,min,max}`, `sys.failsafe` (rw), `ble.connected`, `ble.hold.*` (nur lesen).
+- Ein Client wird durch sein erstes `get` zum JSON-Client (Slot pro Client, max. 8). `state` und
+  `patch` entstehen nur in `loop()` (`protocol_loop()` nach `outputs_arbitrate()`), `n` zählt
+  pro Patch hoch; Lücke im Client: `get` erneut. Ein Client mit voller Queue bekommt wieder
+  einen vollen `state`.
+- `set` mit mehreren Schlüsseln: gültige werden angewendet, ungültige kommen als Liste in
+  einem `err` (`unknown`, `readonly`, `type`, `range` mit `min`/`max`). `ack` heißt eingereiht,
+  der tatsächliche Wert kommt per `patch` (z. B. geklemmtes `ble.map*.max`).
+- Alte Nachrichten (`id?wert`, `click_*`, `getValues`) funktionieren weiter. Die Altpfade werden
+  erst nach dem Hardware-Test in einem eigenen Commit entfernt.
+- `data/` ändert sich: dafür `uploadfs` (getrennt von der Firmware, nur auf Zuruf mit COM5).
+
 ## Weitere Ideen (nicht begonnen)
 
 - Kanalfälle im Manuell-Menü tabellengetrieben machen.
