@@ -11,7 +11,7 @@
 // NOT verified against a real capture: the advertised names, the firmware number "40" and the
 // use of the 2nd generation UUID for all models. "Dolce" is the identity used so far ("J:40:...").
 
-#define TOY_MODEL_COUNT 7
+#define TOY_MODEL_COUNT 6
 
 struct ToyModel {
   const char* label;    // shown in the web UI (same order as the options in index.html)
@@ -21,7 +21,9 @@ struct ToyModel {
   const char* svc;      // service UUID
   const char* tx;       // characteristic the app writes to
   const char* rx;       // characteristic the toy notifies on
-  uint8_t vibChannels;  // vibration channels the app can address (1 = only V1, V2 stays 0)
+  uint8_t vibChannels;  // vibration channels: 2 = Vibrate1 + Vibrate2, 1 = Vibrate only
+  char    extra;        // extra function that uses the V2 slot when there is only one vibration channel:
+                        // 'R' = Rotate (0-20), 0 = none
 };
 
 extern const ToyModel TOY_MODELS[TOY_MODEL_COUNT];

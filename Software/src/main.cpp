@@ -90,9 +90,11 @@ void update_values_ws();
   // BLE callbacks run in the NimBLE task and must not write the state: they queue events.
   // bleVib[] is the last vibration pair queued by this task (both values travel in one
   // event, so V1/V2 are always applied together).
+  // V2 is the second vibration channel (Dolce, Edge) or, for Nora, the Rotate value
+  // (toy_models.h, field "extra"); for the other models it stays 0.
   static int bleVib[2] = {0, 0};
+  static const ToyModel& bleToy() { return TOY_MODELS[state.ble.toyModel]; }
   static void ble_queue_vib(int v1, int v2) {
-    if (TOY_MODELS[state.ble.toyModel].vibChannels < 2) v2 = 0; // one-channel model: V2 stays unused
     bleVib[0] = v1;
     bleVib[1] = v2;
     state_set(EV_BLE_VIB, 0, (int32_t)((uint32_t)(v1 & 0xFFFF) | ((uint32_t)(v2 & 0xFFFF) << 16)));
@@ -153,7 +155,7 @@ void update_values_ws();
           pTxCharacteristic->notify();
         } else if (rxValue.rfind("Vibrate:", 0) == 0) {
           int v = std::atoi(rxValue.substr(8).c_str());
-          ble_queue_vib(v, v);
+          ble_queue_vib(v, bleToy().vibChannels >= 2 ? v : bleVib[1]); // "Vibrate:" drives both vibration channels
           debug("V:");
           debugln(v);
           memmove(messageBuf, "OK;", 3);
@@ -162,6 +164,7 @@ void update_values_ws();
         } else if (rxValue.rfind("Rotate:", 0) == 0) {
           int r = std::atoi(rxValue.substr(7).c_str());
           state_set(EV_BLE_ROT, 0, r);
+          if (bleToy().extra == 'R') ble_queue_vib(bleVib[0], r < 0 ? 0 : (r > 20 ? 20 : r)); // Nora: Rotate -> V2
           debug("R:");
           debugln(r);
           memmove(messageBuf, "OK;", 3);
@@ -177,7 +180,7 @@ void update_values_ws();
           pTxCharacteristic->notify();
         } else if (rxValue.rfind("Vibrate2:", 0) == 0) {
           int v = std::atoi(rxValue.substr(9).c_str());
-          ble_queue_vib(bleVib[0], v);
+          if (bleToy().vibChannels >= 2) ble_queue_vib(bleVib[0], v); // one-channel models ignore Vibrate2
           debug("V2:");
           debugln(v);
           memmove(messageBuf, "OK;", 3);

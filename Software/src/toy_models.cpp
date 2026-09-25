@@ -10,7 +10,6 @@ const ToyModel TOY_MODELS[TOY_MODEL_COUNT] = {
   { "Lush", "LVS-S001", "S", "40", SVC, WR, NT, 1 },
   { "Hush", "LVS-Z001", "Z", "40", SVC, WR, NT, 1 },
   { "Domi", "LVS-W001", "W", "40", SVC, WR, NT, 1 },
-  { "Nora", "LVS-A001", "C", "40", SVC, WR, NT, 1 },
-  { "Max", "LVS-B001", "B", "40", SVC, WR, NT, 1 },
+  { "Nora", "LVS-A001", "C", "40", SVC, WR, NT, 1, 'R' },
   { "Edge", "LVS-P001", "P", "40", SVC, WR, NT, 2 },
 };

@@ -310,21 +310,20 @@ function v2SetElement(el, value)
 
 // Toy model info (same order as the options of #bt_toy and TOY_MODELS in the firmware)
 var TOY_INFO = [
-    "2 Kan\u00e4le: Vibrate 1 + Vibrate 2 (Kennung J, wie bisher)",
+    "2 Kan\u00e4le: V1 = Vibrate 1, V2 = Vibrate 2 (Kennung J, wie bisher)",
     "1 Kanal: Vibrate",
     "1 Kanal: Vibrate",
     "1 Kanal: Vibrate (Zusatzbefehle wie GetLevel noch nicht umgesetzt)",
-    "1 Kanal: Vibrate. Rotate wird empfangen, ist aber noch keinem Ausgang zugeordnet",
-    "1 Kanal: Vibrate. Air wird empfangen, ist aber noch keinem Ausgang zugeordnet",
-    "2 Kan\u00e4le: Vibrate 1 + Vibrate 2"
+    "2 Kan\u00e4le: V1 = Vibrate, V2 = Rotate (0-20)",
+    "2 Kan\u00e4le: V1 = Vibrate 1, V2 = Vibrate 2"
 ];
-// vibration channels per model (only V1 is shown and used with 1)
-var TOY_VIB = [2, 1, 1, 1, 1, 1, 2];
+// name of the second channel per model (null = one channel, V2 is hidden)
+var TOY_V2 = ["Vibrate 2", null, null, null, "Rotate", "Vibrate 2"];
 function toyVibChannels()
 {
     var sel = document.getElementById("bt_toy");
-    var v = sel ? TOY_VIB[sel.value] : 2;
-    return v === undefined ? 2 : v;
+    var v2 = sel ? TOY_V2[sel.value] : "Vibrate 2";
+    return v2 === null ? 1 : 2;
 }
 function toyInfoUpdate()
 {
@@ -336,6 +335,9 @@ function toyInfoUpdate()
     var ch1 = document.getElementById("bt_channel1");
     if (ch1)
         ch1.hidden = toyVibChannels() < 2;
+    var t2 = document.getElementById("bt_v2_title");
+    if (t2 && TOY_V2[sel.value])
+        t2.textContent = "V2 (" + TOY_V2[sel.value] + ")";
     btCardUpdate();
 }
 
