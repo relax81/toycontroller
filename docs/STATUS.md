@@ -1,9 +1,9 @@
 # Projektstand ToyController (Arbeitsverlauf, Branch `main`)
 
-Stand: nach Commit `594be56` auf `main`. Die früheren Feature-Branches (`dev-webserver`, `dev-wifi-ble-parallel`)
-sind in `main` gemergt und gelöscht; die Abschnitte unten sind der Arbeitsverlauf und behalten ihre alten Commit-Hashes.
+Stand: nach Commit `5546bca` auf `main`. Die früheren Feature-Branches (`dev-webserver`, `dev-wifi-ble-parallel`,
+`feature/http-api`) sind in `main` gemergt und gelöscht; die Abschnitte unten sind der Arbeitsverlauf und behalten ihre alten Commit-Hashes.
 Neu seit dem Merge: Zeiten in Zehntelsekunden, Pumpen-Timer, Web-Layout, Toy-Modellauswahl und Metronom als BT-Ziel
-(Abschnitt "Seit dem Merge nach `main`"). Zum Weitermachen: erst diese Datei und `docs/TODO-notes.md` lesen.
+(Abschnitt "Seit dem Merge nach `main`") und die HTTP-API (Abschnitt "HTTP-API", Referenz `docs/API.md`). Zum Weitermachen: erst diese Datei und `docs/TODO-notes.md` lesen.
 
 ## Arbeitsregeln (kurz)
 
@@ -318,7 +318,7 @@ Wert > 0, unabhängig vom Ein/Aus-Schalter, mit der Lautstärke aus dem Web. Sol
 Level-0-Latch (`webSettings` für Id 7). OLED zeigt "BPM". Getestet nur im Browser (Attrappe) und im Code, ein Test mit
 der App am Gerät steht aus.
 
-## HTTP-API (Branch `feature/http-api`, umgesetzt, auf der Hardware getestet 2026-09-26)
+## HTTP-API (2026-09-26 per Fast-Forward nach `main` gemergt, auf der Hardware getestet)
 
 Referenz für Nutzer und Bots: `docs/API.md`. Kein Schutz, kein Schlüssel, CORS offen; API-Aufrufe zählen nicht für
 den Web-Failsafe.
@@ -349,7 +349,7 @@ den Web-Failsafe.
   kleinster Wert unter Last (4 Threads parallel) 111 712 B. Eine Anfrage mit neuer Verbindung dauert etwa 90-100 ms (WLAN, TCP).
 - **Nicht auf der Hardware getestet:** die `held`-Meldung bei aktivem BLE-Hold (braucht einen BLE-Client mit Level > 0) und ein
   `ble.toy` mit neuem Wert samt Neustart.
-- Merge nach `main` erst nach ausdrücklicher Freigabe.
+- Gemergt: Commits `1b4cd0c` bis `5546bca` (Fast-Forward, Branch gelöscht).
 
 ## Weitere Ideen (nicht begonnen)
 
