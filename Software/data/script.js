@@ -31,11 +31,28 @@ function onClose(event) {
     setTimeout(initWebSocket, 2000);
 }
 
+// Time sliders (data-scale="time"): the server value is in tenths of a second (0 - 900).
+// Slider position 0-20 = 0.0-2.0 s in 0.1 s steps, 21-108 = 3-90 s in 1 s steps.
+function posToTenths(p) { p = Number(p); return p <= 20 ? p : (p - 18) * 10; }
+function tenthsToPos(t) { t = Number(t); return t <= 20 ? t : Math.round(t / 10) + 18; }
+function fmtTenths(t) { return (Number(t) / 10).toFixed(1); }
+function isTimeSlider(el) { return el.getAttribute && el.getAttribute("data-scale") === "time"; }
+
+// +/- buttons next to a time slider: one position (0.1 s up to 2 s, 1 s above)
+function time_step(id, dir) {
+    var el = document.getElementById(id);
+    var p = Math.min(Number(el.max), Math.max(Number(el.min), Number(el.value) + dir));
+    el.value = p;
+    update_slider(el);
+}
+
 function update_slider(element) {
     var value = document.getElementById(element.id).value;
     var label = document.getElementById(element.id + "_value");
+    if (isTimeSlider(element))
+        value = posToTenths(value);
     if (label)
-        label.innerHTML = value;
+        label.innerHTML = isTimeSlider(element) ? fmtTenths(value) : value;
     var key = element.getAttribute("data-key");
     if (key)
     {
@@ -283,10 +300,11 @@ function v2SetElement(el, value)
     }
     else
     {
-        el.value = value;
+        var time = isTimeSlider(el);
+        el.value = time ? tenthsToPos(value) : value;
         var label = document.getElementById(el.id + "_value");
         if (label)
-            label.innerHTML = value;
+            label.innerHTML = time ? fmtTenths(value) : value;
     }
 }
 
@@ -323,7 +341,8 @@ function v2Verify(el)
         var key = el.getAttribute('data-key');
         if (el === v2Editing || !v2State.hasState || v2State.store[key] === undefined)
             return;
-        if (String(v2State.store[key]) !== String(el.value))
+        if (isTimeSlider(el) ? tenthsToPos(v2State.store[key]) !== Number(el.value)
+                             : String(v2State.store[key]) !== String(el.value))
             v2SetElement(el, v2State.store[key]);
     }, 800);
 }

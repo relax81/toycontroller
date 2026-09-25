@@ -79,7 +79,7 @@ void debug_ledc() {
        int mapped_PWM;
        mapped_PWM = map(state.out[i].pwm, 0, 100, 0, 255);
        ledcWrite(pwmOutChannel[i], mapped_PWM);
-       if ((state.out[i].off > 0) && (millis() - state.rt[i].timeStarted >= state.out[i].on * 1000)) {
+       if ((state.out[i].off > 0) && (millis() - state.rt[i].timeStarted >= state.out[i].on * 100)) {
         state.rt[i].paused = true;
         state.rt[i].timeStopped = millis();
       }
@@ -87,7 +87,7 @@ void debug_ledc() {
     else if ((state.rt[i].paused == true) && (state.out[i].enabled == true))
     {
       ledcWrite(pwmOutChannel[i], 0);
-      if (millis() - state.rt[i].timeStopped >= state.out[i].off * 1000)
+      if (millis() - state.rt[i].timeStopped >= state.out[i].off * 100)
       {
         state.rt[i].paused = false;
         state.rt[i].timeStarted = millis();

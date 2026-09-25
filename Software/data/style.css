@@ -300,3 +300,27 @@ input:checked + .slider2:before {
     font-size: .95rem;
     color: #777;
   }
+
+
+/* compact desktop layout: all tiles in one row when there is room */
+.content { padding: 16px; }
+.card-grid {
+  max-width: 1600px;
+  grid-gap: 1rem;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+}
+.card { padding: 6px 10px 8px; }
+.card p { margin: 6px 0; }
+.card-title { font-size: 1rem; }
+.state { font-size: 1rem; }
+.slider { height: 12px; }
+.slider::-webkit-slider-thumb { width: 24px; height: 24px; }
+.slider::-moz-range-thumb { width: 24px; height: 24px; }
+.button { padding: 8px 10px; margin-bottom: 8px; font-size: 15px; }
+.step {
+  width: 28px; height: 28px; padding: 0;
+  border: none; border-radius: 6px;
+  background: #13a191; color: white;
+  font-size: 18px; font-weight: bold; line-height: 1; cursor: pointer;
+}
+.step:active { transform: scale(0.9); }

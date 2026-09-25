@@ -14,106 +14,74 @@
     </div>
     <div class="content">
         <div class="card-grid">
-            <!-- First Row -->
             <div class="card" data-hold="ble.hold.ch1">
-            <p class="card-title">Ch1</p>
-            <p class="hold-hint">Von Bluetooth gehalten. Eine &Auml;nderung hier beendet die Sperre bei Level 0.</p>
-            <!-- Rounded switch -->
-            <label class="switch2"> 
-                <input type="checkbox" onclick="update_switch(this)" id="toggle_a" data-key="ch1.en"> 
-                <span class="slider2 round"></span>
-            </label>
-                <p class="card-title">Ch1 On Time</p>
-                <p class="switch">
-                    <input type="range" onchange="update_slider(this)" id="slider_a" data-key="ch1.on" min="0" max="100" step="1" value ="0" class="slider">
-                </p>
-                <p class="state">On Time: <span id="slider_a_value"></span> seconds</p>
-                <p class="card-title">Ch1 Off Time</p>
-                <p class="switch">
-                    <input type="range" onchange="update_slider(this)" id="slider_b" data-key="ch1.off" min="0" max="100" step="1" value ="0" class="slider">
-                </p>
-                <p class="state">Off Time: <span id="slider_b_value"></span> seconds</p>
+                <p class="card-title">Ch1</p>
+                <p class="hold-hint">Von Bluetooth gehalten. Eine &Auml;nderung hier beendet die Sperre bei Level 0.</p>
+                <label class="switch2">
+                    <input type="checkbox" onclick="update_switch(this)" id="toggle_a" data-key="ch1.en">
+                    <span class="slider2 round"></span>
+                </label>
+                <p class="card-title">Ch1 On</p>
+                <p class="switch"><input type="range" onchange="update_slider(this)" id="slider_a" data-key="ch1.on" data-scale="time" min="0" max="108" step="1" value="0" class="slider"></p>
+                <p class="state"><button type="button" class="step" onclick="time_step('slider_a',-1)">&minus;</button> <span id="slider_a_value">0.0</span> s <button type="button" class="step" onclick="time_step('slider_a',1)">+</button></p>
+                <p class="card-title">Ch1 Off</p>
+                <p class="switch"><input type="range" onchange="update_slider(this)" id="slider_b" data-key="ch1.off" data-scale="time" min="0" max="108" step="1" value="0" class="slider"></p>
+                <p class="state"><button type="button" class="step" onclick="time_step('slider_b',-1)">&minus;</button> <span id="slider_b_value">0.0</span> s <button type="button" class="step" onclick="time_step('slider_b',1)">+</button></p>
                 <p class="card-title">Ch1 Power</p>
-                <p class="switch">
-                    <input type="range" onchange="update_slider(this)" id="slider_c" data-key="ch1.pwm" min="0" max="100" step="1" value ="0" class="slider">
-                </p>
+                <p class="switch"><input type="range" onchange="update_slider(this)" id="slider_c" data-key="ch1.pwm" min="0" max="100" step="1" value="0" class="slider"></p>
                 <p class="state">Power: <span id="slider_c_value"></span></p>
             </div>
-            <!-- Second Row -->
             <div class="card" data-hold="ble.hold.ch2">
                 <p class="card-title">Ch2</p>
                 <p class="hold-hint">Von Bluetooth gehalten. Eine &Auml;nderung hier beendet die Sperre bei Level 0.</p>
-                <!-- Rounded switch -->
                 <label class="switch2">
                     <input type="checkbox" onclick="update_switch(this)" id="toggle_b" data-key="ch2.en">
                     <span class="slider2 round"></span>
                 </label>
-                    <p class="card-title">Ch2 On Time</p>
-                    <p class="switch">
-                        <input type="range" onchange="update_slider(this)" id="slider_d" data-key="ch2.on" min="0" max="100" step="1" value ="0" class="slider">
-                    </p>
-                    <p class="state">On Time: <span id="slider_d_value"></span> seconds</p>
-                    <p class="card-title">Ch2 Off Time</p>
-                    <p class="switch">
-                        <input type="range" onchange="update_slider(this)" id="slider_e" data-key="ch2.off" min="0" max="100" step="1" value ="0" class="slider">
-                    </p>
-                    <p class="state">Off Time: <span id="slider_e_value"></span> seconds</p>
-                    <p class="card-title">Ch2 Power</p>
-                    <p class="switch">
-                        <input type="range" onchange="update_slider(this)" id="slider_f" data-key="ch2.pwm" min="0" max="100" step="1" value ="0" class="slider">
-                    </p>
-                    <p class="state">Power: <span id="slider_f_value"></span></p>
-                </div>
-                <!-- Third Row -->
-                <div class="card" data-hold="ble.hold.ch3">
-                    <p class="card-title">Ch3</p>
-                    <p class="hold-hint">Von Bluetooth gehalten. Eine &Auml;nderung hier beendet die Sperre bei Level 0.</p>
-                    <!-- Rounded switch -->
-                    <label class="switch2">
-                        <input type="checkbox" onclick="update_switch(this)" id="toggle_c" data-key="ch3.en">
-                        <span class="slider2 round"></span>
-                    </label>
-                        <p class="card-title">Ch3 On Time</p>
-                        <p class="switch">
-                            <input type="range" onchange="update_slider(this)" id="slider_g" data-key="ch3.on" min="0" max="100" step="1" value ="0" class="slider">
-                        </p>
-                        <p class="state">On Time: <span id="slider_g_value"></span> seconds</p>
-                        <p class="card-title">Ch3 Off Time</p>
-                        <p class="switch">
-                            <input type="range" onchange="update_slider(this)" id="slider_h" data-key="ch3.off" min="0" max="100" step="1" value ="0" class="slider">
-                        </p>
-                        <p class="state">Off Time: <span id="slider_h_value"></span> seconds</p>
-                        <p class="card-title">Ch3 Power</p>
-                        <p class="switch">
-                            <input type="range" onchange="update_slider(this)" id="slider_i" data-key="ch3.pwm" min="0" max="100" step="1" value ="0" class="slider">
-                        </p>
-                        <p class="state">Power: <span id="slider_i_value"></span></p>
-                    </div>
-                <!-- Fourth Row -->
-                <div class="card" data-hold="ble.hold.ch4">
-                    <p class="card-title">Ch4</p>
-                    <p class="hold-hint">Von Bluetooth gehalten. Eine &Auml;nderung hier beendet die Sperre bei Level 0.</p>
-                    <!-- Rounded switch -->
-                    <label class="switch2">
-                        <input type="checkbox" onclick="update_switch(this)" id="toggle_d" data-key="ch4.en">
-                        <span class="slider2 round"></span>
-                    </label>
-                        <p class="card-title">Ch4 On Time</p>
-                        <p class="switch">
-                            <input type="range" onchange="update_slider(this)" id="slider_j" data-key="ch4.on" min="0" max="100" step="1" value ="0" class="slider">
-                        </p>
-                        <p class="state">On Time: <span id="slider_j_value"></span> seconds</p>
-                        <p class="card-title">Ch4 Off Time</p>
-                        <p class="switch">
-                            <input type="range" onchange="update_slider(this)" id="slider_k" data-key="ch4.off" min="0" max="100" step="1" value ="0" class="slider">
-                        </p>
-                        <p class="state">Off Time: <span id="slider_k_value"></span> seconds</p>
-                        <p class="card-title">Ch4 Power</p>
-                        <p class="switch">
-                            <input type="range" onchange="update_slider(this)" id="slider_l" data-key="ch4.pwm" min="0" max="100" step="1" value ="0" class="slider">
-                        </p>
-                        <p class="state">Power: <span id="slider_l_value"></span></p>
-                    </div>
+                <p class="card-title">Ch2 On</p>
+                <p class="switch"><input type="range" onchange="update_slider(this)" id="slider_d" data-key="ch2.on" data-scale="time" min="0" max="108" step="1" value="0" class="slider"></p>
+                <p class="state"><button type="button" class="step" onclick="time_step('slider_d',-1)">&minus;</button> <span id="slider_d_value">0.0</span> s <button type="button" class="step" onclick="time_step('slider_d',1)">+</button></p>
+                <p class="card-title">Ch2 Off</p>
+                <p class="switch"><input type="range" onchange="update_slider(this)" id="slider_e" data-key="ch2.off" data-scale="time" min="0" max="108" step="1" value="0" class="slider"></p>
+                <p class="state"><button type="button" class="step" onclick="time_step('slider_e',-1)">&minus;</button> <span id="slider_e_value">0.0</span> s <button type="button" class="step" onclick="time_step('slider_e',1)">+</button></p>
+                <p class="card-title">Ch2 Power</p>
+                <p class="switch"><input type="range" onchange="update_slider(this)" id="slider_f" data-key="ch2.pwm" min="0" max="100" step="1" value="0" class="slider"></p>
+                <p class="state">Power: <span id="slider_f_value"></span></p>
+            </div>
+            <div class="card" data-hold="ble.hold.ch3">
+                <p class="card-title">Ch3</p>
+                <p class="hold-hint">Von Bluetooth gehalten. Eine &Auml;nderung hier beendet die Sperre bei Level 0.</p>
+                <label class="switch2">
+                    <input type="checkbox" onclick="update_switch(this)" id="toggle_c" data-key="ch3.en">
+                    <span class="slider2 round"></span>
+                </label>
+                <p class="card-title">Ch3 On</p>
+                <p class="switch"><input type="range" onchange="update_slider(this)" id="slider_g" data-key="ch3.on" data-scale="time" min="0" max="108" step="1" value="0" class="slider"></p>
+                <p class="state"><button type="button" class="step" onclick="time_step('slider_g',-1)">&minus;</button> <span id="slider_g_value">0.0</span> s <button type="button" class="step" onclick="time_step('slider_g',1)">+</button></p>
+                <p class="card-title">Ch3 Off</p>
+                <p class="switch"><input type="range" onchange="update_slider(this)" id="slider_h" data-key="ch3.off" data-scale="time" min="0" max="108" step="1" value="0" class="slider"></p>
+                <p class="state"><button type="button" class="step" onclick="time_step('slider_h',-1)">&minus;</button> <span id="slider_h_value">0.0</span> s <button type="button" class="step" onclick="time_step('slider_h',1)">+</button></p>
+                <p class="card-title">Ch3 Power</p>
+                <p class="switch"><input type="range" onchange="update_slider(this)" id="slider_i" data-key="ch3.pwm" min="0" max="100" step="1" value="0" class="slider"></p>
+                <p class="state">Power: <span id="slider_i_value"></span></p>
+            </div>
+            <div class="card" data-hold="ble.hold.ch4">
+                <p class="card-title">Ch4</p>
+                <p class="hold-hint">Von Bluetooth gehalten. Eine &Auml;nderung hier beendet die Sperre bei Level 0.</p>
+                <label class="switch2">
+                    <input type="checkbox" onclick="update_switch(this)" id="toggle_d" data-key="ch4.en">
+                    <span class="slider2 round"></span>
+                </label>
+                <p class="card-title">Ch4 On</p>
+                <p class="switch"><input type="range" onchange="update_slider(this)" id="slider_j" data-key="ch4.on" data-scale="time" min="0" max="108" step="1" value="0" class="slider"></p>
+                <p class="state"><button type="button" class="step" onclick="time_step('slider_j',-1)">&minus;</button> <span id="slider_j_value">0.0</span> s <button type="button" class="step" onclick="time_step('slider_j',1)">+</button></p>
+                <p class="card-title">Ch4 Off</p>
+                <p class="switch"><input type="range" onchange="update_slider(this)" id="slider_k" data-key="ch4.off" data-scale="time" min="0" max="108" step="1" value="0" class="slider"></p>
+                <p class="state"><button type="button" class="step" onclick="time_step('slider_k',-1)">&minus;</button> <span id="slider_k_value">0.0</span> s <button type="button" class="step" onclick="time_step('slider_k',1)">+</button></p>
+                <p class="card-title">Ch4 Power</p>
+                <p class="switch"><input type="range" onchange="update_slider(this)" id="slider_l" data-key="ch4.pwm" min="0" max="100" step="1" value="0" class="slider"></p>
+                <p class="state">Power: <span id="slider_l_value"></span></p>
+            </div>
 
                     <div class="card" data-hold="ble.hold.pump">
                         <p class="card-title">Pump</p>

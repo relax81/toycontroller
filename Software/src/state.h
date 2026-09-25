@@ -27,8 +27,8 @@ constexpr int outputId(int i) { return i + 1; }
 
 struct OutputChannel {   // Ch1 .. Ch4
   bool enabled = false;
-  int  on  = 0;          // seconds
-  int  off = 0;          // seconds
+  int  on  = 0;          // tenths of a second (0 - 900 = 0 - 90 s)
+  int  off = 0;          // tenths of a second (0 - 900 = 0 - 90 s)
   int  pwm = 0;          // 0 - 100
 };
 

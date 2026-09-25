@@ -27,8 +27,8 @@ struct KeyDef {
 
 #define CHANNEL(n, i) \
   RW_B("ch" #n ".en",  EV_OUT_ENABLE, i, &state.out[i].enabled), \
-  RW_I("ch" #n ".on",  EV_OUT_ON,  i, 0, 100, &state.out[i].on), \
-  RW_I("ch" #n ".off", EV_OUT_OFF, i, 0, 100, &state.out[i].off), \
+  RW_I("ch" #n ".on",  EV_OUT_ON,  i, 0, 900, &state.out[i].on), \
+  RW_I("ch" #n ".off", EV_OUT_OFF, i, 0, 900, &state.out[i].off), \
   RW_I("ch" #n ".pwm", EV_OUT_PWM, i, 0, 100, &state.out[i].pwm)
 
 #define BLEMAP(k) \

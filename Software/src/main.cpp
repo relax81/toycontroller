@@ -563,22 +563,22 @@ void update_values_ws();
 
   // 2nd line  
   u8g2.setCursor(1,37);
-  u8g2.print(state.out[0].on);
+  u8g2.print(state.out[0].on / 10.0, 1);
   u8g2.setCursor(36,37);
-  u8g2.print(state.out[1].on);
+  u8g2.print(state.out[1].on / 10.0, 1);
   u8g2.setCursor(69,37);
-  u8g2.print(state.out[2].on);
+  u8g2.print(state.out[2].on / 10.0, 1);
   u8g2.setCursor(102,37);
-  u8g2.print(state.out[3].on);
+  u8g2.print(state.out[3].on / 10.0, 1);
   // 3rd line
   u8g2.setCursor(1, 49);
-  u8g2.print(state.out[0].off);
+  u8g2.print(state.out[0].off / 10.0, 1);
   u8g2.setCursor(36,49);
-  u8g2.print(state.out[1].off);
+  u8g2.print(state.out[1].off / 10.0, 1);
   u8g2.setCursor(69,49);
-  u8g2.print(state.out[2].off);
+  u8g2.print(state.out[2].off / 10.0, 1);
   u8g2.setCursor(102,49);
-  u8g2.print(state.out[3].off);
+  u8g2.print(state.out[3].off / 10.0, 1);
   // 4th line
   u8g2.setCursor(1, 61);
   u8g2.print(state.out[0].pwm);
@@ -661,35 +661,35 @@ void update_values_ws();
       if (buttonPressed == true) {
           state_ui_dirty = true; // the loop sends the state to the web clients
           buttonPressed = false;
-          rotaryEncoder.setBoundaries(0, 100, false);
-          rotaryEncoder.setEncoderValue(state.out[0].on);
-          encoderPosition = state.out[0].on;
+          rotaryEncoder.setBoundaries(0, 90, false);
+          rotaryEncoder.setEncoderValue(state.out[0].on / 10);
+          encoderPosition = state.out[0].on / 10;
           manualMenuSelect++;
           }
       break;
 
     case 11: // 
-      rotaryEncoder.setBoundaries(0, 100, false);
-      state.out[0].on = encoderPosition;
+      rotaryEncoder.setBoundaries(0, 90, false);
+      state.out[0].on = encoderPosition * 10;
       u8g2.setCursor(1,37);
       u8g2.setDrawColor(drawcolorstate);
-      u8g2.print(state.out[0].on);  
+      u8g2.print(state.out[0].on / 10.0, 1);  
       u8g2.setDrawColor(1);
       if (buttonPressed == true) {
           state_ui_dirty = true; // the loop sends the state to the web clients
           buttonPressed = false;
-          rotaryEncoder.setEncoderValue(state.out[0].off);
-          encoderPosition = state.out[0].off;
+          rotaryEncoder.setEncoderValue(state.out[0].off / 10);
+          encoderPosition = state.out[0].off / 10;
           manualMenuSelect++;
           }
       break;
 
     case 12: // 
-      rotaryEncoder.setBoundaries(0, 100, false); 
-      state.out[0].off = encoderPosition;
+      rotaryEncoder.setBoundaries(0, 90, false); 
+      state.out[0].off = encoderPosition * 10;
       u8g2.setCursor(1,49);
       u8g2.setDrawColor(drawcolorstate);
-      u8g2.print(state.out[0].off);
+      u8g2.print(state.out[0].off / 10.0, 1);
       u8g2.setDrawColor(1);
       if (buttonPressed == true) {
           state_ui_dirty = true; // the loop sends the state to the web clients
@@ -726,35 +726,35 @@ void update_values_ws();
       if (buttonPressed == true) {
           state_ui_dirty = true; // the loop sends the state to the web clients
           buttonPressed = false;
-          rotaryEncoder.setBoundaries(0, 100, false);
-          rotaryEncoder.setEncoderValue(state.out[1].on);
-          encoderPosition = state.out[1].on;
+          rotaryEncoder.setBoundaries(0, 90, false);
+          rotaryEncoder.setEncoderValue(state.out[1].on / 10);
+          encoderPosition = state.out[1].on / 10;
           manualMenuSelect++;
           }
       break;
 
     case 21: // 
-      rotaryEncoder.setBoundaries(0, 100, false); 
-      state.out[1].on = encoderPosition;
+      rotaryEncoder.setBoundaries(0, 90, false); 
+      state.out[1].on = encoderPosition * 10;
       u8g2.setCursor(36,37);
       u8g2.setDrawColor(drawcolorstate);
-      u8g2.print(state.out[1].on);
+      u8g2.print(state.out[1].on / 10.0, 1);
       u8g2.setDrawColor(1);
       if (buttonPressed == true) {
           state_ui_dirty = true; // the loop sends the state to the web clients
           buttonPressed = false;
-          rotaryEncoder.setEncoderValue(state.out[1].off);
-          encoderPosition = state.out[1].off;
+          rotaryEncoder.setEncoderValue(state.out[1].off / 10);
+          encoderPosition = state.out[1].off / 10;
           manualMenuSelect++;
           }
       break;
 
     case 22: // 
-      rotaryEncoder.setBoundaries(0, 100, false); 
-      state.out[1].off = encoderPosition;
+      rotaryEncoder.setBoundaries(0, 90, false); 
+      state.out[1].off = encoderPosition * 10;
       u8g2.setCursor(36,49);
       u8g2.setDrawColor(drawcolorstate);
-      u8g2.print(state.out[1].off);
+      u8g2.print(state.out[1].off / 10.0, 1);
       u8g2.setDrawColor(1);
       if (buttonPressed == true) {
           state_ui_dirty = true; // the loop sends the state to the web clients
@@ -791,35 +791,35 @@ void update_values_ws();
       if (buttonPressed == true) {
           state_ui_dirty = true; // the loop sends the state to the web clients
           buttonPressed = false;
-          rotaryEncoder.setBoundaries(0, 100, false);
-          rotaryEncoder.setEncoderValue(state.out[2].on);
-          encoderPosition = state.out[2].on;
+          rotaryEncoder.setBoundaries(0, 90, false);
+          rotaryEncoder.setEncoderValue(state.out[2].on / 10);
+          encoderPosition = state.out[2].on / 10;
           manualMenuSelect++;
           }
       break;
 
     case 31: // 
-      rotaryEncoder.setBoundaries(0, 100, false); 
-      state.out[2].on = encoderPosition;
+      rotaryEncoder.setBoundaries(0, 90, false); 
+      state.out[2].on = encoderPosition * 10;
       u8g2.setCursor(69,37);
       u8g2.setDrawColor(drawcolorstate);
-      u8g2.print(state.out[2].on);
+      u8g2.print(state.out[2].on / 10.0, 1);
       u8g2.setDrawColor(1);
       if (buttonPressed == true) {
           state_ui_dirty = true; // the loop sends the state to the web clients
           buttonPressed = false;
-          rotaryEncoder.setEncoderValue(state.out[2].off);
-          encoderPosition = state.out[2].off;
+          rotaryEncoder.setEncoderValue(state.out[2].off / 10);
+          encoderPosition = state.out[2].off / 10;
           manualMenuSelect++;
           }
       break;
 
     case 32: // 
-      rotaryEncoder.setBoundaries(0, 100, false); 
-      state.out[2].off = encoderPosition;
+      rotaryEncoder.setBoundaries(0, 90, false); 
+      state.out[2].off = encoderPosition * 10;
       u8g2.setCursor(69,49);
       u8g2.setDrawColor(drawcolorstate);
-      u8g2.print(state.out[2].off);
+      u8g2.print(state.out[2].off / 10.0, 1);
       u8g2.setDrawColor(1);
       if (buttonPressed == true) {
           state_ui_dirty = true; // the loop sends the state to the web clients
@@ -856,36 +856,36 @@ void update_values_ws();
       if (buttonPressed == true) {
           state_ui_dirty = true; // the loop sends the state to the web clients
           buttonPressed = false;
-          rotaryEncoder.setBoundaries(0, 100, false);
-          rotaryEncoder.setEncoderValue(state.out[3].on);
-          encoderPosition = state.out[3].on;
+          rotaryEncoder.setBoundaries(0, 90, false);
+          rotaryEncoder.setEncoderValue(state.out[3].on / 10);
+          encoderPosition = state.out[3].on / 10;
           manualMenuSelect++;
           }
       break;
 
 
       case 41: // 
-      rotaryEncoder.setBoundaries(0, 100, false); 
-      state.out[3].on = encoderPosition;
+      rotaryEncoder.setBoundaries(0, 90, false); 
+      state.out[3].on = encoderPosition * 10;
       u8g2.setCursor(102,37);
       u8g2.setDrawColor(drawcolorstate);
-      u8g2.print(state.out[3].on);
+      u8g2.print(state.out[3].on / 10.0, 1);
       u8g2.setDrawColor(1);
       if (buttonPressed == true) {
           state_ui_dirty = true; // the loop sends the state to the web clients
           buttonPressed = false;
-          rotaryEncoder.setEncoderValue(state.out[3].off);
-          encoderPosition = state.out[3].off;
+          rotaryEncoder.setEncoderValue(state.out[3].off / 10);
+          encoderPosition = state.out[3].off / 10;
           manualMenuSelect++;
           }
       break;
 
     case 42: // 
-      rotaryEncoder.setBoundaries(0, 100, false); 
-      state.out[3].off = encoderPosition;
+      rotaryEncoder.setBoundaries(0, 90, false); 
+      state.out[3].off = encoderPosition * 10;
       u8g2.setCursor(102,49);
       u8g2.setDrawColor(drawcolorstate);
-      u8g2.print(state.out[3].off);
+      u8g2.print(state.out[3].off / 10.0, 1);
       u8g2.setDrawColor(1);
       if (buttonPressed == true) {
           state_ui_dirty = true; // the loop sends the state to the web clients
