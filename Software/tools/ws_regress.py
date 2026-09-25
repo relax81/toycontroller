@@ -1,9 +1,15 @@
 # Regression test of the WebSocket protocol (protocol.cpp) against a running device, raw sockets, Python 3.
 #   python ws_regress.py [host]      (default: toycontroller.local)
-# WARNING: enables the collar briefly and sends collar.beep. Do not run it with a collar connected.
+#   python ws_regress.py [host] [--collar]
+# The collar.beep check (433 MHz signal) only runs with --collar, otherwise it is reported as SKIP.
+# Only use --collar with the collar out of reach or switched off. The other checks change pwm values and
+# restore them; do not run the test with a pump or other loads connected.
 import socket, os, base64, struct, json, time, sys
 
-HOST = sys.argv[1] if len(sys.argv) > 1 else 'toycontroller.local'
+ARGS = [a for a in sys.argv[1:] if not a.startswith('--')]
+HOST = ARGS[0] if ARGS else 'toycontroller.local'
+HOST = socket.gethostbyname(HOST)  # resolve once: a .local lookup per request would distort the timer checks
+COLLAR = '--collar' in sys.argv[1:]
 
 class WS:
     def __init__(self):
@@ -45,7 +51,9 @@ class WS:
                 elif n == 127: n = struct.unpack('>Q', self._read(8))[0]
                 data = self._read(n)
                 if op == 1: return data.decode()
-                if op == 9: pass  # ping: ignore
+                if op == 9:  # ping: answer with a pong (as a browser does)
+                    mask = os.urandom(4)
+                    self.s.sendall(bytes([0x8A, 0x80 | len(data)]) + mask + bytes(b ^ mask[i % 4] for i, b in enumerate(data)))
                 if op == 8: return None
         except socket.timeout:
             return None
@@ -61,10 +69,34 @@ class WS:
         return None
 
     def close(self):
+        # clean close handshake: a hard close with unread data sends an RST, which the AsyncTCP version
+        # on the device does not always survive (see docs/STATUS.md)
+        try:
+            payload = struct.pack('>H', 1000)
+            mask = os.urandom(4)
+            self.s.sendall(bytes([0x88, 0x80 | len(payload)]) + mask + bytes(b ^ mask[i % 4] for i, b in enumerate(payload)))
+            end = time.time() + 1.5
+            while time.time() < end:
+                if self.recv(0.3) is None and getattr(self, 'closed', False): break
+                try:
+                    if not self.s.recv(4096, socket.MSG_PEEK): break
+                except socket.timeout: continue
+                except Exception: break
+        except Exception:
+            pass
+        try:
+            self.s.shutdown(socket.SHUT_RDWR)
+        except Exception:
+            pass
         try: self.s.close()
         except Exception: pass
 
-ok = fail = 0
+ok = fail = skipped = 0
+def skip(name, why='needs --collar (sends 433 MHz signals)'):
+    global skipped
+    skipped += 1
+    print('SKIP', name, '-', why)
+
 def check(name, cond, info=''):
     global ok, fail
     if cond: ok += 1; print('PASS', name)
@@ -98,6 +130,9 @@ rng = [x for x in (e or {}).get('errors', []) if x['k'] == 'buzzer.bpm']
 check('range info', rng and rng[0].get('min') == 1 and rng[0].get('max') == 255, e)
 
 # cmd
+a.send('{"t":"set","id":30,"d":{"collar.en":false}}')  # make sure the collar is off: the beep below must be refused
+a.recv_json_until(lambda j: j.get('id') == 30)
+time.sleep(0.3)
 a.send('{"t":"cmd","id":4,"c":"collar.beep"}')
 e = a.recv_json_until(lambda j: j.get('id') == 4)
 check('collar disabled', e and e.get('code') == 'disabled', e)
@@ -111,15 +146,18 @@ a.send('{"t":"cmd","id":7,"c":"all_off"}')
 e = a.recv_json_until(lambda j: j.get('id') == 7)
 check('all_off ack', e and e['t'] == 'ack', e)
 
-# collar enabled: beep ok (sends the RF frame, no collar attached is harmless)
-a.send('{"t":"set","id":8,"d":{"collar.en":true}}')
-a.recv_json_until(lambda j: j.get('id') == 8)
-time.sleep(0.15)  # the set is applied by loop(); a real UI needs a click for the beep anyway
-a.send('{"t":"cmd","id":9,"c":"collar.beep"}')
-e = a.recv_json_until(lambda j: j.get('id') == 9)
-check('collar.beep ack when enabled', e and e['t'] == 'ack', e)
-a.send('{"t":"set","id":10,"d":{"collar.en":false}}')
-a.recv_json_until(lambda j: j.get('id') == 10)
+# collar enabled: beep ok (sends a 433 MHz frame, only with --collar)
+if COLLAR:
+    a.send('{"t":"set","id":8,"d":{"collar.en":true}}')
+    a.recv_json_until(lambda j: j.get('id') == 8)
+    time.sleep(0.15)  # the set is applied by loop(); a real UI needs a click for the beep anyway
+    a.send('{"t":"cmd","id":9,"c":"collar.beep"}')
+    e = a.recv_json_until(lambda j: j.get('id') == 9)
+    check('collar.beep ack when enabled', e and e['t'] == 'ack', e)
+    a.send('{"t":"set","id":10,"d":{"collar.en":false}}')
+    a.recv_json_until(lambda j: j.get('id') == 10)
+else:
+    skip('collar.beep ack when enabled')
 
 # empty d object must not crash the device
 a.send('{"t":"set","id":20,"d":{}}')
@@ -147,9 +185,11 @@ e = a.recv_json_until(lambda j: j.get('id') == 11)
 check('ble.toy same value ack', e and e['t'] == 'ack', e)
 time.sleep(2.5)
 try:
-    b.send('{"t":"get","id":12}')
-    st = b.recv_json_until(lambda j: j.get('t') == 'state', 3)
+    c = WS()  # a fresh connection: b has not been read for a while and may have been closed by the stall protection
+    c.send('{"t":"get","id":12}')
+    st = c.recv_json_until(lambda j: j.get('t') == 'state', 3)
     check('no restart after same-toy set', st is not None)
+    c.close()
 except Exception as ex:
     check('no restart after same-toy set', False, ex)
 
@@ -158,5 +198,5 @@ a.send('{"t":"set","id":13,"d":{"ch1.pwm":0,"ch2.on":0}}')
 e = a.recv_json_until(lambda j: j.get('id') == 13)
 check('restore', e and e['t'] == 'ack', e)
 a.close(); b.close()
-print('\nresult: %d passed, %d failed' % (ok, fail))
+print('\nresult: %d passed, %d failed, %d skipped%s' % (ok, fail, skipped, '' if COLLAR else ' (run with --collar to include the collar checks)'))
 sys.exit(1 if fail else 0)

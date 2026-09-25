@@ -111,7 +111,10 @@ Nur Notizen, kein Code. Bewusst verschobene Punkte aus dem Umbau
 - **Der Collar-Befehl liest den Live-Wert** (`state.collar.enabled`), der Snapshot wäre einen Durchlauf zu alt. Ein `cmd` direkt
   nach `set collar.en` kann daher kurz `disabled` melden (in `docs/API.md` beschrieben). Sauberer wäre, das Collar-Senden als
   Ereignis nach `loop()` zu verlagern (siehe Abschnitt 433-MHz-Halsband).
-- **WebSocket-Test einmal fehlgeschlagen:** `ws_regress.py` direkt nach dem Lasttest von `api_test.py` hatte einmal 9 Zeitüberschreitungen
-  (Gerät lief weiter, kein Absturz, alle Nachrichten im Serial-Log angekommen), in fünf weiteren Läufen (auch nach dem Lasttest)
-  21/21. Die Ursache ist nicht geklärt. Auffällig: der Stall-Schutz schließt Testverbindungen, die nicht mehr lesen.
+- **`ws_regress.py` scheitert gelegentlich (etwa 1 von 10 Läufen):** mitten im Lauf kommen auf der Test-Verbindung keine
+  Antworten mehr, obwohl das Gerät weiterläuft (Zähler `n` steigt, Pings kommen an, der Close-Handshake wird beantwortet, kein
+  Absturz). Der Punkt wechselt (mal nach `get`, mal nach `set`, mal nach dem Parse-Fehler). Der Client beantwortet
+  Pings und schließt sauber. Vermutung: Sendequeue der Verbindung voll (die Bibliothek verwirft dann still). Nicht geklärt, ob das
+  schon vor der API so war; ein Vergleich mit dem Stand vor `feature/http-api` steht aus (dafür müsste die alte Firmware
+  geflasht werden). Serial-Log dazu fehlt, COM5 war zu dem Zeitpunkt von einem anderen Prozess belegt.
 - **Arduino_JSON:** `keys()` auf ein leeres Objekt stürzt ab. Andere Stellen, die `keys()` aufrufen, brauchen denselben Guard.

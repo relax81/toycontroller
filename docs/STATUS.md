@@ -341,8 +341,8 @@ den Web-Failsafe.
   auch das WebSocket (`{"t":"set","d":{}}`). Guard in `protocol_apply_object`.
 - **Tests:** `Software/tools/api_test.py` (85 Prüfungen: Fehlerfälle, ungültiges JSON, Body 512/600 Byte, chunked, Toggle, 429,
   `for=` inkl. Ersetzen/Abbrechen/`all_off`, 30 Schlüssel in einem Body, 150 + 100 sequentielle Aufrufe, 4 parallele Threads) und
-  `Software/tools/ws_regress.py` (21 Prüfungen des WebSocket-Protokolls, zwei Verbindungen). Beide schalten kurz Ausgänge und
-  senden `collar.beep`/`collar.vibe`, also nicht mit angeschlossenem Halsband oder Pumpe ausführen.
+  `Software/tools/ws_regress.py` (21 Prüfungen des WebSocket-Protokolls, zwei Verbindungen). Beide schalten kurz Ausgänge (nicht mit angeschlossener Pumpe o. ä. ausführen). Alles, was 433-MHz-Signale erzeugt
+  (`collar.beep`/`collar.vibe`), läuft nur mit `--collar`, sonst meldet das Skript SKIP (ohne `--collar`: 82 von 85 bzw. 20 von 21 Prüfungen).
 - **Messungen** (Build vor Etappe A → nach Etappe B): Flash 1 387 366 B (41,5 %) → 1 404 358 B (42,0 %, +16 992 B),
   statisches RAM 58 780 B → 59 100 B (+320 B). Stack des `async_tcp`-Tasks (16 384 B): kleinster freier Wert 13 372 B im ganzen
   Testlauf, auch bei `POST /api/set` mit 30 Schlüsseln (434 B), also etwa 3,0 KB Spitze. Freier Heap im Leerlauf 130-139 KB,

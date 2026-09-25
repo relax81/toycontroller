@@ -1,12 +1,22 @@
 # Test of the HTTP API (docs/API.md) against a running device. Python 3, standard library only.
-#   python api_test.py [host]        (default: toycontroller.local)
-# WARNING: the test switches outputs on and off (ch1-4, pump, buzzer, collar.en), sets pwm values and sends
-# collar.beep / collar.vibe. Do not run it with a collar or a pump connected. It restores the values it changed.
+#   python api_test.py [host] [--collar]     (default host: toycontroller.local)
+# WARNING: the test switches outputs on and off (ch1-4, pump, buzzer), sets pwm values and restores what it changed.
+# Do not run it with a pump or other loads connected.
+# Everything that sends 433 MHz signals (collar.beep / collar.vibe with collar.en on) only runs with --collar;
+# without it those checks are reported as SKIP. Only use --collar with the collar out of reach or switched off.
 # Not covered (needs a Bluetooth client): the "held" list while Bluetooth holds an output; ble.toy with a new value.
 import http.client, json, socket, sys, time, threading
 
-HOST = sys.argv[1] if len(sys.argv) > 1 else 'toycontroller.local'
-ok = fail = 0
+ARGS = [a for a in sys.argv[1:] if not a.startswith('--')]
+HOST = ARGS[0] if ARGS else 'toycontroller.local'
+HOST = socket.gethostbyname(HOST)  # resolve once: a .local lookup per request would distort the timer checks
+COLLAR = '--collar' in sys.argv[1:]
+ok = fail = skipped = 0
+
+def skip(name, why='needs --collar (sends 433 MHz signals)'):
+    global skipped
+    skipped += 1
+    print('SKIP', name, '-', why)
 
 def check(name, cond, info=''):
     global ok, fail
@@ -132,16 +142,24 @@ s, j, _ = req('GET', '/api/toggle'); check('toggle without k', s == 400 and j['c
 
 # ---------------------------------------------------------------- cmd, 429
 req('GET', '/api/set?collar.en=0'); settle()
-s, j, _ = req('GET', '/api/cmd?c=collar.beep')
-check('collar disabled -> 409', s == 409 and j['code'] == 'disabled', (s, j))
-req('GET', '/api/set?collar.en=1'); settle()
-s, j, _ = req('GET', '/api/cmd?c=collar.beep')
-check('collar.beep ok', s == 200 and j['ok'], (s, j))
-s, j, _ = req('POST', '/api/cmd', {'c': 'collar.vibe'})
-check('second collar command within 300 ms -> 429', s == 429 and j['code'] == 'rate_limited' and 0 < j['retry_ms'] <= 300, (s, j))
-time.sleep(0.4)
-s, j, _ = req('POST', '/api/cmd', {'c': 'collar.vibe'})
-check('collar command after the gap ok', s == 200, (s, j))
+if state()['d']['collar.en'] is False:  # disabled: the device answers 409 and sends nothing
+    s, j, _ = req('GET', '/api/cmd?c=collar.beep')
+    check('collar disabled -> 409', s == 409 and j['code'] == 'disabled', (s, j))
+else:
+    skip('collar disabled -> 409', 'collar.en could not be switched off')
+if COLLAR:
+    req('GET', '/api/set?collar.en=1'); settle()
+    s, j, _ = req('GET', '/api/cmd?c=collar.beep')
+    check('collar.beep ok', s == 200 and j['ok'], (s, j))
+    s, j, _ = req('POST', '/api/cmd', {'c': 'collar.vibe'})
+    check('second collar command within 300 ms -> 429', s == 429 and j['code'] == 'rate_limited' and 0 < j['retry_ms'] <= 300, (s, j))
+    time.sleep(0.4)
+    s, j, _ = req('POST', '/api/cmd', {'c': 'collar.vibe'})
+    check('collar command after the gap ok', s == 200, (s, j))
+else:
+    skip('collar.beep ok')
+    skip('second collar command within 300 ms -> 429')
+    skip('collar command after the gap ok')
 s, j, _ = req('GET', '/api/cmd?c=all_off'); check('all_off is not rate limited', s == 200, (s, j))
 s, j, _ = req('GET', '/api/cmd?c=all_off'); check('all_off again', s == 200, (s, j))
 s, j, _ = req('GET', '/api/cmd?c=bogus'); check('unknown cmd -> 400', s == 400 and j['code'] == 'unknown_cmd', (s, j))
@@ -243,5 +261,5 @@ for chunk in (list(restore.items())[i:i + 20] for i in range(0, len(restore), 20
 settle(); st = state()
 diff = {k: (orig[k], st['d'][k]) for k in orig if k in restore and orig[k] != st['d'][k]}
 check('state restored', not diff, diff)
-print('\nresult: %d passed, %d failed' % (ok, fail))
+print('\nresult: %d passed, %d failed, %d skipped%s' % (ok, fail, skipped, '' if COLLAR else ' (run with --collar to include the collar checks)'))
 sys.exit(1 if fail else 0)
