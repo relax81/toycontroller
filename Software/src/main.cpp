@@ -212,6 +212,13 @@ void update_values_ws();
 // manual control without any web client is not affected.
   #define WS_FAILSAFE 1
   const unsigned long WS_PING_INTERVAL_MS = 5000; // browsers answer ping frames automatically
+  // At least 3 pings per failsafe timeout, so an idle but healthy tab never runs into it (with a
+  // fixed 5 s a timeout below that expired between two pongs). Read from state on every pass, a
+  // runtime change of sys.failsafe counts at once.
+  static unsigned long ws_ping_interval_ms() {
+    unsigned long third = (unsigned long)state.failsafeTimeoutS * 1000UL / 3;
+    return third < WS_PING_INTERVAL_MS ? third : WS_PING_INTERVAL_MS;
+  }
   volatile unsigned long ws_last_seen = 0;
   volatile bool ws_failsafe_armed = false;
   volatile bool ws_broadcast_req = false; // set by the WS handler, evaluated in loop()
@@ -1514,7 +1521,7 @@ void loop() {
   timer1.update(); // display blinking text timer
 
 #if WS_FAILSAFE == 1
-  if (currentMillis - ws_last_ping >= WS_PING_INTERVAL_MS) {
+  if (currentMillis - ws_last_ping >= ws_ping_interval_ms()) {
     ws_last_ping = currentMillis;
     ws.pingAll();
   }
