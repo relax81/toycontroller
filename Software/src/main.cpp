@@ -64,7 +64,7 @@ void update_values_ws();
 // Main Menu New
   char MainMenuItems [MainMenuNumItems] [MainMenuMaxItemLength] = {"Manual","WiFi Status","Bluetooth","Info","Settings"};
 // Bluetooth Menu
-  char OutputItems [OutputNumItems] [OutputItemsMaxLength] = {"OFF","PWM1","PWM2","PWM3","PWM4","PUMP","Shoc"};
+  char OutputItems [OutputNumItems] [OutputItemsMaxLength] = {"OFF","PWM1","PWM2","PWM3","PWM4","PUMP","Shoc","BPM"};
 // buzzer 
 
 
@@ -1656,10 +1656,11 @@ void loop() {
   }
 
 // buzzer start
-  if (state.buzzer.enabled == true) {
+  // BLE target "Metronome": while BLE holds the metronome it plays only with a BLE value > 0
+  if (state.ble.hold[OUT_BPM] ? (state.buzzer.bleBpm > 0) : (state.buzzer.enabled == true)) {
   buzzer_Metronome(currentMillis);
   }
-  else if (state.buzzer.enabled == false) {
+  else {
     ledcWrite(buzzer, 0);
   }
 // buzzer end

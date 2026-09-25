@@ -106,8 +106,9 @@
                     </div>
 
 
-                    <div class="card">
+                    <div class="card" data-hold="ble.hold.buzzer">
                         <p class="card-title">Buzzer Metronome</p>
+                        <p class="hold-hint">Von Bluetooth gehalten (BPM). Eine &Auml;nderung hier beendet die Sperre.</p>
                         <label class="switch2">
                             <input type="checkbox" onclick="update_switch(this)" id="toggle_g" data-key="buzzer.en">
                             <span class="slider2 round"></span>
@@ -189,12 +190,13 @@
                         <option value="4">Ch4</option>
                         <option value="5">Pumpe</option>
                         <option value="6">Halsband</option>
+                        <option value="7">Metronom (BPM)</option>
                     </select>
-                    <p class="state">Min: <span id="bt_min0_value"></span></p>
+                    <p class="state"><span id="bt_min0_lbl">Min</span>: <span id="bt_min0_value"></span></p>
                     <p class="switch">
                         <input type="range" onchange="update_slider(this)" id="bt_min0" data-key="ble.map0.min" min="0" max="255" step="1" value="0" class="slider">
                     </p>
-                    <p class="state">Max: <span id="bt_max0_value"></span></p>
+                    <p class="state"><span id="bt_max0_lbl">Max</span>: <span id="bt_max0_value"></span></p>
                     <p class="switch">
                         <input type="range" onchange="update_slider(this)" id="bt_max0" data-key="ble.map0.max" min="0" max="255" step="1" value="0" class="slider">
                     </p>
@@ -210,12 +212,13 @@
                         <option value="4">Ch4</option>
                         <option value="5">Pumpe</option>
                         <option value="6">Halsband</option>
+                        <option value="7">Metronom (BPM)</option>
                     </select>
-                    <p class="state">Min: <span id="bt_min1_value"></span></p>
+                    <p class="state"><span id="bt_min1_lbl">Min</span>: <span id="bt_min1_value"></span></p>
                     <p class="switch">
                         <input type="range" onchange="update_slider(this)" id="bt_min1" data-key="ble.map1.min" min="0" max="255" step="1" value="0" class="slider">
                     </p>
-                    <p class="state">Max: <span id="bt_max1_value"></span></p>
+                    <p class="state"><span id="bt_max1_lbl">Max</span>: <span id="bt_max1_value"></span></p>
                     <p class="switch">
                         <input type="range" onchange="update_slider(this)" id="bt_max1" data-key="ble.map1.max" min="0" max="255" step="1" value="0" class="slider">
                     </p>

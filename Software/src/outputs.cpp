@@ -164,6 +164,9 @@ void bluetooth_write_pwm(int output, int mapped_PWM) {
     case 5:
       ledcWrite(pumpOUT, mapped_PWM);
       break;
+    case 7: // metronome: the mapped value is the BPM (0 = BLE stops it)
+      state.buzzer.bleBpm = mapped_PWM <= 0 ? 0 : (mapped_PWM > 255 ? 255 : mapped_PWM);
+      break;
     case 6: 
 
       if (state.collar.btOnlyChanges == true) {
@@ -182,7 +185,9 @@ void bluetooth_write_pwm(int output, int mapped_PWM) {
 }
 
 void buzzer_Metronome(unsigned long nowMs) {
-    state.buzzer.beatInterval = 60000 / state.buzzer.bpm;
+    int bpm = (state.ble.hold[OUT_BPM] && state.buzzer.bleBpm > 0) ? state.buzzer.bleBpm : state.buzzer.bpm;
+    if (bpm < 1) bpm = 1;
+    state.buzzer.beatInterval = 60000 / bpm;
     int buzzerPWM = map(state.buzzer.volume, 0, 10, 0, 140);
     if (!state.buzzer.isPlaying) { // turn on after the pause between the beeps
       if ((long)(nowMs - state.buzzer.previousMillis) >= (long)state.buzzer.beatInterval - state.buzzer.onTimeMs) {
@@ -211,13 +216,16 @@ static void webSettings(int id, int s[4]) {
   else if (id == 6) {
     s[0] = state.collar.enabled;
   }
+  else if (id == 7) {
+    s[0] = state.buzzer.enabled; s[1] = state.buzzer.bpm; s[2] = state.buzzer.volume;
+  }
 }
 
 // BLE has priority on an output while its level is > 0. A BLE command also counts at
 // level 0: the latch keeps the priority while connected until the web / encoder changes
 // the output afterwards (last source wins) or BLE disconnects.
 void outputs_arbitrate() {
-  for (int i = 0; i < 7; i++) state.ble.hold[i] = false;
+  for (int i = 0; i < OUT_ID_COUNT; i++) state.ble.hold[i] = false;
   for (int k = 0; k < 2; k++) {
     BleLatch& l = state.ble.latch[k];
     int out = state.ble.map[k].output;

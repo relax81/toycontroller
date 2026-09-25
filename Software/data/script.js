@@ -444,6 +444,10 @@ function btCardUpdate()
             var el = document.getElementById('bt_' + which + k);
             if (el)
                 el.max = limit;
+            // target "Metronom": min / max are BPM values
+            var lbl = document.getElementById('bt_' + which + k + '_lbl');
+            if (lbl)
+                lbl.textContent = (st['ble.map' + k + '.out'] === 7 ? (which === 'min' ? 'Min BPM' : 'Max BPM') : (which === 'min' ? 'Min' : 'Max'));
         });
     }
     var out0 = st['ble.map0.out'], out1 = st['ble.map1.out'];

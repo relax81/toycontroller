@@ -79,7 +79,7 @@ const int MainMenuNumItems = 5; // number of items in the list
 const int MainMenuMaxItemLength = 20; // maximum characters for the item name
 extern char MainMenuItems [MainMenuNumItems] [MainMenuMaxItemLength];
 // Bluetooth Menu
-const int OutputNumItems = 7; // number of items in the list
+const int OutputNumItems = 8; // number of items in the list
 const int OutputItemsMaxLength = 20; // maximum characters for the item name
 extern char OutputItems [OutputNumItems] [OutputItemsMaxLength];
 

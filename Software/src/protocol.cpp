@@ -59,6 +59,7 @@ static const KeyDef KEYS[] = {
   RO_B("ble.hold.ch4",    &state.ble.hold[OUT_PWM4]),
   RO_B("ble.hold.pump",   &state.ble.hold[OUT_PUMP]),
   RO_B("ble.hold.collar", &state.ble.hold[OUT_COLLAR]),
+  RO_B("ble.hold.buzzer", &state.ble.hold[OUT_BPM]),
 };
 static const int NKEYS = sizeof(KEYS) / sizeof(KEYS[0]);
 static_assert(sizeof(KEYS) / sizeof(KEYS[0]) <= 64, "key masks are 64 bit");

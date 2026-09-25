@@ -10,7 +10,7 @@
 //
 // Index rules:
 //  - state.out[0] = Ch1 ... state.out[3] = Ch4 (0-based)
-//  - output ids (OutputId) are 1-based: 0 = OFF, 1-4 = PWM1-4, 5 = pump, 6 = collar.
+//  - output ids (OutputId) are 1-based: 0 = OFF, 1-4 = PWM1-4, 5 = pump, 6 = collar, 7 = metronome BPM.
 //    They are used by BLE mapping (map[].output), hold[] and OutputItems.
 //  - ble.map[0] / ble.in.vib[0] = V1 (Vibrate1), [1] = V2 (Vibrate2)
 
@@ -19,7 +19,8 @@ enum OutputId {
   OUT_PWM1, OUT_PWM2, OUT_PWM3, OUT_PWM4,
   OUT_PUMP,
   OUT_COLLAR,
-  OUT_ID_COUNT   // 7, size of hold[]
+  OUT_BPM,       // BLE value sets the BPM of the buzzer metronome (min/max = BPM)
+  OUT_ID_COUNT   // 8, size of hold[]
 };
 
 // state.out[] index (0-based) -> output id (1-based)
@@ -63,6 +64,7 @@ struct BuzzerState {
   bool isPlaying = false;                // runtime
   unsigned long previousMillis = 0;      // runtime
   int  beatInterval = 1000;              // runtime, 60000 / bpm
+  int  bleBpm = 0;                       // runtime, BPM set by BLE (mapped to OUT_BPM), 0 = BLE does not play
 };
 
 struct BtMap {           // mapping of one BLE vibration channel to an output
