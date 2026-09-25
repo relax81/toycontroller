@@ -221,3 +221,33 @@ input:checked + .slider2:before {
 }
 
 
+
+  /* BLE holds this output (ble.hold.*, class set by script.js): marked only, the controls stay usable
+     (a change from the web ends the hold at level 0) */
+  .card {
+    position: relative;
+  }
+  .card.ble-held > *:not(.hold-hint) {
+    opacity: .55;
+  }
+  .card.ble-held::before {
+    content: "BLE";
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: .8rem;
+    font-weight: bold;
+    color: white;
+    background: #a94cab;
+  }
+  .hold-hint {
+    display: none;
+    margin: 4px 8px;
+    font-size: .9rem;
+    color: #a94cab;
+  }
+  .card.ble-held .hold-hint {
+    display: block;
+  }

@@ -32,12 +32,20 @@ function onClose(event) {
 
 function update_slider(element) {
     var value = document.getElementById(element.id).value;
-    document.getElementById(element.id + "_value").innerHTML = value;
+    var label = document.getElementById(element.id + "_value");
+    if (label)
+        label.innerHTML = value;
     var key = element.getAttribute("data-key");
     if (key)
         send({ t: "set", d: { [key]: Number(value) } });
     else
         websocket.send(element.id + "?" + value.toString());
+}
+
+function update_select(element) {
+    var key = element.getAttribute("data-key");
+    if (key)
+        send({ t: "set", d: { [key]: Number(element.value) } });
 }
 
 function update_radio(element) {
@@ -189,8 +197,11 @@ function onMessage(event)
 // The elements are found by their data-key attribute (index.html).
 // ---------------------------------------------------------------------------
 var v2State = { hasState: false, n: 0, store: {} };
-var v2Keys = null; // key -> [elements]
+var v2Keys = null;  // key -> [elements] (data-key)
+var v2Holds = null; // key -> [elements] (data-hold): they get the class "ble-held" while BLE holds the output
 var v2MsgId = 0;
+var v2Editing = null;       // element being dragged / typed in right now: incoming values wait for it
+var v2Deferred = new Map(); // element -> value that came in while it was edited
 
 function send(obj)
 {
@@ -207,10 +218,69 @@ function v2Reset()
 function v2BuildKeyMap()
 {
     v2Keys = {};
+    v2Holds = {};
     document.querySelectorAll('[data-key]').forEach(function (el) {
         var k = el.getAttribute('data-key');
         (v2Keys[k] = v2Keys[k] || []).push(el);
     });
+    document.querySelectorAll('[data-hold]').forEach(function (el) {
+        var k = el.getAttribute('data-hold');
+        (v2Holds[k] = v2Holds[k] || []).push(el);
+    });
+
+    // An element counts as edited from its first input event until its change event (the own value
+    // wins, the server confirms or clamps it with a patch) or until it is released / left without one.
+    document.addEventListener('input', function (ev) {
+        if (ev.target.hasAttribute && ev.target.hasAttribute('data-key'))
+            v2Editing = ev.target;
+    });
+    document.addEventListener('change', function (ev) {
+        if (ev.target === v2Editing)
+            v2Editing = null;
+        v2Deferred.delete(ev.target);
+    });
+    document.addEventListener('pointerup', function () {
+        setTimeout(v2EndEdit, 0); // after the change event of the release
+    });
+    document.addEventListener('focusout', function (ev) {
+        if (ev.target === v2Editing)
+            v2EndEdit();
+        else
+            v2Flush(ev.target);
+    });
+}
+
+function v2EndEdit()
+{
+    var el = v2Editing;
+    v2Editing = null;
+    if (el)
+        v2Flush(el);
+}
+
+function v2Flush(el)
+{
+    if (v2Deferred.has(el))
+    {
+        var value = v2Deferred.get(el);
+        v2Deferred.delete(el);
+        v2SetElement(el, value);
+    }
+}
+
+function v2SetElement(el, value)
+{
+    if (el.type === "checkbox")
+    {
+        el.checked = value;
+    }
+    else
+    {
+        el.value = value;
+        var label = document.getElementById(el.id + "_value");
+        if (label)
+            label.innerHTML = value;
+    }
 }
 
 function v2Apply(d)
@@ -219,24 +289,33 @@ function v2Apply(d)
         v2BuildKeyMap();
     for (const key in d)
     {
-        v2State.store[key] = d[key]; // keys without an element (ble.*, sys.*) are kept for later pages
+        v2State.store[key] = d[key]; // keys without an element (ble.connected, ...) are kept for later pages
+        var holds = v2Holds[key];
+        if (holds)
+            holds.forEach(function (el) { el.classList.toggle('ble-held', !!d[key]); });
         var els = v2Keys[key];
         if (!els)
             continue;
         els.forEach(function (el) {
-            if (el === document.activeElement)
-                return; // being operated right now, it gets the value afterwards
-            if (el.type === "checkbox")
-            {
-                el.checked = d[key];
-            }
+            if (el === v2Editing)
+                v2Deferred.set(el, d[key]); // being operated right now, it gets the value afterwards
             else
-            {
-                el.value = d[key];
-                SetValueToElementInnerHTML(el.id + "_value", d[key]);
-            }
+                v2SetElement(el, d[key]);
         });
     }
+}
+
+// put the last known server value back (the server rejected the value the user sent)
+function v2Restore(key)
+{
+    if (v2Keys === null || v2State.store[key] === undefined)
+        return;
+    (v2Keys[key] || []).forEach(function (el) {
+        v2Deferred.delete(el);
+        if (el === v2Editing)
+            v2Editing = null;
+        v2SetElement(el, v2State.store[key]);
+    });
 }
 
 function onV2Message(m)
@@ -265,6 +344,8 @@ function onV2Message(m)
             break;
         case "err":
             console.warn("server error", m);
+            if (m.errors)
+                m.errors.forEach(function (e) { v2Restore(e.k); });
             break;
     }
 }
