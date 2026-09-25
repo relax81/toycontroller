@@ -32,31 +32,64 @@ class WS:
         mask = os.urandom(4)
         self.s.sendall(bytes(hdr) + mask + bytes(b ^ mask[i % 4] for i, b in enumerate(data)))
 
-    def _read(self, n):
-        while len(self.rest) < n:
-            chunk = self.s.recv(4096)
-            if not chunk: raise EOFError
-            self.rest += chunk
-        out, self.rest = self.rest[:n], self.rest[n:]
-        return out
-
-    def recv(self, timeout=2.0):
+    # A frame is only taken out of the buffer when it is complete: a receive timeout in the middle of a frame
+    # must not lose the header (the old code did, and every later reply was then lost).
+    def _fill(self, timeout):
         self.s.settimeout(timeout)
         try:
-            while True:
-                b0, b1 = self._read(2)
-                op = b0 & 0x0F
-                n = b1 & 0x7F
-                if n == 126: n = struct.unpack('>H', self._read(2))[0]
-                elif n == 127: n = struct.unpack('>Q', self._read(8))[0]
-                data = self._read(n)
-                if op == 1: return data.decode()
+            chunk = self.s.recv(4096)
+        except socket.timeout:
+            return False
+        if not chunk:
+            raise EOFError
+        self.rest += chunk
+        return True
+
+    def _frame(self):
+        r = self.rest
+        if len(r) < 2:
+            return None
+        n = r[1] & 0x7F
+        off = 2
+        if n == 126:
+            if len(r) < 4: return None
+            n = struct.unpack('>H', r[2:4])[0]
+            off = 4
+        elif n == 127:
+            if len(r) < 10: return None
+            n = struct.unpack('>Q', r[2:10])[0]
+            off = 10
+        if len(r) < off + n:
+            return None
+        op = r[0] & 0x0F
+        data = bytes(r[off:off + n])
+        self.rest = r[off + n:]
+        return op, data
+
+    def recv(self, timeout=2.0):
+        end = time.time() + timeout
+        while True:
+            f = self._frame()
+            if f:
+                op, data = f
+                if op == 1:
+                    return data.decode()
                 if op == 9:  # ping: answer with a pong (as a browser does)
                     mask = os.urandom(4)
-                    self.s.sendall(bytes([0x8A, 0x80 | len(data)]) + mask + bytes(b ^ mask[i % 4] for i, b in enumerate(data)))
-                if op == 8: return None
-        except socket.timeout:
-            return None
+                    self.s.sendall(bytes([0x8A, 0x80 | len(data)]) + mask + bytes(b ^ mask[k % 4] for k, b in enumerate(data)))
+                if op == 8:
+                    self.closed = True
+                    return None
+                continue
+            left = end - time.time()
+            if left <= 0:
+                return None
+            try:
+                if not self._fill(left):
+                    return None
+            except EOFError:
+                self.closed = True
+                return None
 
     def recv_json_until(self, pred, timeout=3.0):
         end = time.time() + timeout

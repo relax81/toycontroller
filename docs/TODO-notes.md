@@ -111,10 +111,15 @@ Nur Notizen, kein Code. Bewusst verschobene Punkte aus dem Umbau
 - **Der Collar-Befehl liest den Live-Wert** (`state.collar.enabled`), der Snapshot wäre einen Durchlauf zu alt. Ein `cmd` direkt
   nach `set collar.en` kann daher kurz `disabled` melden (in `docs/API.md` beschrieben). Sauberer wäre, das Collar-Senden als
   Ereignis nach `loop()` zu verlagern (siehe Abschnitt 433-MHz-Halsband).
-- **`ws_regress.py` scheitert gelegentlich (etwa 1 von 10 Läufen):** mitten im Lauf kommen auf der Test-Verbindung keine
-  Antworten mehr, obwohl das Gerät weiterläuft (Zähler `n` steigt, Pings kommen an, der Close-Handshake wird beantwortet, kein
-  Absturz). Der Punkt wechselt (mal nach `get`, mal nach `set`, mal nach dem Parse-Fehler). Der Client beantwortet
-  Pings und schließt sauber. Vermutung: Sendequeue der Verbindung voll (die Bibliothek verwirft dann still). Nicht geklärt, ob das
-  schon vor der API so war; ein Vergleich mit dem Stand vor `feature/http-api` steht aus (dafür müsste die alte Firmware
-  geflasht werden). Serial-Log dazu fehlt, COM5 war zu dem Zeitpunkt von einem anderen Prozess belegt.
-- **Arduino_JSON:** `keys()` auf ein leeres Objekt stürzt ab. Andere Stellen, die `keys()` aufrufen, brauchen denselben Guard.
+- **`ws_regress.py` scheitert gelegentlich, auch auf `main`** (Messung 2026-09-26, ohne den Leer-`d`-Schritt, der den alten Stand
+  abstürzen lässt): `main` (065c09d) 1 von 20 Läufen, Branch `feature/http-api` 1 von 20 und 5 von 40 (mit korrigiertem Frame-Parser
+  des Test-Clients), also etwa jeder 10. bis 20. Lauf. Mitten im Lauf kommen auf der Test-Verbindung keine Antworten mehr; der Punkt
+  wechselt. Die Verbindung bleibt offen (Pings und Close-Handshake laufen), das Gerät hat keinen Neustart und keinen Absturz, im
+  Serial-Log stehen weder `[evq]`- noch `stalled`-Zeilen noch `ERROR: Too many messages queued`. Die Anfragen kommen am Gerät an,
+  die Antworten kommen auch in den 20 s danach nicht. Paketverlust ist es nicht (100 Pings, 0 % Verlust). Ursache ungeklärt.
+  Verdacht: eine Nachricht hängt am Kopf der Sendequeue der WebSocket-Bibliothek. Das passt zur bekannten Grenze (Abschnitt
+  "Zustellung": stumme Verbindung, deren Queue nie voll wird). Möglicher Weg: ein `n`-Heartbeat vom Client, der Server schließt bei
+  dauerhaftem Rückstand. Der Test-Client nimmt Frames jetzt erst aus dem Puffer, wenn sie vollständig sind.
+- **Arduino_JSON:** `keys()` auf ein leeres Objekt stürzt ab (Nullzeiger in cJSON). Auf `main` (bis 065c09d) vorhanden: ein WebSocket-`set` mit
+  `"d":{}` startet das Gerät neu. Im Branch `feature/http-api` behoben (Guard in `protocol_apply_object`, Test in `ws_regress.py`).
+  Andere Stellen, die `keys()` aufrufen, brauchen denselben Guard.
