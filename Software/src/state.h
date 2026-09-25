@@ -34,6 +34,8 @@ struct OutputChannel {   // Ch1 .. Ch4
 
 struct PumpChannel {
   bool enabled = false;
+  int  on  = 0;          // tenths of a second (0 - 900 = 0 - 90 s)
+  int  off = 0;          // tenths of a second, 0 = pump runs continuously
   int  pwm = 0;          // 0 - 100
 };
 
@@ -97,6 +99,7 @@ struct BleState {
 struct AppState {
   OutputChannel out[4] = {};
   PumpChannel   pump;
+  PwmRuntime    pumpRt;
   PwmRuntime    rt[4] = {};
   CollarState   collar;
   BuzzerState   buzzer;
@@ -119,6 +122,8 @@ enum EventType : uint8_t {
   EV_OUT_PWM,         // idx, val = 0-100
   EV_PUMP_ENABLE,     // val = 0/1
   EV_PUMP_PWM,        // val = 0-100
+  EV_PUMP_ON,         // val = tenths of a second
+  EV_PUMP_OFF,        // val = tenths of a second
   EV_COLLAR_ENABLE,   // val = 0/1
   EV_COLLAR_STRENGTH, // val = 0-100
   EV_COLLAR_BTONLY,   // val = 0/1

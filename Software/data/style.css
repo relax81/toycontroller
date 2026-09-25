@@ -324,3 +324,6 @@ input:checked + .slider2:before {
   font-size: 18px; font-weight: bold; line-height: 1; cursor: pointer;
 }
 .step:active { transform: scale(0.9); }
+
+.state.small { font-size: .85rem; }
+.state.small .bt-check { cursor: pointer; }

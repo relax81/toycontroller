@@ -94,19 +94,40 @@ void debug_ledc() {
       }
     }
   }
-  // Pump Output 5
+  // Pump Output 5: same On/Off cycle as Ch1-4 (off = 0: runs continuously)
+  {
+    bool pumpActive = state.pump.enabled && !state.ble.hold[5];
+    if (pumpActive && !state.pumpRt.wasEnabled) {
+      state.pumpRt.timeStarted = millis();
+      state.pumpRt.paused = false;
+    }
+    state.pumpRt.wasEnabled = pumpActive;
+  }
   if (state.ble.hold[5]) {
     // driven by BLE
   }
-  else if (state.pump.enabled == true)
-    {
-      int mapped_pump_PWM;
-      mapped_pump_PWM = map(state.pump.pwm, 0, 100, 0, 255);
-      ledcWrite(pumpOUT, mapped_pump_PWM);
+  else if ((state.pumpRt.paused == false) && (state.pump.enabled == true))
+  {
+    int mapped_pump_PWM;
+    mapped_pump_PWM = map(state.pump.pwm, 0, 100, 0, 255);
+    ledcWrite(pumpOUT, mapped_pump_PWM);
+    if ((state.pump.off > 0) && (millis() - state.pumpRt.timeStarted >= (unsigned long)state.pump.on * 100)) {
+      state.pumpRt.paused = true;
+      state.pumpRt.timeStopped = millis();
     }
+  }
+  else if ((state.pumpRt.paused == true) && (state.pump.enabled == true))
+  {
+    ledcWrite(pumpOUT, 0);
+    if (millis() - state.pumpRt.timeStopped >= (unsigned long)state.pump.off * 100)
+    {
+      state.pumpRt.paused = false;
+      state.pumpRt.timeStarted = millis();
+    }
+  }
   else {
     ledcWrite(pumpOUT, 0);
-    }
+  }
 }
 
 // disable outputs 
@@ -119,6 +140,7 @@ void debug_ledc() {
     }
   }
   if (!state.pump.enabled && !state.ble.hold[5]){
+    state.pumpRt.paused = false;
     ledcWrite(pumpOUT, 0);
     state.pump.enabled = false;
   }
@@ -184,7 +206,7 @@ static void webSettings(int id, int s[4]) {
     s[0] = c.enabled; s[1] = c.on; s[2] = c.off; s[3] = c.pwm;
   }
   else if (id == 5) {
-    s[0] = state.pump.enabled; s[1] = state.pump.pwm;
+    s[0] = state.pump.enabled; s[1] = state.pump.pwm; s[2] = state.pump.on; s[3] = state.pump.off;
   }
   else if (id == 6) {
     s[0] = state.collar.enabled;

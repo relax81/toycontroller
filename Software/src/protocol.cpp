@@ -39,6 +39,8 @@ struct KeyDef {
 static const KeyDef KEYS[] = {
   CHANNEL(1, 0), CHANNEL(2, 1), CHANNEL(3, 2), CHANNEL(4, 3),
   RW_B("pump.en",  EV_PUMP_ENABLE, 0, &state.pump.enabled),
+  RW_I("pump.on",  EV_PUMP_ON,  0, 0, 900, &state.pump.on),
+  RW_I("pump.off", EV_PUMP_OFF, 0, 0, 900, &state.pump.off),
   RW_I("pump.pwm", EV_PUMP_PWM, 0, 0, 100, &state.pump.pwm),
   RW_B("collar.en",       EV_COLLAR_ENABLE,   0, &state.collar.enabled),
   RW_I("collar.strength", EV_COLLAR_STRENGTH, 0, 0, 100, &state.collar.strength),

@@ -71,6 +71,8 @@ void state_apply(const Event& e) {
     case EV_OUT_PWM:         if (i < 4) { state.out[i].pwm = e.val; state_ui_dirty = true; } break;
     case EV_PUMP_ENABLE:     state.pump.enabled = b;          state_ui_dirty = true; break;
     case EV_PUMP_PWM:        state.pump.pwm = e.val;          state_ui_dirty = true; break;
+    case EV_PUMP_ON:         state.pump.on  = e.val;          state_ui_dirty = true; break;
+    case EV_PUMP_OFF:        state.pump.off = e.val;          state_ui_dirty = true; break;
     case EV_COLLAR_ENABLE:   state.collar.enabled = b;        state_ui_dirty = true; break;
     case EV_COLLAR_STRENGTH: state.collar.strength = e.val;   state_ui_dirty = true; break;
     case EV_COLLAR_BTONLY:
