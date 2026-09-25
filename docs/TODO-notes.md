@@ -21,6 +21,16 @@ Nur Notizen, kein Code. Bewusst verschobene Punkte aus dem Umbau
 - **Stummer Client ohne volle Queue** wird vom Stall-Schutz nicht erkannt (nur im synthetischen
   Parallelaufbau beobachtet). Möglicher Weg: Client meldet sein `n`, Server schließt bei dauerhaftem Rückstand.
 
+## AsyncTCP / WebSocket
+
+- **Seltener Absturz bei RST** (Use-after-free in AsyncTCP 1.1.1, `AsyncClient::_error()` schreibt auf einen
+  bereits freigegebenen `pcb`; Crash in `AsyncServer::_accept`). Bewusst nicht gepatcht, Details in
+  `STATUS.md`. Neustart führt in den sicheren Zustand. Späterer Weg, falls es im Alltag stört: gepflegte
+  AsyncTCP/ESPAsyncWebServer-Versionen prüfen (Kompatibilität mit `espressif32 @ ~3.5.0` ungeklärt) oder
+  `_error`/`_close` in einer lokalen Kopie absichern.
+- **Stummer Client ohne volle Queue** wird vom Stall-Schutz nicht erkannt (nur im synthetischen
+  Parallelaufbau beobachtet). Möglicher Weg: Client meldet sein `n`, Server schließt bei dauerhaftem Rückstand.
+
 ## Ausgangslogik
 
 - ~~**`timeStarted` wird beim Einschalten eines Kanals nicht gesetzt**
