@@ -385,21 +385,13 @@ function btCardUpdate()
     {
         // the collar takes 0-100, everything else 0-255 (the server clamps the same way)
         var limit = (st['ble.map' + k + '.out'] === BT_OUT_COLLAR) ? 100 : 255;
-        var curMin = st['ble.map' + k + '.min'], curMax = st['ble.map' + k + '.max'];
-        var minEl = document.getElementById('bt_min' + k);
-        var maxEl = document.getElementById('bt_max' + k);
-        // Min cannot be dragged above max and max not below min (the server would clamp the value, and
-        // if that changes nothing there is no patch and the slider would show a wrong value)
-        if (minEl)
-        {
-            minEl.min = 0;
-            minEl.max = (curMax !== undefined) ? curMax : limit;
-        }
-        if (maxEl)
-        {
-            maxEl.min = (curMin !== undefined) ? curMin : 0;
-            maxEl.max = limit;
-        }
+        // fixed ranges 0-limit for both sliders: a range that follows the other slider rescales the
+        // track and the other thumb jumps although its value does not change
+        ['min', 'max'].forEach(function (which) {
+            var el = document.getElementById('bt_' + which + k);
+            if (el)
+                el.max = limit;
+        });
     }
     var out0 = st['ble.map0.out'], out1 = st['ble.map1.out'];
     var warn = document.getElementById('bt_same_warn');
@@ -410,9 +402,36 @@ function btCardUpdate()
         status.textContent = st['ble.connected'] ? '(verbunden)' : '(nicht verbunden)';
 }
 
+// Min may not be dragged above max and max not below min: the thumb stops at the other one. The server
+// would clamp the value, and if that changes nothing there is no patch and the slider would keep a wrong
+// value. Uses the value shown by the other slider (it is the newest one).
+function btClampInput(ev)
+{
+    var m = /^bt_(min|max)([01])$/.exec(ev.target.id || '');
+    if (!m)
+        return;
+    var el = ev.target;
+    var other = document.getElementById('bt_' + (m[1] === 'min' ? 'max' : 'min') + m[2]);
+    if (!other)
+        return;
+    var v = Number(el.value), o = Number(other.value);
+    if (m[1] === 'min' && v > o)
+        v = o;
+    else if (m[1] === 'max' && v < o)
+        v = o;
+    if (String(v) !== el.value)
+    {
+        el.value = v;
+        var label = document.getElementById(el.id + '_value');
+        if (label)
+            label.innerHTML = v;
+    }
+}
+
 // open / closed state of the card, only kept in this browser
 function btCardRestoreOpen()
 {
+    document.addEventListener('input', btClampInput, true);
     var card = document.getElementById('bt-card');
     if (!card)
         return;
