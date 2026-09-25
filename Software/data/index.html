@@ -15,8 +15,9 @@
     <div class="content">
         <div class="card-grid">
             <!-- First Row -->
-            <div class="card">
+            <div class="card" data-hold="ble.hold.ch1">
             <p class="card-title">Ch1</p>
+            <p class="hold-hint">Von Bluetooth gehalten. Eine &Auml;nderung hier beendet die Sperre bei Level 0.</p>
             <!-- Rounded switch -->
             <label class="switch2"> 
                 <input type="checkbox" onclick="update_switch(this)" id="toggle_a" data-key="ch1.en"> 
@@ -39,8 +40,9 @@
                 <p class="state">Power: <span id="slider_c_value"></span></p>
             </div>
             <!-- Second Row -->
-            <div class="card">
+            <div class="card" data-hold="ble.hold.ch2">
                 <p class="card-title">Ch2</p>
+                <p class="hold-hint">Von Bluetooth gehalten. Eine &Auml;nderung hier beendet die Sperre bei Level 0.</p>
                 <!-- Rounded switch -->
                 <label class="switch2">
                     <input type="checkbox" onclick="update_switch(this)" id="toggle_b" data-key="ch2.en">
@@ -63,8 +65,9 @@
                     <p class="state">Power: <span id="slider_f_value"></span></p>
                 </div>
                 <!-- Third Row -->
-                <div class="card">
+                <div class="card" data-hold="ble.hold.ch3">
                     <p class="card-title">Ch3</p>
+                    <p class="hold-hint">Von Bluetooth gehalten. Eine &Auml;nderung hier beendet die Sperre bei Level 0.</p>
                     <!-- Rounded switch -->
                     <label class="switch2">
                         <input type="checkbox" onclick="update_switch(this)" id="toggle_c" data-key="ch3.en">
@@ -87,8 +90,9 @@
                         <p class="state">Power: <span id="slider_i_value"></span></p>
                     </div>
                 <!-- Fourth Row -->
-                <div class="card">
+                <div class="card" data-hold="ble.hold.ch4">
                     <p class="card-title">Ch4</p>
+                    <p class="hold-hint">Von Bluetooth gehalten. Eine &Auml;nderung hier beendet die Sperre bei Level 0.</p>
                     <!-- Rounded switch -->
                     <label class="switch2">
                         <input type="checkbox" onclick="update_switch(this)" id="toggle_d" data-key="ch4.en">
@@ -111,8 +115,9 @@
                         <p class="state">Power: <span id="slider_l_value"></span></p>
                     </div>
 
-                    <div class="card">
+                    <div class="card" data-hold="ble.hold.pump">
                         <p class="card-title">Pump</p>
+                        <p class="hold-hint">Von Bluetooth gehalten. Eine &Auml;nderung hier beendet die Sperre bei Level 0.</p>
                         <!-- Rounded switch -->
                         <label class="switch2">
                             <input type="checkbox" onclick="update_switch(this)" id="toggle_e" data-key="pump.en">
@@ -148,8 +153,9 @@
                         </p> -->
                     </div>
 
-                    <div class="card">
+                    <div class="card" data-hold="ble.hold.collar">
                         <p class="card-title">Collar</p>
+                        <p class="hold-hint">Von Bluetooth gehalten. Beep, Vib und Shock bleiben m&ouml;glich.</p>
                         <label class="switch2">
                             <input type="checkbox" onclick="update_switch(this)" id="toggle_f" data-key="collar.en">
                             <span class="slider2 round"></span>
