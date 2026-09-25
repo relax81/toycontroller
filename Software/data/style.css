@@ -221,3 +221,82 @@ input:checked + .slider2:before {
 }
 
 
+
+  /* BLE holds this output (ble.hold.*, class set by script.js): marked only, the controls stay usable
+     (a change from the web ends the hold at level 0) */
+  .card {
+    position: relative;
+  }
+  .card.ble-held > *:not(.hold-hint) {
+    opacity: .55;
+  }
+  .card.ble-held::before {
+    content: "BLE";
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: .8rem;
+    font-weight: bold;
+    color: white;
+    background: #a94cab;
+  }
+  .hold-hint {
+    display: none;
+    margin: 4px 8px;
+    font-size: .9rem;
+    color: #a94cab;
+  }
+  .card.ble-held .hold-hint {
+    display: block;
+  }
+
+  /* Bluetooth mapping card (collapsible) */
+  .bt-card {
+    grid-column: 1 / -1;
+    padding: 0 16px 16px;
+  }
+  .bt-card summary {
+    cursor: pointer;
+    padding: 12px 0;
+  }
+  .bt-status {
+    font-size: .9rem;
+    font-weight: normal;
+    color: #1282A2;
+  }
+  .bt-body {
+    display: grid;
+    grid-gap: 1rem 2rem;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  }
+  .bt-select, .bt-number {
+    font-size: 1.1rem;
+    padding: 4px 8px;
+    margin: 4px 0 8px;
+  }
+  .bt-number {
+    width: 5em;
+    text-align: center;
+  }
+  .bt-row {
+    font-size: 1.1rem;
+  }
+  .bt-check {
+    cursor: pointer;
+  }
+  .bt-warn {
+    font-size: 1rem;
+    color: #b3261e;
+  }
+  .bt-warn[hidden] {
+    display: none;
+  }
+  .bt-placeholder {
+    margin-top: 12px;
+    padding: 10px;
+    border: 1px dashed #b0b0b0;
+    font-size: .95rem;
+    color: #777;
+  }

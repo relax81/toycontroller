@@ -15,112 +15,117 @@
     <div class="content">
         <div class="card-grid">
             <!-- First Row -->
-            <div class="card">
+            <div class="card" data-hold="ble.hold.ch1">
             <p class="card-title">Ch1</p>
+            <p class="hold-hint">Von Bluetooth gehalten. Eine &Auml;nderung hier beendet die Sperre bei Level 0.</p>
             <!-- Rounded switch -->
             <label class="switch2"> 
-                <input type="checkbox" onclick="update_switch(this)" id="toggle_a"> 
+                <input type="checkbox" onclick="update_switch(this)" id="toggle_a" data-key="ch1.en"> 
                 <span class="slider2 round"></span>
             </label>
                 <p class="card-title">Ch1 On Time</p>
                 <p class="switch">
-                    <input type="range" onchange="update_slider(this)" id="slider_a" min="0" max="100" step="1" value ="0" class="slider">
+                    <input type="range" onchange="update_slider(this)" id="slider_a" data-key="ch1.on" min="0" max="100" step="1" value ="0" class="slider">
                 </p>
                 <p class="state">On Time: <span id="slider_a_value"></span> seconds</p>
                 <p class="card-title">Ch1 Off Time</p>
                 <p class="switch">
-                    <input type="range" onchange="update_slider(this)" id="slider_b" min="0" max="100" step="1" value ="0" class="slider">
+                    <input type="range" onchange="update_slider(this)" id="slider_b" data-key="ch1.off" min="0" max="100" step="1" value ="0" class="slider">
                 </p>
                 <p class="state">Off Time: <span id="slider_b_value"></span> seconds</p>
                 <p class="card-title">Ch1 Power</p>
                 <p class="switch">
-                    <input type="range" onchange="update_slider(this)" id="slider_c" min="0" max="100" step="1" value ="0" class="slider">
+                    <input type="range" onchange="update_slider(this)" id="slider_c" data-key="ch1.pwm" min="0" max="100" step="1" value ="0" class="slider">
                 </p>
                 <p class="state">Power: <span id="slider_c_value"></span></p>
             </div>
             <!-- Second Row -->
-            <div class="card">
+            <div class="card" data-hold="ble.hold.ch2">
                 <p class="card-title">Ch2</p>
+                <p class="hold-hint">Von Bluetooth gehalten. Eine &Auml;nderung hier beendet die Sperre bei Level 0.</p>
                 <!-- Rounded switch -->
                 <label class="switch2">
-                    <input type="checkbox" onclick="update_switch(this)" id="toggle_b">
+                    <input type="checkbox" onclick="update_switch(this)" id="toggle_b" data-key="ch2.en">
                     <span class="slider2 round"></span>
                 </label>
                     <p class="card-title">Ch2 On Time</p>
                     <p class="switch">
-                        <input type="range" onchange="update_slider(this)" id="slider_d" min="0" max="100" step="1" value ="0" class="slider">
+                        <input type="range" onchange="update_slider(this)" id="slider_d" data-key="ch2.on" min="0" max="100" step="1" value ="0" class="slider">
                     </p>
                     <p class="state">On Time: <span id="slider_d_value"></span> seconds</p>
                     <p class="card-title">Ch2 Off Time</p>
                     <p class="switch">
-                        <input type="range" onchange="update_slider(this)" id="slider_e" min="0" max="100" step="1" value ="0" class="slider">
+                        <input type="range" onchange="update_slider(this)" id="slider_e" data-key="ch2.off" min="0" max="100" step="1" value ="0" class="slider">
                     </p>
                     <p class="state">Off Time: <span id="slider_e_value"></span> seconds</p>
                     <p class="card-title">Ch2 Power</p>
                     <p class="switch">
-                        <input type="range" onchange="update_slider(this)" id="slider_f" min="0" max="100" step="1" value ="0" class="slider">
+                        <input type="range" onchange="update_slider(this)" id="slider_f" data-key="ch2.pwm" min="0" max="100" step="1" value ="0" class="slider">
                     </p>
                     <p class="state">Power: <span id="slider_f_value"></span></p>
                 </div>
                 <!-- Third Row -->
-                <div class="card">
+                <div class="card" data-hold="ble.hold.ch3">
                     <p class="card-title">Ch3</p>
+                    <p class="hold-hint">Von Bluetooth gehalten. Eine &Auml;nderung hier beendet die Sperre bei Level 0.</p>
                     <!-- Rounded switch -->
                     <label class="switch2">
-                        <input type="checkbox" onclick="update_switch(this)" id="toggle_c">
+                        <input type="checkbox" onclick="update_switch(this)" id="toggle_c" data-key="ch3.en">
                         <span class="slider2 round"></span>
                     </label>
                         <p class="card-title">Ch3 On Time</p>
                         <p class="switch">
-                            <input type="range" onchange="update_slider(this)" id="slider_g" min="0" max="100" step="1" value ="0" class="slider">
+                            <input type="range" onchange="update_slider(this)" id="slider_g" data-key="ch3.on" min="0" max="100" step="1" value ="0" class="slider">
                         </p>
                         <p class="state">On Time: <span id="slider_g_value"></span> seconds</p>
                         <p class="card-title">Ch3 Off Time</p>
                         <p class="switch">
-                            <input type="range" onchange="update_slider(this)" id="slider_h" min="0" max="100" step="1" value ="0" class="slider">
+                            <input type="range" onchange="update_slider(this)" id="slider_h" data-key="ch3.off" min="0" max="100" step="1" value ="0" class="slider">
                         </p>
                         <p class="state">Off Time: <span id="slider_h_value"></span> seconds</p>
                         <p class="card-title">Ch3 Power</p>
                         <p class="switch">
-                            <input type="range" onchange="update_slider(this)" id="slider_i" min="0" max="100" step="1" value ="0" class="slider">
+                            <input type="range" onchange="update_slider(this)" id="slider_i" data-key="ch3.pwm" min="0" max="100" step="1" value ="0" class="slider">
                         </p>
                         <p class="state">Power: <span id="slider_i_value"></span></p>
                     </div>
                 <!-- Fourth Row -->
-                <div class="card">
+                <div class="card" data-hold="ble.hold.ch4">
                     <p class="card-title">Ch4</p>
+                    <p class="hold-hint">Von Bluetooth gehalten. Eine &Auml;nderung hier beendet die Sperre bei Level 0.</p>
                     <!-- Rounded switch -->
                     <label class="switch2">
-                        <input type="checkbox" onclick="update_switch(this)" id="toggle_d">
+                        <input type="checkbox" onclick="update_switch(this)" id="toggle_d" data-key="ch4.en">
                         <span class="slider2 round"></span>
                     </label>
                         <p class="card-title">Ch4 On Time</p>
                         <p class="switch">
-                            <input type="range" onchange="update_slider(this)" id="slider_j" min="0" max="100" step="1" value ="0" class="slider">
+                            <input type="range" onchange="update_slider(this)" id="slider_j" data-key="ch4.on" min="0" max="100" step="1" value ="0" class="slider">
                         </p>
                         <p class="state">On Time: <span id="slider_j_value"></span> seconds</p>
                         <p class="card-title">Ch4 Off Time</p>
                         <p class="switch">
-                            <input type="range" onchange="update_slider(this)" id="slider_k" min="0" max="100" step="1" value ="0" class="slider">
+                            <input type="range" onchange="update_slider(this)" id="slider_k" data-key="ch4.off" min="0" max="100" step="1" value ="0" class="slider">
                         </p>
                         <p class="state">Off Time: <span id="slider_k_value"></span> seconds</p>
                         <p class="card-title">Ch4 Power</p>
                         <p class="switch">
-                            <input type="range" onchange="update_slider(this)" id="slider_l" min="0" max="100" step="1" value ="0" class="slider">
+                            <input type="range" onchange="update_slider(this)" id="slider_l" data-key="ch4.pwm" min="0" max="100" step="1" value ="0" class="slider">
                         </p>
                         <p class="state">Power: <span id="slider_l_value"></span></p>
                     </div>
 
-                    <div class="card">
+                    <div class="card" data-hold="ble.hold.pump">
                         <p class="card-title">Pump</p>
+                        <p class="hold-hint">Von Bluetooth gehalten. Eine &Auml;nderung hier beendet die Sperre bei Level 0.</p>
                         <!-- Rounded switch -->
                         <label class="switch2">
-                            <input type="checkbox" onclick="update_switch(this)" id="toggle_e">
+                            <input type="checkbox" onclick="update_switch(this)" id="toggle_e" data-key="pump.en">
                             <span class="slider2 round"></span>
                         </label>
                         <p class="card-title">Pump Power</p>
                         <p class="switch">
-                            <input type="range" onchange="update_slider(this)" id="slider_m" min="0" max="100" step="1" value ="0" class="slider">
+                            <input type="range" onchange="update_slider(this)" id="slider_m" data-key="pump.pwm" min="0" max="100" step="1" value ="0" class="slider">
                         </p>
                         <p class="state">Power: <span id="slider_m_value"></span></p>
                     </div>
@@ -129,17 +134,17 @@
                     <div class="card">
                         <p class="card-title">Buzzer Metronome</p>
                         <label class="switch2">
-                            <input type="checkbox" onclick="update_switch(this)" id="toggle_g">
+                            <input type="checkbox" onclick="update_switch(this)" id="toggle_g" data-key="buzzer.en">
                             <span class="slider2 round"></span>
                             </label>
                             <p class="card-title">BPM</p>
                         <p class="switch">
-                            <input type="range" onchange="update_slider(this)" id="slider_o" min="1" max="255" step="1" value ="0" class="slider">
+                            <input type="range" onchange="update_slider(this)" id="slider_o" data-key="buzzer.bpm" min="1" max="255" step="1" value ="0" class="slider">
                         </p>
                         <p class="state">BPM: <span id="slider_o_value"></span></p>
                         <p class="card-title">Volume</p>
                         <p class="switch">
-                            <input type="range" onchange="update_slider(this)" id="slider_p" min="0" max="10" step="1" value ="0" class="slider">
+                            <input type="range" onchange="update_slider(this)" id="slider_p" data-key="buzzer.vol" min="0" max="10" step="1" value ="0" class="slider">
                         </p>
                         <p class="state">Volume: <span id="slider_p_value"></span></p>
                         <!-- <p class="switch3">
@@ -148,20 +153,21 @@
                         </p> -->
                     </div>
 
-                    <div class="card">
+                    <div class="card" data-hold="ble.hold.collar">
                         <p class="card-title">Collar</p>
+                        <p class="hold-hint">Von Bluetooth gehalten. Beep, Vib und Shock bleiben m&ouml;glich.</p>
                         <label class="switch2">
-                            <input type="checkbox" onclick="update_switch(this)" id="toggle_f">
+                            <input type="checkbox" onclick="update_switch(this)" id="toggle_f" data-key="collar.en">
                             <span class="slider2 round"></span>
                             </label>
                         <p class="card-title">Strength</p>
                         <p class="switch">
-                            <input type="range" onchange="update_slider(this)" id="slider_n" min="0" max="100" step="1" value ="0" class="slider">
+                            <input type="range" onchange="update_slider(this)" id="slider_n" data-key="collar.strength" min="0" max="100" step="1" value ="0" class="slider">
                         </p>
                         <p class="state">Level: <span id="slider_n_value"></span></p>                           
-                            <input type="button" onclick="update_button(this)" name="Collar Beep" id="click_b" value="Beep" class="button"></button>
-                            <input type="button" onclick="update_button(this)" name="Collar Vibrate" id="click_v" value="Vib" class="button"></button>
-                            <input type="button" onclick="update_button(this)" name="Collar Shock" id="click_s" value="Shock" class="button"></button>
+                            <input type="button" onclick="update_button(this)" name="Collar Beep" id="click_b" data-cmd="collar.beep" value="Beep" class="button"></button>
+                            <input type="button" onclick="update_button(this)" name="Collar Vibrate" id="click_v" data-cmd="collar.vibe" value="Vib" class="button"></button>
+                            <input type="button" onclick="update_button(this)" name="Collar Shock" id="click_s" data-cmd="collar.shock" value="Shock" class="button"></button>
                     </div>
           
                     <!-- <div class="card">
@@ -189,6 +195,65 @@
                       </div> -->
 
 
+
+            <!-- Bluetooth mapping (collapsible, filled from ble.map0/1.*, collar.btonly, sys.failsafe) -->
+            <details class="card bt-card" id="bt-card">
+                <summary class="card-title">Bluetooth-Zuordnung <span id="bt_status" class="bt-status"></span></summary>
+                <div class="bt-body">
+                <div class="bt-channel">
+                    <p class="card-title">V1 (Vibrate 1)</p>
+                    <label for="bt_out0">Ziel</label>
+                    <select id="bt_out0" data-key="ble.map0.out" onchange="update_select(this)" class="bt-select">
+                        <option value="0">Aus</option>
+                        <option value="1">Ch1</option>
+                        <option value="2">Ch2</option>
+                        <option value="3">Ch3</option>
+                        <option value="4">Ch4</option>
+                        <option value="5">Pumpe</option>
+                        <option value="6">Halsband</option>
+                    </select>
+                    <p class="state">Min: <span id="bt_min0_value"></span></p>
+                    <p class="switch">
+                        <input type="range" onchange="update_slider(this)" id="bt_min0" data-key="ble.map0.min" min="0" max="255" step="1" value="0" class="slider">
+                    </p>
+                    <p class="state">Max: <span id="bt_max0_value"></span></p>
+                    <p class="switch">
+                        <input type="range" onchange="update_slider(this)" id="bt_max0" data-key="ble.map0.max" min="0" max="255" step="1" value="0" class="slider">
+                    </p>
+                </div>
+                <div class="bt-channel">
+                    <p class="card-title">V2 (Vibrate 2)</p>
+                    <label for="bt_out1">Ziel</label>
+                    <select id="bt_out1" data-key="ble.map1.out" onchange="update_select(this)" class="bt-select">
+                        <option value="0">Aus</option>
+                        <option value="1">Ch1</option>
+                        <option value="2">Ch2</option>
+                        <option value="3">Ch3</option>
+                        <option value="4">Ch4</option>
+                        <option value="5">Pumpe</option>
+                        <option value="6">Halsband</option>
+                    </select>
+                    <p class="state">Min: <span id="bt_min1_value"></span></p>
+                    <p class="switch">
+                        <input type="range" onchange="update_slider(this)" id="bt_min1" data-key="ble.map1.min" min="0" max="255" step="1" value="0" class="slider">
+                    </p>
+                    <p class="state">Max: <span id="bt_max1_value"></span></p>
+                    <p class="switch">
+                        <input type="range" onchange="update_slider(this)" id="bt_max1" data-key="ble.map1.max" min="0" max="255" step="1" value="0" class="slider">
+                    </p>
+                </div>
+                </div>
+                <p id="bt_same_warn" class="bt-warn" hidden>V1 und V2 steuern denselben Ausgang: der zuletzt geschriebene Wert gewinnt.</p>
+                <p class="bt-row">
+                    <label class="bt-check"><input type="checkbox" onclick="update_switch(this)" id="bt_btonly" data-key="collar.btonly"> Halsband: nur bei Level-&Auml;nderung senden</label>
+                </p>
+                <p class="bt-row">
+                    <label for="bt_failsafe">Failsafe nach</label>
+                    <input type="number" id="bt_failsafe" data-key="sys.failsafe" min="3" max="120" step="1" onchange="update_slider(this)" class="bt-number">
+                    <span>Sekunden ohne Web-Verbindung (3-120)</span>
+                </p>
+                <div class="bt-placeholder" id="bt-toy-model">Toy-Modell (folgt): Name, UUID, Antwortkennung, Motorenanzahl</div>
+            </details>
         </div>
     </div>
     <script src="script.js"></script>

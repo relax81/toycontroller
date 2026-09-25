@@ -1,73 +1,48 @@
-// activate deactivate serial output for debugging
-#define DEBUG 1
-#if DEBUG == 1
-#define debug(x) Serial.print(x)
-#define debugln(x) Serial.println(x)
+// activate deactivate heap logging (free / min free / largest free block)
+#define DEBUG_HEAP 1
+#if DEBUG_HEAP == 1
+extern volatile unsigned long loop_max_us; // longest loop() pass of the last full 5 s window
+#define heap_log(tag) Serial.printf("[heap] %-12s free=%u min=%u maxblock=%u loopmax=%lu us\n", tag, ESP.getFreeHeap(), ESP.getMinFreeHeap(), ESP.getMaxAllocHeap(), loop_max_us)
 #else
-#define debug(x)      
-#define debugln(x)
+#define heap_log(tag)
 #endif
 
 #include <Arduino.h>
-#include "true-credentials.h"
 #include <U8g2lib.h>
 #include <Wire.h>
 #include <TickTwo.h>
 #include <AiEsp32RotaryEncoder.h>
-#include <pinout.h>
+#include "config.h"
+#include "wifi_setup.h"
+#include "wifi_manager.h"
+#include "state.h"
+#include "outputs.h"
+#include "settings.h"
+#include "protocol.h"
 #include <DNSServer.h>
 #include <WiFi.h>
 #include <AsyncTCP.h>
 #include "ESPAsyncWebServer.h"
 #include "SPIFFS.h"
 #include <Arduino_JSON.h>
-#include <BLEDevice.h>
-#include <BLEServer.h>
-#include <BLEUtils.h>
-#include <BLE2902.h>
-#include "DogCollar3.h"
+#include <NimBLEDevice.h>
+#include "driver/ledc.h"
+
+#ifndef GIT_HASH
+#define GIT_HASH "unknown" // set by git_hash.py
+#endif
 
 // software version
 String version = "0.1";
-
-// set the font types being used
-const uint8_t* font_status_messages = u8g2_font_crox4hb_tr;
-const uint8_t* font_main_menu = u8g2_font_t0_13b_mf;
-const uint8_t* font_manual_menu = u8g2_font_ncenB08_tr;
-const uint8_t* font_bluetooth_menu = u8g2_font_pixzillav1_tr; 
-const uint8_t* font_check_symbol = u8g2_font_open_iconic_check_1x_t;
-const uint8_t* font_wifi_symbol = u8g2_font_open_iconic_www_1x_t;
 
 void displayMenuManual();
 void buttonMenuManual();
 void displayBluetoothMenu();
 void buttonMenuBluetooth();
-void reset_Outputs();
 void update_values_ws();
-void bluetooth_write_pwm(int, int);
-void disable_Outputs();
-
-// DogCollar 
-  #define PIN_TRANSMITTER 15  // gpio15 is a strapping pin that can cause issues at bootup
-  // Unique ID (16 bit) of the Shock Collar. You can also keep this and use pairing mode of the collar
-  String uniqueKeyOfDevice = "0010110011011000";
-  DogCollar dg(PIN_TRANSMITTER,uniqueKeyOfDevice);
-  int vibration;
-  int shock;
-  int beep;
-  int keepawake;
-  int collar_strength;
-  bool Collar_Enable = false;
-  bool button_beep = false;
-  bool button_vib = false;
-  bool button_shock = false;
-  unsigned long previous_Collar_Wakeup = 0; 
-  unsigned long keep_Collar_Awake_Interval = 120000; // 2 Minutes
 
 // Random - name later
   unsigned long currentMillis;
-  int wlanstatus;
-  bool WiFi_Enabled = false;
   bool BT_Enabled = false;
   bool buttonPressed = false;
   bool buttonLongPressed = false;
@@ -81,74 +56,15 @@ void disable_Outputs();
   int current_screen = 0;   // 0 = main menu, 
   int manualMenuSelect = 1; // from Manual Mode Menu
   int bluetoothMenuSelect = 1; // from bluetooth mode menu
-  bool Ch1_Enable = false;
-  bool Ch2_Enable = false;
-  bool Ch3_Enable = false;
-  bool Ch4_Enable = false;
-  bool Pump_Enable = false;
-  int Ch1_On = 0;
-  int Ch1_Off = 0;
-  int Ch1_PWM = 0;
-  int Ch2_On = 0;
-  int Ch2_Off = 0;
-  int Ch2_PWM = 0;
-  int Ch3_On = 0;
-  int Ch3_Off = 0;
-  int Ch3_PWM = 0;
-  int Ch4_On = 0;
-  int Ch4_Off = 0;
-  int Ch4_PWM = 0;
-  int pump_PWM = 0;
 // Bluetooth Menu
-  int BT_V1_Output = 0;
-  int BT_V1_Min_PWM = 0;
-  int BT_V1_Max_PWM = 255;
-  int BT_V2_Output = 1;
-  int BT_V2_Min_PWM = 0;
-  int BT_V2_Max_PWM = 255;
-  bool BT_V1_Paused = false;
-  bool BT_V2_Paused = false;
-// PWM settings
-  const int freq = 5000;
-  const int resolution = 8;
-  const int PWMOUT_1 = 1; // max 30v ch1
-  const int PWMOUT_2 = 2; // max 30v ch2
-  const int PWMOUT_3 = 3; // 5v ch1
-  const int PWMOUT_4 = 4; // 5v ch2
-  const int buzzer = 5;
-  const int pumpOUT = 6; // Pump PWM Output
-  bool pwm1_paused = false;
-  bool pwm2_paused = false;
-  bool pwm3_paused = false;
-  bool pwm4_paused = false;
-  unsigned long pwm1_timeStarted = 0;
-  unsigned long pwm1_timeStopped = 0;
-  unsigned long pwm2_timeStarted = 0;
-  unsigned long pwm2_timeStopped = 0;
-  unsigned long pwm3_timeStarted = 0;
-  unsigned long pwm3_timeStopped = 0;
-  unsigned long pwm4_timeStarted = 0;
-  unsigned long pwm4_timeStopped = 0;
   // String lb1_mode;
   // String lb2_mode;
   String tempString;
 // Main Menu New
-  const int MainMenuNumItems = 4; // number of items in the list 
-  const int MainMenuMaxItemLength = 20; // maximum characters for the item name
-  char MainMenuItems [MainMenuNumItems] [MainMenuMaxItemLength] = {"Manual","WiFi Status","Bluetooth","Info"};
+  char MainMenuItems [MainMenuNumItems] [MainMenuMaxItemLength] = {"Manual","WiFi Status","Bluetooth","Info","Settings"};
 // Bluetooth Menu
-  const int OutputNumItems = 6; // number of items in the list 
-  const int OutputItemsMaxLength = 20; // maximum characters for the item name
-  char OutputItems [OutputNumItems] [OutputItemsMaxLength] = {"OFF","PWM1","PWM2","PWM3","PWM4","PUMP"};
+  char OutputItems [OutputNumItems] [OutputItemsMaxLength] = {"OFF","PWM1","PWM2","PWM3","PWM4","PUMP","Shoc"};
 // buzzer 
-  bool buzzer_Metronome_Enabled = false;
-  int buzzerVolume = 5; // 0 - 10
-  const int buzzerFrequency = 2000; // initial buzzerFrequency
-  unsigned long buzzerPreviousMillis = 0;
-  int buzzerBPM = 60; // 1 - 255
-  int beatInterval = 60000 / buzzerBPM; // duration of one beat in milliseconds
-  int buzzerOnTimeMS = 50;
-  bool buzzerIsPlaying = false;
 
 
 
@@ -157,42 +73,44 @@ void disable_Outputs();
   U8G2_SSD1306_128X64_NONAME_F_HW_I2C u8g2(U8G2_R0, /* reset=*/ U8X8_PIN_NONE);
 
 //Encoder
-  //depending on your encoder - try 1,2 or 4 to get expected behaviour
-  #define ROTARY_ENCODER_STEPS 4
-  #define ROTARY_ENCODER_VCC_PIN -1 /* 27 put -1 of Rotary encoder Vcc is connected directly to 3,3V; else you can use declared output pin for powering rotary encoder */
   //instead of changing here, rather change numbers above
   AiEsp32RotaryEncoder rotaryEncoder = AiEsp32RotaryEncoder(ROTARY_ENCODER_A_PIN, ROTARY_ENCODER_B_PIN, ROTARY_ENCODER_BUTTON_PIN, ROTARY_ENCODER_VCC_PIN, ROTARY_ENCODER_STEPS);
 
 // Bluetooth start
-  BLEServer* pServer = NULL;
-  BLECharacteristic* pTxCharacteristic = NULL;
-  BLECharacteristic* pRxCharacteristic = NULL;
+  NimBLEServer* pServer = NULL;
+  NimBLECharacteristic* pTxCharacteristic = NULL;
+  NimBLECharacteristic* pRxCharacteristic = NULL;
   // String bleAddress = "C0:42:3D:01:28:34"; // CONFIGURATION: < Use the real device BLE address here.
   String bleAddress = "FF:FF:FF:FF:FF:FF"; // CONFIGURATION: < Use the real device BLE address here.
-  bool deviceConnected = false;
-  bool oldDeviceConnected = false;
   uint32_t value = 0;
-  int bt_rotation;
-  int bt_vibration;
-  int bt_vibration1;
-  int bt_vibration2;
-  int bt_airlevel;
   #define SERVICE_UUID           "6e400001-b5a3-f393-e0a9-e50e24dcca9e"
   #define CHARACTERISTIC_RX_UUID "6e400002-b5a3-f393-e0a9-e50e24dcca9e"
   #define CHARACTERISTIC_TX_UUID "6e400003-b5a3-f393-e0a9-e50e24dcca9e"
   // CONFIGURATION:                           ^ Replace X and Y with values that suit you.
-  class MyServerCallbacks: public BLEServerCallbacks {
-      void onConnect(BLEServer* pServer) {
-        deviceConnected = true;
-        BLEDevice::startAdvertising();
+  // BLE callbacks run in the NimBLE task and must not write the state: they queue events.
+  // bleVib[] is the last vibration pair queued by this task (both values travel in one
+  // event, so V1/V2 are always applied together).
+  static int bleVib[2] = {0, 0};
+  static void ble_queue_vib(int v1, int v2) {
+    bleVib[0] = v1;
+    bleVib[1] = v2;
+    state_set(EV_BLE_VIB, 0, (int32_t)((uint32_t)(v1 & 0xFFFF) | ((uint32_t)(v2 & 0xFFFF) << 16)));
+  }
+  class MyServerCallbacks: public NimBLEServerCallbacks {
+      void onConnect(NimBLEServer* pServer) {
+        state_set(EV_BLE_CONN, 0, 1);
+        NimBLEDevice::startAdvertising();
       };
 
-      void onDisconnect(BLEServer* pServer) {
-        deviceConnected = false;
+      void onDisconnect(NimBLEServer* pServer) {
+        // failsafe: no client, no output (EV_BLE_CONN 0 also zeroes vib[])
+        bleVib[0] = 0;
+        bleVib[1] = 0;
+        state_set(EV_BLE_CONN, 0, 0);
       }
   };
-  class MySerialCallbacks: public BLECharacteristicCallbacks {
-      void onWrite(BLECharacteristic *pCharacteristic) {
+  class MySerialCallbacks: public NimBLECharacteristicCallbacks {
+      void onWrite(NimBLECharacteristic *pCharacteristic) {
         static uint8_t messageBuf[64];
         assert(pCharacteristic == pRxCharacteristic);
         std::string rxValue = pRxCharacteristic->getValue();
@@ -229,48 +147,45 @@ void disable_Outputs();
           pTxCharacteristic->notify();
         } else if (rxValue.rfind("Status:", 0) == 0) {
           memmove(messageBuf, "2;", 2);
-          pTxCharacteristic->setValue(messageBuf, 3);
+          pTxCharacteristic->setValue(messageBuf, 2);
           pTxCharacteristic->notify();
         } else if (rxValue.rfind("Vibrate:", 0) == 0) {
-          bt_vibration1 = std::atoi(rxValue.substr(8).c_str());
-          bt_vibration2 = std::atoi(rxValue.substr(8).c_str());
+          int v = std::atoi(rxValue.substr(8).c_str());
+          ble_queue_vib(v, v);
           debug("V:");
-          debugln(bt_vibration);
+          debugln(v);
           memmove(messageBuf, "OK;", 3);
           pTxCharacteristic->setValue(messageBuf, 3);
           pTxCharacteristic->notify();
         } else if (rxValue.rfind("Rotate:", 0) == 0) {
-          bt_rotation = std::atoi(rxValue.substr(7).c_str());
+          int r = std::atoi(rxValue.substr(7).c_str());
+          state_set(EV_BLE_ROT, 0, r);
           debug("R:");
-          debugln(bt_rotation);
-          memmove(messageBuf, "OK;", 3);
-          pTxCharacteristic->setValue(messageBuf, 3);
-          pTxCharacteristic->notify();
-          } else if (rxValue.rfind("Vibrate:", 0) == 0) {
-          bt_vibration1 = std::atoi(rxValue.substr(8).c_str());
-          debug("V:");
-          debugln(bt_vibration1);
+          debugln(r);
           memmove(messageBuf, "OK;", 3);
           pTxCharacteristic->setValue(messageBuf, 3);
           pTxCharacteristic->notify();
         } else if (rxValue.rfind("Vibrate1:", 0) == 0) {
-          bt_vibration1 = std::atoi(rxValue.substr(9).c_str());
+          int v = std::atoi(rxValue.substr(9).c_str());
+          ble_queue_vib(v, bleVib[1]);
           debug("V1:");
-          debugln(bt_vibration1);
+          debugln(v);
           memmove(messageBuf, "OK;", 3);
           pTxCharacteristic->setValue(messageBuf, 3);
           pTxCharacteristic->notify();
         } else if (rxValue.rfind("Vibrate2:", 0) == 0) {
-          bt_vibration2 = std::atoi(rxValue.substr(9).c_str());
+          int v = std::atoi(rxValue.substr(9).c_str());
+          ble_queue_vib(bleVib[0], v);
           debug("V2:");
-          debugln(bt_vibration2);
+          debugln(v);
           memmove(messageBuf, "OK;", 3);
           pTxCharacteristic->setValue(messageBuf, 3);
           pTxCharacteristic->notify();
         } else if (rxValue.rfind("Air:Level:", 0) == 0) {
-          bt_airlevel = std::atoi(rxValue.substr(10).c_str());
+          int a = std::atoi(rxValue.substr(10).c_str());
+          state_set(EV_BLE_AIR, 0, a);
           debug("AL:");
-          debugln(bt_airlevel);
+          debugln(a);
           memmove(messageBuf, "OK;", 3);
           pTxCharacteristic->setValue(messageBuf, 3);
           pTxCharacteristic->notify();
@@ -290,73 +205,55 @@ void disable_Outputs();
   AsyncWebServer server(80);
   // Create a WebSocket object
   AsyncWebSocket ws("/ws");
+
+// WebSocket failsafe: web-controlled outputs go to 0 when the last WS client
+// is gone or nothing (command or ping answer) was heard for the timeout.
+// BLE-held outputs are not touched. Only armed after a WS command, so local
+// manual control without any web client is not affected.
+  #define WS_FAILSAFE 1
+  const unsigned long WS_PING_INTERVAL_MS = 5000; // browsers answer ping frames automatically
+  // At least 3 pings per failsafe timeout, so an idle but healthy tab never runs into it (with a
+  // fixed 5 s a timeout below that expired between two pongs). Read from state on every pass, a
+  // runtime change of sys.failsafe counts at once.
+  static unsigned long ws_ping_interval_ms() {
+    unsigned long third = (unsigned long)state.failsafeTimeoutS * 1000UL / 3;
+    return third < WS_PING_INTERVAL_MS ? third : WS_PING_INTERVAL_MS;
+  }
+  volatile unsigned long ws_last_seen = 0;
+  volatile bool ws_failsafe_armed = false;
+  volatile bool ws_broadcast_req = false; // set by the WS handler, evaluated in loop()
+  unsigned long ws_last_ping = 0;
   //Json Variable to Hold Slider Values
   JSONVar values;
   String json_string;
 
-// Initialize SPIFFS
-  void initFS() {
-    if (!SPIFFS.begin()) {
-      Serial.println("An error has occurred while mounting SPIFFS");
-    }
-    else{
-    Serial.println("SPIFFS mounted successfully");
-    }
-  }
-// Initialize WiFi
-  void initWiFi() {
-    WiFi.mode(WIFI_STA);
-    WiFi.begin(ssid, password);
-    Serial.print("Connecting to WiFi ..");
-    u8g2.clearBuffer();
-    u8g2.setFont(font_status_messages);
-    u8g2.drawStr(8, 20, "Connecting");
-    u8g2.drawStr(40, 45, "WiFi");
-    u8g2.sendBuffer();
-    // while (WiFi.status() != WL_CONNECTED) {
-    //   Serial.print('.');
-    //   delay(1000);
-    // }
-    WiFi_Enabled = true;
-    Serial.println(WiFi.localIP());
-  }
+// initFS(), initWiFi() and initWebServerRoot() live in wifi_setup.cpp
 
 
-// Bluetooth/WiFi Switching start
-  void turn_OFF_WIFI() {
-      Serial.println("WIFI OFF");
-      WiFi.mode( WIFI_MODE_NULL );
-      WiFi_Enabled = false;
-      delay(1000);
-    }
+// Bluetooth start (runs in parallel to WiFi)
   void turn_ON_Bluetooth() {
-  if (BT_Enabled == false)
-    {
-      reset_Outputs();
-    }
     // Bluetooth
     // Create the BLE Device
   debugln("ble init");  
-  BLEDevice::init("LVS-Z001"); // CONFIGURATION: The name doesn't actually matter, The app identifies it by the reported id.
+  NimBLEDevice::init("LVS-Z001"); // CONFIGURATION: The name doesn't actually matter, The app identifies it by the reported id.
   // Create the BLE Server
   debugln("create ble server");
-  pServer = BLEDevice::createServer();
+  pServer = NimBLEDevice::createServer();
   pServer->setCallbacks(new MyServerCallbacks());
   debugln("create ble service");
   // Create the BLE Service
-  BLEService *pService = pServer->createService(SERVICE_UUID);
+  NimBLEService *pService = pServer->createService(SERVICE_UUID);
   debugln("create ble characteristics");
     // Create a BLE Characteristics
   pTxCharacteristic = pService->createCharacteristic(
                       CHARACTERISTIC_TX_UUID,
-                      BLECharacteristic::PROPERTY_NOTIFY
+                      NIMBLE_PROPERTY::NOTIFY
                     );
-  pTxCharacteristic->addDescriptor(new BLE2902());
 
   pRxCharacteristic = pService->createCharacteristic(
                       CHARACTERISTIC_RX_UUID,
-                      BLECharacteristic::PROPERTY_WRITE  |
-                      BLECharacteristic::PROPERTY_WRITE_NR
+                      NIMBLE_PROPERTY::WRITE  |
+                      NIMBLE_PROPERTY::WRITE_NR
                     );
   pRxCharacteristic->setCallbacks(new MySerialCallbacks());
     // Create the BLE Service
@@ -365,27 +262,16 @@ void disable_Outputs();
   pService->start();
   debugln("bt start advertising");
   // Start advertising
-  BLEAdvertising *pAdvertising = BLEDevice::getAdvertising();
+  NimBLEAdvertising *pAdvertising = NimBLEDevice::getAdvertising();
   pAdvertising->addServiceUUID(SERVICE_UUID);
   pAdvertising->setScanResponse(false);
   pAdvertising->setMinPreferred(0x0);  // set value to 0x00 to not advertise this parameter
-  BLEDevice::startAdvertising();
+  NimBLEDevice::startAdvertising();
   debugln("Waiting a client connection to notify...");
   BT_Enabled = true;
+  heap_log("ble init");
 }
-  void turn_OFF_Bluetooth() {
-  reset_Outputs();
-  disable_Outputs();
-  u8g2.clearBuffer();
-  u8g2.setFont(font_status_messages);
-  u8g2.drawStr(15, 20, "Disabling");
-  u8g2.drawStr(15, 45, "Bluetooth");
-  u8g2.sendBuffer();
-  BLEDevice::deinit(false);
-  BT_Enabled = false;
-  delay(1000);
-}
-//Bluetooth/WiFi Switching end
+//Bluetooth start end
 
 // Timer
   void blinktext();
@@ -456,12 +342,13 @@ void disable_Outputs();
   void displayMainMenu()
   {
     item_selected = encoderPosition;
+    // debugln(item_selected);
+    // debugln(encoderPosition);
     if (current_screen == 0) {
-      rotaryEncoder.setBoundaries(0, 3, true);
+      rotaryEncoder.setBoundaries(0, 4, false);
 
     // WiFi Status Symbol
-    wlanstatus = WiFi.status();
-    if (wlanstatus == 3) { 
+    if (wifi_connected()) { 
       u8g2.setFont(font_wifi_symbol);
       u8g2.drawGlyph(110, 8, 72);	// WiFi Symbol
       }
@@ -489,12 +376,27 @@ void disable_Outputs();
     else if (current_screen == 11) {
       rotaryEncoder.setBoundaries(1, 1, false);
       u8g2.setFont(font_main_menu);
-      u8g2.drawStr(30, 10, "Local IP");
-      u8g2.setCursor(8, 25);
-      u8g2.print(WiFi.localIP());
-      u8g2.drawStr(24, 50, "RSSI: ");
-      u8g2.setCursor(70, 50);
-      u8g2.print(WiFi.RSSI());
+      if (wifi_connected()) {
+        u8g2.drawStr(30, 10, "Local IP");
+        u8g2.setCursor(8, 25);
+        u8g2.print(WiFi.localIP());
+        u8g2.drawStr(24, 50, "RSSI: ");
+        u8g2.setCursor(70, 50);
+        u8g2.print(WiFi.RSSI());
+        u8g2.setFont(font_manual_menu);
+        u8g2.drawStr(8, 62, "toycontroller.local");
+      }
+      else {
+        u8g2.drawStr(46, 10, "WiFi");
+        u8g2.drawStr(8, 32, wifi_state_text());
+        if (wifi_state() == WifiState::Portal) {
+          u8g2.drawStr(8, 52, "Click: data");
+          if (buttonPressed == true) {
+            buttonPressed = false;
+            current_screen = 15;
+          }
+        }
+      }
 
       if (buttonLongPressed == true) {      
         current_screen = 0;
@@ -505,7 +407,7 @@ void disable_Outputs();
     }
 
     else if (current_screen == 12) {
-      if (deviceConnected == 0){
+      if (state.ble.in.connected == 0){
         u8g2.setFont(font_status_messages);
         u8g2.clearBuffer();
         u8g2.drawStr(25, 16, "Waiting");
@@ -513,11 +415,12 @@ void disable_Outputs();
         u8g2.drawStr(8, 56, "Connection");
         u8g2.sendBuffer();
         }
-      if (deviceConnected == 1) {
+      if (state.ble.in.connected == 1) {
         displayBluetoothMenu();
         buttonMenuBluetooth();
         }
       if (buttonLongPressed == true) {      
+        settings_flush();
         current_screen = 0;
         item_selected = 2;
         encoderPosition = 2;
@@ -539,6 +442,50 @@ void disable_Outputs();
         rotaryEncoder.setEncoderValue(encoderPosition);
       }
     }
+
+    else if (current_screen == 15) {
+      rotaryEncoder.setBoundaries(1, 1, false);
+      wifi_draw_portal_screen();
+      if (!wifi_portal_active() || buttonPressed == true || buttonLongPressed == true) { // one click leaves
+        buttonPressed = false;
+        current_screen = 0;
+        item_selected = 1;
+        encoderPosition = 1;
+        rotaryEncoder.setEncoderValue(encoderPosition);
+      }
+    }
+    else if (current_screen == 14) {
+      rotaryEncoder.setBoundaries(0, 1, false);
+      u8g2.setFont(font_main_menu);
+      u8g2.drawStr(2, 10, "Shock BT trigger"); 
+      u8g2.drawStr(10, 24, "only on Level");
+      u8g2.drawStr(28, 38, "change");
+      if (state.collar.btOnlyChanges == true) {
+        u8g2.drawStr(28,55, "ENABLED");
+      }
+      else {
+        u8g2.drawStr(28,55, "DISABLED");
+      }
+
+      if (encoderPosition == 0) {
+        state_set(EV_COLLAR_BTONLY, 0, 0);
+        }
+        else if (encoderPosition == 1) {
+          state_set(EV_COLLAR_BTONLY, 0, 1);
+        }
+
+      if (buttonLongPressed == true) {      
+        settings_flush();
+        current_screen = 0;
+        item_selected = 4;
+        encoderPosition = 4;
+        rotaryEncoder.setEncoderValue(encoderPosition);
+      }
+    }
+
+
+
+
     // u8g2.sendBuffer();
   }
 
@@ -575,6 +522,12 @@ void disable_Outputs();
       displayMainMenu();
       break;
 
+      case 4:
+      // Settings
+      current_screen = 14;
+      displayMainMenu();
+      break;
+
       default:
       break;
     } // end switch case
@@ -600,41 +553,41 @@ void disable_Outputs();
   u8g2.drawVLine(95,0,64);
   // 1st line
   u8g2.setCursor(1,25);
-  u8g2.print(Ch1_Enable ? "ON" : "OFF");
+  u8g2.print(state.out[0].enabled ? "ON" : "OFF");
   u8g2.setCursor(36,25);
-  u8g2.print(Ch2_Enable ? "ON" : "OFF");
+  u8g2.print(state.out[1].enabled ? "ON" : "OFF");
   u8g2.setCursor(69,25);
-  u8g2.print(Ch3_Enable ? "ON" : "OFF");
+  u8g2.print(state.out[2].enabled ? "ON" : "OFF");
   u8g2.setCursor(102,25);
-  u8g2.print(Ch4_Enable ? "ON" : "OFF");
+  u8g2.print(state.out[3].enabled ? "ON" : "OFF");
 
   // 2nd line  
   u8g2.setCursor(1,37);
-  u8g2.print(Ch1_On);
+  u8g2.print(state.out[0].on);
   u8g2.setCursor(36,37);
-  u8g2.print(Ch2_On);
+  u8g2.print(state.out[1].on);
   u8g2.setCursor(69,37);
-  u8g2.print(Ch3_On);
+  u8g2.print(state.out[2].on);
   u8g2.setCursor(102,37);
-  u8g2.print(Ch4_On);
+  u8g2.print(state.out[3].on);
   // 3rd line
   u8g2.setCursor(1, 49);
-  u8g2.print(Ch1_Off);
+  u8g2.print(state.out[0].off);
   u8g2.setCursor(36,49);
-  u8g2.print(Ch2_Off);
+  u8g2.print(state.out[1].off);
   u8g2.setCursor(69,49);
-  u8g2.print(Ch3_Off);
+  u8g2.print(state.out[2].off);
   u8g2.setCursor(102,49);
-  u8g2.print(Ch4_Off);
+  u8g2.print(state.out[3].off);
   // 4th line
   u8g2.setCursor(1, 61);
-  u8g2.print(Ch1_PWM);
+  u8g2.print(state.out[0].pwm);
   u8g2.setCursor(36,61);
-  u8g2.print(Ch2_PWM);
+  u8g2.print(state.out[1].pwm);
   u8g2.setCursor(69,61);
-  u8g2.print(Ch3_PWM);
+  u8g2.print(state.out[2].pwm);
   u8g2.setCursor(102,61);
-  u8g2.print(Ch4_PWM);
+  u8g2.print(state.out[3].pwm);
   }
 // menu System controls
   void buttonMenuManual() {
@@ -649,8 +602,8 @@ void disable_Outputs();
       if (buttonPressed == true) {
           buttonPressed = false;
           rotaryEncoder.setBoundaries(0, 1, false);
-          rotaryEncoder.setEncoderValue(Ch1_Enable);
-          encoderPosition = Ch1_Enable;
+          rotaryEncoder.setEncoderValue(state.out[0].enabled);
+          encoderPosition = state.out[0].enabled;
           manualMenuSelect = manualMenuSelect * 10;
           }
       break;
@@ -663,8 +616,8 @@ void disable_Outputs();
       if (buttonPressed == true) {
           buttonPressed = false;
           rotaryEncoder.setBoundaries(0, 1, false);
-          rotaryEncoder.setEncoderValue(Ch2_Enable);
-          encoderPosition = Ch2_Enable;
+          rotaryEncoder.setEncoderValue(state.out[1].enabled);
+          encoderPosition = state.out[1].enabled;
           manualMenuSelect = manualMenuSelect * 10;
           }
       break;
@@ -678,8 +631,8 @@ void disable_Outputs();
       if (buttonPressed == true) {
           buttonPressed = false;
           rotaryEncoder.setBoundaries(0, 1, false);
-          rotaryEncoder.setEncoderValue(Ch3_Enable);
-          encoderPosition = Ch3_Enable;
+          rotaryEncoder.setEncoderValue(state.out[2].enabled);
+          encoderPosition = state.out[2].enabled;
           manualMenuSelect = manualMenuSelect * 10;
           }
       break;
@@ -693,73 +646,69 @@ void disable_Outputs();
       if (buttonPressed == true) {
           buttonPressed = false;
           rotaryEncoder.setBoundaries(0, 1, false);
-          rotaryEncoder.setEncoderValue(Ch4_Enable);
-          encoderPosition = Ch4_Enable;
+          rotaryEncoder.setEncoderValue(state.out[3].enabled);
+          encoderPosition = state.out[3].enabled;
           manualMenuSelect = manualMenuSelect * 10;
           }
       break;
 
       case 10: // 
-      Ch1_Enable = encoderPosition;
+      state.out[0].enabled = encoderPosition;
       u8g2.setCursor(1,25);
       u8g2.setDrawColor(drawcolorstate);
-      u8g2.print(Ch1_Enable ? "ON" : "OFF");  
+      u8g2.print(state.out[0].enabled ? "ON" : "OFF");  
       u8g2.setDrawColor(1);
       if (buttonPressed == true) {
-          values["toggle_a"] = Ch1_Enable;
-          update_values_ws();
+          state_ui_dirty = true; // the loop sends the state to the web clients
           buttonPressed = false;
           rotaryEncoder.setBoundaries(0, 100, false);
-          rotaryEncoder.setEncoderValue(Ch1_On);
-          encoderPosition = Ch1_On;
+          rotaryEncoder.setEncoderValue(state.out[0].on);
+          encoderPosition = state.out[0].on;
           manualMenuSelect++;
           }
       break;
 
     case 11: // 
       rotaryEncoder.setBoundaries(0, 100, false);
-      Ch1_On = encoderPosition;
+      state.out[0].on = encoderPosition;
       u8g2.setCursor(1,37);
       u8g2.setDrawColor(drawcolorstate);
-      u8g2.print(Ch1_On);  
+      u8g2.print(state.out[0].on);  
       u8g2.setDrawColor(1);
       if (buttonPressed == true) {
-          values["slider_a"] = Ch1_On;
-          update_values_ws();
+          state_ui_dirty = true; // the loop sends the state to the web clients
           buttonPressed = false;
-          rotaryEncoder.setEncoderValue(Ch1_Off);
-          encoderPosition = Ch1_Off;
+          rotaryEncoder.setEncoderValue(state.out[0].off);
+          encoderPosition = state.out[0].off;
           manualMenuSelect++;
           }
       break;
 
     case 12: // 
       rotaryEncoder.setBoundaries(0, 100, false); 
-      Ch1_Off = encoderPosition;
+      state.out[0].off = encoderPosition;
       u8g2.setCursor(1,49);
       u8g2.setDrawColor(drawcolorstate);
-      u8g2.print(Ch1_Off);
+      u8g2.print(state.out[0].off);
       u8g2.setDrawColor(1);
       if (buttonPressed == true) {
-          values["slider_b"] = Ch1_Off;
-          update_values_ws();
+          state_ui_dirty = true; // the loop sends the state to the web clients
           buttonPressed = false;
-          rotaryEncoder.setEncoderValue(Ch1_PWM);
-          encoderPosition = Ch1_PWM;
+          rotaryEncoder.setEncoderValue(state.out[0].pwm);
+          encoderPosition = state.out[0].pwm;
           manualMenuSelect++;
           }
       break;
 
     case 13: // 
       rotaryEncoder.setBoundaries(0, 100, false);
-      Ch1_PWM = encoderPosition;
+      state.out[0].pwm = encoderPosition;
       u8g2.setCursor(1,61);
       u8g2.setDrawColor(drawcolorstate);
-      u8g2.print(Ch1_PWM);
+      u8g2.print(state.out[0].pwm);
       u8g2.setDrawColor(1);
       if (buttonPressed == true) {
-          values["slider_c"] = Ch1_PWM;
-          update_values_ws();
+          state_ui_dirty = true; // the loop sends the state to the web clients
           buttonPressed = false;
           rotaryEncoder.setEncoderValue(1);
           encoderPosition = 1;
@@ -769,66 +718,62 @@ void disable_Outputs();
 
     case 20: //
       rotaryEncoder.setBoundaries(0, 1, false);
-      Ch2_Enable = encoderPosition;
+      state.out[1].enabled = encoderPosition;
       u8g2.setCursor(36,25);
       u8g2.setDrawColor(drawcolorstate);
-      u8g2.print(Ch2_Enable ? "ON" : "OFF");  
+      u8g2.print(state.out[1].enabled ? "ON" : "OFF");  
       u8g2.setDrawColor(1);
       if (buttonPressed == true) {
-          values["toggle_b"] = Ch2_Enable;
-          update_values_ws();
+          state_ui_dirty = true; // the loop sends the state to the web clients
           buttonPressed = false;
           rotaryEncoder.setBoundaries(0, 100, false);
-          rotaryEncoder.setEncoderValue(Ch2_On);
-          encoderPosition = Ch2_On;
+          rotaryEncoder.setEncoderValue(state.out[1].on);
+          encoderPosition = state.out[1].on;
           manualMenuSelect++;
           }
       break;
 
     case 21: // 
       rotaryEncoder.setBoundaries(0, 100, false); 
-      Ch2_On = encoderPosition;
+      state.out[1].on = encoderPosition;
       u8g2.setCursor(36,37);
       u8g2.setDrawColor(drawcolorstate);
-      u8g2.print(Ch2_On);
+      u8g2.print(state.out[1].on);
       u8g2.setDrawColor(1);
       if (buttonPressed == true) {
-          values["slider_d"] = Ch2_On;
-          update_values_ws();
+          state_ui_dirty = true; // the loop sends the state to the web clients
           buttonPressed = false;
-          rotaryEncoder.setEncoderValue(Ch2_Off);
-          encoderPosition = Ch2_Off;
+          rotaryEncoder.setEncoderValue(state.out[1].off);
+          encoderPosition = state.out[1].off;
           manualMenuSelect++;
           }
       break;
 
     case 22: // 
       rotaryEncoder.setBoundaries(0, 100, false); 
-      Ch2_Off = encoderPosition;
+      state.out[1].off = encoderPosition;
       u8g2.setCursor(36,49);
       u8g2.setDrawColor(drawcolorstate);
-      u8g2.print(Ch2_Off);
+      u8g2.print(state.out[1].off);
       u8g2.setDrawColor(1);
       if (buttonPressed == true) {
-          values["slider_e"] = Ch2_Off;
-          update_values_ws();
+          state_ui_dirty = true; // the loop sends the state to the web clients
           buttonPressed = false;
-          rotaryEncoder.setEncoderValue(Ch2_PWM);
-          encoderPosition = Ch2_PWM;
+          rotaryEncoder.setEncoderValue(state.out[1].pwm);
+          encoderPosition = state.out[1].pwm;
           manualMenuSelect++;
           }
       break;
 
     case 23: // 
       rotaryEncoder.setBoundaries(0, 100, false); 
-      Ch2_PWM = encoderPosition;
+      state.out[1].pwm = encoderPosition;
       u8g2.setCursor(36,61);
       u8g2.setDrawColor(drawcolorstate);
-      u8g2.print(Ch2_PWM);
+      u8g2.print(state.out[1].pwm);
       u8g2.setDrawColor(1);
       if (buttonPressed == true) {
-          values["slider_f"] = Ch2_PWM;
-          update_values_ws();
+          state_ui_dirty = true; // the loop sends the state to the web clients
           buttonPressed = false;
           rotaryEncoder.setEncoderValue(2);
           encoderPosition = 2;
@@ -838,66 +783,62 @@ void disable_Outputs();
     
     case 30: //
       rotaryEncoder.setBoundaries(0, 1, false);
-      Ch3_Enable = encoderPosition;
+      state.out[2].enabled = encoderPosition;
       u8g2.setCursor(69,25);
       u8g2.setDrawColor(drawcolorstate);
-      u8g2.print(Ch3_Enable ? "ON" : "OFF");  
+      u8g2.print(state.out[2].enabled ? "ON" : "OFF");  
       u8g2.setDrawColor(1);
       if (buttonPressed == true) {
-          values["toggle_c"] = Ch3_Enable;
-          update_values_ws();
+          state_ui_dirty = true; // the loop sends the state to the web clients
           buttonPressed = false;
           rotaryEncoder.setBoundaries(0, 100, false);
-          rotaryEncoder.setEncoderValue(Ch3_On);
-          encoderPosition = Ch3_On;
+          rotaryEncoder.setEncoderValue(state.out[2].on);
+          encoderPosition = state.out[2].on;
           manualMenuSelect++;
           }
       break;
 
     case 31: // 
       rotaryEncoder.setBoundaries(0, 100, false); 
-      Ch3_On = encoderPosition;
+      state.out[2].on = encoderPosition;
       u8g2.setCursor(69,37);
       u8g2.setDrawColor(drawcolorstate);
-      u8g2.print(Ch3_On);
+      u8g2.print(state.out[2].on);
       u8g2.setDrawColor(1);
       if (buttonPressed == true) {
-          values["slider_g"] = Ch3_On;
-          update_values_ws();
+          state_ui_dirty = true; // the loop sends the state to the web clients
           buttonPressed = false;
-          rotaryEncoder.setEncoderValue(Ch3_Off);
-          encoderPosition = Ch3_Off;
+          rotaryEncoder.setEncoderValue(state.out[2].off);
+          encoderPosition = state.out[2].off;
           manualMenuSelect++;
           }
       break;
 
     case 32: // 
       rotaryEncoder.setBoundaries(0, 100, false); 
-      Ch3_Off = encoderPosition;
+      state.out[2].off = encoderPosition;
       u8g2.setCursor(69,49);
       u8g2.setDrawColor(drawcolorstate);
-      u8g2.print(Ch3_Off);
+      u8g2.print(state.out[2].off);
       u8g2.setDrawColor(1);
       if (buttonPressed == true) {
-          values["slider_h"] = Ch3_Off;
-          update_values_ws();
+          state_ui_dirty = true; // the loop sends the state to the web clients
           buttonPressed = false;
-          rotaryEncoder.setEncoderValue(Ch3_PWM);
-          encoderPosition = Ch3_PWM;        
+          rotaryEncoder.setEncoderValue(state.out[2].pwm);
+          encoderPosition = state.out[2].pwm;        
           manualMenuSelect++;
           }
       break;
 
     case 33: // 
       rotaryEncoder.setBoundaries(0, 100, false); 
-      Ch3_PWM = encoderPosition;
+      state.out[2].pwm = encoderPosition;
       u8g2.setCursor(69,61);
       u8g2.setDrawColor(drawcolorstate);
-      u8g2.print(Ch3_PWM);
+      u8g2.print(state.out[2].pwm);
       u8g2.setDrawColor(1);
       if (buttonPressed == true) {
-          values["slider_i"] = Ch3_PWM;
-          update_values_ws();
+          state_ui_dirty = true; // the loop sends the state to the web clients
           buttonPressed = false;
           rotaryEncoder.setEncoderValue(3);
           encoderPosition = 3;
@@ -907,18 +848,17 @@ void disable_Outputs();
 
       case 40: //
       rotaryEncoder.setBoundaries(0, 1, false);
-      Ch4_Enable = encoderPosition;
+      state.out[3].enabled = encoderPosition;
       u8g2.setCursor(102,25);
       u8g2.setDrawColor(drawcolorstate);
-      u8g2.print(Ch4_Enable ? "ON" : "OFF");  
+      u8g2.print(state.out[3].enabled ? "ON" : "OFF");  
       u8g2.setDrawColor(1);
       if (buttonPressed == true) {
-          values["toggle_d"] = Ch4_Enable;
-          update_values_ws();
+          state_ui_dirty = true; // the loop sends the state to the web clients
           buttonPressed = false;
           rotaryEncoder.setBoundaries(0, 100, false);
-          rotaryEncoder.setEncoderValue(Ch4_On);
-          encoderPosition = Ch4_On;
+          rotaryEncoder.setEncoderValue(state.out[3].on);
+          encoderPosition = state.out[3].on;
           manualMenuSelect++;
           }
       break;
@@ -926,48 +866,45 @@ void disable_Outputs();
 
       case 41: // 
       rotaryEncoder.setBoundaries(0, 100, false); 
-      Ch4_On = encoderPosition;
+      state.out[3].on = encoderPosition;
       u8g2.setCursor(102,37);
       u8g2.setDrawColor(drawcolorstate);
-      u8g2.print(Ch4_On);
+      u8g2.print(state.out[3].on);
       u8g2.setDrawColor(1);
       if (buttonPressed == true) {
-          values["slider_j"] = Ch4_On;
-          update_values_ws();
+          state_ui_dirty = true; // the loop sends the state to the web clients
           buttonPressed = false;
-          rotaryEncoder.setEncoderValue(Ch4_Off);
-          encoderPosition = Ch4_Off;
+          rotaryEncoder.setEncoderValue(state.out[3].off);
+          encoderPosition = state.out[3].off;
           manualMenuSelect++;
           }
       break;
 
     case 42: // 
       rotaryEncoder.setBoundaries(0, 100, false); 
-      Ch4_Off = encoderPosition;
+      state.out[3].off = encoderPosition;
       u8g2.setCursor(102,49);
       u8g2.setDrawColor(drawcolorstate);
-      u8g2.print(Ch4_Off);
+      u8g2.print(state.out[3].off);
       u8g2.setDrawColor(1);
       if (buttonPressed == true) {
-          values["slider_k"] = Ch4_Off;
-          update_values_ws();
+          state_ui_dirty = true; // the loop sends the state to the web clients
           buttonPressed = false;
-          rotaryEncoder.setEncoderValue(Ch4_PWM);          
-          encoderPosition = Ch4_PWM;         
+          rotaryEncoder.setEncoderValue(state.out[3].pwm);          
+          encoderPosition = state.out[3].pwm;         
           manualMenuSelect++;
           }
       break;
 
     case 43: // 
       rotaryEncoder.setBoundaries(0, 100, false); 
-      Ch4_PWM = encoderPosition;
+      state.out[3].pwm = encoderPosition;
       u8g2.setCursor(102,61);
       u8g2.setDrawColor(drawcolorstate);
-      u8g2.print(Ch4_PWM);
+      u8g2.print(state.out[3].pwm);
       u8g2.setDrawColor(1);
       if (buttonPressed == true) {  
-          values["slider_l"] = Ch4_PWM;
-          update_values_ws();
+          state_ui_dirty = true; // the loop sends the state to the web clients
           buttonPressed = false;
           rotaryEncoder.setEncoderValue(4);
           encoderPosition = 4;
@@ -997,18 +934,18 @@ void displayBluetoothMenu(){
   u8g2.drawVLine(80,0,64);
   // V1
   u8g2.drawStr(50, 11, "V1");
-  u8g2.drawStr(40, 30, OutputItems[BT_V1_Output]);
+  u8g2.drawStr(40, 30, OutputItems[state.ble.map[0].output]);
   u8g2.setCursor(48, 44);
-  u8g2.print(BT_V1_Min_PWM);
+  u8g2.print(state.ble.map[0].minPwm);
   u8g2.setCursor(48, 58);
-  u8g2.print(BT_V1_Max_PWM);
+  u8g2.print(state.ble.map[0].maxPwm);
   // V2
   u8g2.drawStr(95, 10, "V2");
-  u8g2.drawStr(86, 30, OutputItems[BT_V2_Output]);
+  u8g2.drawStr(86, 30, OutputItems[state.ble.map[1].output]);
   u8g2.setCursor(93,44);
-  u8g2.print(BT_V2_Min_PWM);
+  u8g2.print(state.ble.map[1].minPwm);
   u8g2.setCursor(93,58);
-  u8g2.print(BT_V2_Max_PWM);
+  u8g2.print(state.ble.map[1].maxPwm);
 }
 // Bluetooth Menu Controls
   void buttonMenuBluetooth() {
@@ -1022,9 +959,9 @@ void displayBluetoothMenu(){
       u8g2.setDrawColor(1);
       if (buttonPressed == true) {
           buttonPressed = false;
-          rotaryEncoder.setBoundaries(0, 5, false);
-          rotaryEncoder.setEncoderValue(BT_V1_Output);
-          encoderPosition = BT_V1_Output;
+          rotaryEncoder.setBoundaries(0, (OutputNumItems - 1), false);
+          rotaryEncoder.setEncoderValue(state.ble.map[0].output);
+          encoderPosition = state.ble.map[0].output;
           bluetoothMenuSelect = bluetoothMenuSelect * 10;
           }
       break;
@@ -1036,48 +973,58 @@ void displayBluetoothMenu(){
       u8g2.setDrawColor(1);
       if (buttonPressed == true) {
           buttonPressed = false;
-          rotaryEncoder.setBoundaries(0, 5, false);
-          rotaryEncoder.setEncoderValue(BT_V2_Output);
-          encoderPosition = BT_V2_Output;
+          rotaryEncoder.setBoundaries(0, (OutputNumItems - 1), false);
+          rotaryEncoder.setEncoderValue(state.ble.map[1].output);
+          encoderPosition = state.ble.map[1].output;
           bluetoothMenuSelect = bluetoothMenuSelect * 10;
           }
       break;
 
       case 10: // 
-      BT_V1_Output = encoderPosition;
+      state_set(EV_BT_OUT, 0, encoderPosition); // limits (collar <= 100) are applied by the state
       u8g2.setCursor(40,30);
       u8g2.setDrawColor(drawcolorstate);
-      u8g2.drawStr(40, 30, OutputItems[BT_V1_Output]);
+      u8g2.drawStr(40, 30, OutputItems[state.ble.map[0].output]);
       u8g2.setDrawColor(1);
       if (buttonPressed == true) {
           buttonPressed = false;
+          if (state.ble.map[0].output != 6){
           rotaryEncoder.setBoundaries(0, 255, false);
-          rotaryEncoder.setEncoderValue(BT_V1_Min_PWM);
-          encoderPosition = BT_V1_Min_PWM;
+          }
+            else 
+            {rotaryEncoder.setBoundaries(0, 100, false); }
+          rotaryEncoder.setEncoderValue(state.ble.map[0].minPwm);
+          encoderPosition = state.ble.map[0].minPwm;
           bluetoothMenuSelect++;
           }
       break;
 
     case 11: // 
-      BT_V1_Min_PWM = encoderPosition;
+      state_set(EV_BT_MIN, 0, encoderPosition);
       u8g2.setCursor(48,44);
       u8g2.setDrawColor(drawcolorstate);
-      u8g2.print(BT_V1_Min_PWM); 
+      u8g2.print(state.ble.map[0].minPwm); 
       u8g2.setDrawColor(1);
       if (buttonPressed == true) {
           buttonPressed = false;
-		  rotaryEncoder.setBoundaries(0, 255, false);
-          rotaryEncoder.setEncoderValue(BT_V1_Max_PWM);
-          encoderPosition = BT_V1_Max_PWM;
+          if (state.ble.map[0].output != 6){
+		        rotaryEncoder.setBoundaries(0, 255, false);
+            }
+            else 
+            {
+            rotaryEncoder.setBoundaries(0, 100, false); 
+            }
+          rotaryEncoder.setEncoderValue(state.ble.map[0].maxPwm);
+          encoderPosition = state.ble.map[0].maxPwm;
           bluetoothMenuSelect++;
           }
       break;
 
     case 12: // 
-      BT_V1_Max_PWM = encoderPosition;
+      state_set(EV_BT_MAX, 0, encoderPosition);
       u8g2.setCursor(48,58);
       u8g2.setDrawColor(drawcolorstate);
-      u8g2.print(BT_V1_Max_PWM);
+      u8g2.print(state.ble.map[0].maxPwm);
       u8g2.setDrawColor(1);
       if (buttonPressed == true) {
           buttonPressed = false;
@@ -1088,40 +1035,40 @@ void displayBluetoothMenu(){
       break;
 
     case 20: //
-      BT_V2_Output = encoderPosition;
+      state_set(EV_BT_OUT, 1, encoderPosition); // limits (collar <= 100) are applied by the state
       u8g2.setCursor(86,30);
       u8g2.setDrawColor(drawcolorstate);
-      u8g2.drawStr(86, 30, OutputItems[BT_V2_Output]);
+      u8g2.drawStr(86, 30, OutputItems[state.ble.map[1].output]);
       u8g2.setDrawColor(1);
       if (buttonPressed == true) {
           buttonPressed = false;
           rotaryEncoder.setBoundaries(0, 255, false);
-          rotaryEncoder.setEncoderValue(BT_V2_Min_PWM);
-          encoderPosition = BT_V2_Min_PWM;
+          rotaryEncoder.setEncoderValue(state.ble.map[1].minPwm);
+          encoderPosition = state.ble.map[1].minPwm;
           bluetoothMenuSelect++;
           }
       break;
 
     case 21: // 
-      BT_V2_Min_PWM = encoderPosition;
+      state_set(EV_BT_MIN, 1, encoderPosition);
       u8g2.setCursor(93,44);
       u8g2.setDrawColor(drawcolorstate);
-      u8g2.print(BT_V2_Min_PWM);
+      u8g2.print(state.ble.map[1].minPwm);
       u8g2.setDrawColor(1);
       if (buttonPressed == true) {
           buttonPressed = false;
 		  rotaryEncoder.setBoundaries(0, 255, false);
-          rotaryEncoder.setEncoderValue(BT_V2_Max_PWM);
-          encoderPosition = BT_V2_Max_PWM;
+          rotaryEncoder.setEncoderValue(state.ble.map[1].maxPwm);
+          encoderPosition = state.ble.map[1].maxPwm;
           bluetoothMenuSelect++;
           }
       break;
 
     case 22: // 
-      BT_V2_Max_PWM = encoderPosition;
+      state_set(EV_BT_MAX, 1, encoderPosition);
       u8g2.setCursor(93,58);
       u8g2.setDrawColor(drawcolorstate);
-      u8g2.print(BT_V2_Max_PWM);
+      u8g2.print(state.ble.map[1].maxPwm);
       u8g2.setDrawColor(1);
       if (buttonPressed == true) {
           buttonPressed = false;
@@ -1132,14 +1079,13 @@ void displayBluetoothMenu(){
       break;
     
       default:
-      // Tue etwas, im Defaultfall
-      // Dieser Fall ist optional
+      bluetoothMenuSelect = 1;
       break; // Wird nicht benötigt, wenn Statement(s) vorhanden sind
   }
 }
 
 // handle websocket message
-  void handleWebSocketMessage_ws(void *arg, uint8_t *data, size_t len)
+  void handleWebSocketMessage_ws(AsyncWebSocketClient *client, void *arg, uint8_t *data, size_t len)
 {
   AwsFrameInfo *info = (AwsFrameInfo*)arg;
   int slider;
@@ -1152,229 +1098,75 @@ void displayBluetoothMenu(){
     message = (char*)data;
     debugln(message);
 
+    if (message[0] == '{') { // JSON protocol (protocol.cpp), everything else is the old "id?value" form
+      protocol_handle(client, message, len);
+      return;
+    }
+
     switch (message[0])
     {
 
-      case 't':
-        switch(message[7])
+      case 't': // toggle_a .. toggle_g, message[9] = 't'rue / 'f'alse
         {
-          case 'a':
-          if (message[9] == 't')//true
-            {
-            Ch1_Enable = true;
-            values["toggle_a"] = Ch1_Enable;
-            }
-          else if (message[9] == 'f')//false
-            {
-            Ch1_Enable = false;
-            values["toggle_a"] = Ch1_Enable;
-            } 
-          break;
-
-          case 'b':
-          if (message[9] == 't')//true
-            {
-            Ch2_Enable = true;
-            values["toggle_b"] = Ch2_Enable;
-            }
-          else if (message[9] == 'f')//false
-            {
-            Ch2_Enable = false;
-            values["toggle_b"] = Ch2_Enable;
-            } 
-          break;
-
-          case 'c':
-          if (message[9] == 't')//true
-            {
-            Ch3_Enable = true;
-            values["toggle_c"] = Ch3_Enable;
-            }
-          else if (message[9] == 'f')//false
-            {
-            Ch3_Enable = false;
-            values["toggle_c"] = Ch3_Enable;
-            } 
-          break;
-
-          case 'd':
-          if (message[9] == 't')//true
-            {
-            Ch4_Enable = true;
-            values["toggle_d"] = Ch4_Enable;
-            }
-          else if (message[9] == 'f')//false
-            {
-            Ch4_Enable = false;
-            values["toggle_d"] = Ch4_Enable;
-            } 
-          break;          
-
-          case 'e':
-          if (message[9] == 't')//true
-            {
-            Pump_Enable = true;
-            values["toggle_e"] = Pump_Enable;
-            }
-          else if (message[9] == 'f')//false
-            {
-            Pump_Enable = false;
-            values["toggle_e"] = Pump_Enable;
-            } 
-          break; 
-
-          case 'f':
-          if (message[9] == 't')//true
-            {
-            Collar_Enable = true;
-            values["toggle_f"] = Collar_Enable;
-            }
-          else if (message[9] == 'f')//false
-            {
-            Collar_Enable = false;
-            values["toggle_f"] = Collar_Enable;
-            } 
-          break; 
-
-          case 'g':
-          if (message[9] == 't')//true
-            {
-            buzzer_Metronome_Enabled = true;
-            values["toggle_g"] = buzzer_Metronome_Enabled;
-            }
-          else if (message[9] == 'f')//false
-            {
-            buzzer_Metronome_Enabled = false;
-            values["toggle_g"] = buzzer_Metronome_Enabled;
-            } 
-          break; 
-
-
+          static const char* const toggleKeys[7] = {"ch1.en", "ch2.en", "ch3.en", "ch4.en", "pump.en", "collar.en", "buzzer.en"};
+          if (message[7] >= 'a' && message[7] <= 'g' && (message[9] == 't' || message[9] == 'f'))
+          {
+            protocol_legacy_set(toggleKeys[message[7] - 'a'], (message[9] == 't') ? 1 : 0);
+          }
         }
         break;
 
       case 's': //slider
       debugln("slider triggered");
-        slider = atoi(message + 9);
-        switch (message[7])
         {
-          case 'a':
-            Ch1_On = slider;
-            values["slider_a"] = Ch1_On;
-            break;
-
-          case 'b':
-            Ch1_Off = slider;
-            values["slider_b"] = Ch1_Off;
-            break;
-
-          case 'c':
-            Ch1_PWM = slider;
-            values["slider_c"] = Ch1_PWM;
-            break;
-          
-          case 'd':
-            Ch2_On = slider;
-            values["slider_d"] = Ch2_On;
-            break;
-
-          case 'e':
-            Ch2_Off = slider;
-            values["slider_e"] = Ch2_Off;
-            break;
-
-          case 'f':
-            Ch2_PWM = slider;
-            values["slider_f"] = Ch2_PWM;
-            break;
-          
-          case 'g':
-            Ch3_On = slider;
-            values["slider_g"] = Ch3_On;
-            break;
-
-          case 'h':
-            Ch3_Off = slider;
-            values["slider_h"] = Ch3_Off;
-            break;
-
-          case 'i':
-            Ch3_PWM = slider;
-            values["slider_i"] = Ch3_PWM;
-            break;
-          
-          case 'j':
-            Ch4_On = slider;
-            values["slider_j"] = Ch4_On;
-            break;
-
-          case 'k':
-            Ch4_Off = slider;
-            values["slider_k"] = Ch4_Off;
-            break;
-
-          case 'l':
-            Ch4_PWM = slider;
-            values["slider_l"] = Ch4_PWM;
-            break;
-
-          case 'm':
-            pump_PWM = slider;
-            values["slider_m"] = pump_PWM;
-            break;
-          case 'n':
-            collar_strength = slider;
-            values["slider_n"] = collar_strength;
-            break;
-          case 'o':
-            buzzerBPM = slider;
-            values["slider_o"] = buzzerBPM;
-            break;
-          case 'p':
-            buzzerVolume = slider;
-            values["slider_p"] = buzzerVolume;
-            break;
-
+          // slider_a .. slider_l: three sliders per channel (on, off, pwm), then pump, collar, buzzer
+          static const char* const sliderKeys[16] = {
+            "ch1.on", "ch1.off", "ch1.pwm", "ch2.on", "ch2.off", "ch2.pwm",
+            "ch3.on", "ch3.off", "ch3.pwm", "ch4.on", "ch4.off", "ch4.pwm",
+            "pump.pwm", "collar.strength", "buzzer.bpm", "buzzer.vol"};
+          slider = atoi(message + 9);
+          if (message[7] >= 'a' && message[7] <= 'p')
+          {
+            protocol_legacy_set(sliderKeys[message[7] - 'a'], slider);
+          }
         }
         break;
 
       case 'b': //buzzer
         if (message[8] == 'n')//on
         {
-          buzzer_Metronome_Enabled = true;
+          protocol_legacy_set("buzzer.en", 1);
         }
         else if (message[8] == 'f') //off
         {
-          buzzer_Metronome_Enabled = false;
+          protocol_legacy_set("buzzer.en", 0);
         }
-        values["buzzer"] = buzzer_Metronome_Enabled ? "on" : "off";
         debugln("buzzer output");
-        debugln(values["buzzer"]);
         break;
 
       case 'c': // click button
         switch (message[6])
         {
           case 'b': // collar beep
-          if (Collar_Enable == true) {
-          dg.sendCollar(CollarChannel::CH1, CollarMode::Beep, collar_strength);
+          if (state.collar.enabled == true) {
+          collar_send(CollarMode::Beep, state.collar.strength);
           debugln("collar beeped");
           }
           break;
 
         case 'v':  // collar vib
-          if (Collar_Enable == true) {
-          dg.sendCollar(CollarChannel::CH1, CollarMode::Vibe, collar_strength);
+          if (state.collar.enabled == true) {
+          collar_send(CollarMode::Vibe, state.collar.strength);
           debug("collar vibrates at level: ");
-          debugln(collar_strength);
+          debugln(state.collar.strength);
           }
           break;
 
         case 's': // collar shock
-          if (Collar_Enable == true) {
-          dg.sendCollar(CollarChannel::CH1, CollarMode::Shock, collar_strength);
+          if (state.collar.enabled == true) {
+          collar_send(CollarMode::Shock, state.collar.strength);
           debug("collar shocks at level: ");
-          debugln(collar_strength);
+          debugln(state.collar.strength);
           }
           break;
           }
@@ -1469,8 +1261,7 @@ void displayBluetoothMenu(){
 
     } // switch message[0] end
 
-    json_string = JSON.stringify(values);
-    ws.textAll(json_string);
+    ws_broadcast_req = true; // loop() sends the state to all clients (also answers "getValues")
   }
 } // handleWebSocketMessage_ws end
 
@@ -1479,25 +1270,54 @@ void displayBluetoothMenu(){
   switch (type)
   {
     case WS_EVT_CONNECT:
+      ws_last_seen = millis();
+      protocol_client_connected(client->id());
       //serial.printf("WebSocket client #%u connected from %s\n", client->id(), client->remoteIP().toString().c_str());
       break;
     case WS_EVT_DISCONNECT:
+      protocol_client_gone(client->id());
       //serial.printf("WebSocket client #%u disconnected\n", client->id());
       break;
     case WS_EVT_DATA:
-      handleWebSocketMessage_ws(arg, data, len);
+      ws_last_seen = millis();
+      ws_failsafe_armed = true;
+      handleWebSocketMessage_ws(client, arg, data, len);
       break;
     case WS_EVT_PONG:
+      ws_last_seen = millis();
+      break;
     case WS_EVT_ERROR:
       break;
   }
 }
 
+// fill `values` (JSONVar, loop() only) from the state; keys as the web UI expects them
+  static void fill_values_from_state() {
+    static const char* const toggles[4] = {"toggle_a", "toggle_b", "toggle_c", "toggle_d"};
+    static const char* const sliders[12] = {"slider_a", "slider_b", "slider_c", "slider_d", "slider_e", "slider_f",
+                                            "slider_g", "slider_h", "slider_i", "slider_j", "slider_k", "slider_l"};
+    for (int i = 0; i < 4; i++) {
+      values[toggles[i]] = state.out[i].enabled;
+      values[sliders[i * 3]] = state.out[i].on;
+      values[sliders[i * 3 + 1]] = state.out[i].off;
+      values[sliders[i * 3 + 2]] = state.out[i].pwm;
+    }
+    values["slider_m"] = state.pump.pwm;
+    values["slider_n"] = state.collar.strength;
+    values["slider_o"] = state.buzzer.bpm;
+    values["slider_p"] = state.buzzer.volume;
+    values["toggle_e"] = state.pump.enabled;
+    values["toggle_f"] = state.collar.enabled;
+    values["toggle_g"] = state.buzzer.enabled;
+    values["buzzer"] = state.buzzer.enabled ? "on" : "off";
+  }
+
 // update websocket values
   void update_values_ws(){
+    fill_values_from_state();
     json_string = JSON.stringify(values);
     debugln(json_string);
-    ws.textAll(json_string);
+    protocol_send_legacy(ws, json_string); // old clients only, JSON clients get patches
 }
 
 // initialize Websocket
@@ -1506,243 +1326,25 @@ void displayBluetoothMenu(){
   server.addHandler(&ws);
 }
 
-// disable outputs 
-  void disable_Outputs()
-{
-  if (!Ch1_Enable) {
-    pwm1_paused = false;
-    ledcWrite(PWMOUT_1, 0);
-  }
-  if (!Ch2_Enable) {
-    pwm2_paused = false;
-    ledcWrite(PWMOUT_2, 0);
-  }
-  if (!Ch3_Enable) {
-    pwm3_paused = false;
-    ledcWrite(PWMOUT_3, 0);
-  }
- if (!Ch4_Enable) {
-    pwm4_paused = false;
-    ledcWrite(PWMOUT_4,0);
- }
-  if (!Pump_Enable){
-    ledcWrite(pumpOUT, 0);
-    Pump_Enable = false;
-  }
-}
-
-// reset outputs
-  void reset_Outputs(){
-  Ch1_Enable = false;
-  Ch2_Enable = false;
-  Ch3_Enable = false;
-  Ch4_Enable = false;
-  Pump_Enable = false;
-  Ch1_On = 0;
-  Ch1_Off = 0;
-  Ch1_PWM = 0;
-  Ch2_On = 0;
-  Ch2_Off = 0;
-  Ch2_PWM = 0;
-  Ch3_On = 0;
-  Ch3_Off = 0;
-  Ch3_PWM = 0;
-  Ch4_On = 0;
-  Ch4_Off = 0;
-  Ch4_PWM = 0;
-  pump_PWM = 0;
-    // Websocket stuff
-  values["slider_a"] = 0;
-  values["slider_b"] = 0;
-  values["slider_c"] = 0;
-  values["slider_d"] = 0;
-  values["slider_e"] = 0;
-  values["slider_f"] = 0;
-  values["slider_g"] = 0;
-  values["slider_h"] = 0;
-  values["slider_i"] = 0;
-  values["slider_j"] = 0;
-  values["slider_k"] = 0;
-  values["slider_l"] = 0;
-  values["slider_m"] = 0; // pump
-  values["slider_n"] = 0; // collar strength
-  values["slider_o"] = 60; // Buzzer Metronome BPM
-  values["slider_p"] = 5; // Buzzer Metronome Volume
-  values["toggle_a"] = false;
-  values["toggle_b"] = false;
-  values["toggle_c"] = false;
-  values["toggle_d"] = false;
-  values["toggle_e"] = false; // pump
-  values["toggle_f"] = false; // collar
-  values["toggle_g"] = false; // Buzzer Metronome
-  // values["buzzer"] = "off";
-  // values["lb1"] = "off";
-  // values["lb2"] = "off";
-}
-
-// control pwm outputs in web or manual mode
-  void PWM_Output(){
-  // Output 1
-  if ((pwm1_paused == false) && (Ch1_Enable == true))
-  {
-     int mapped_Ch1_PWM;
-     mapped_Ch1_PWM = map(Ch1_PWM, 0, 100, 0, 255);
-     ledcWrite(PWMOUT_1, mapped_Ch1_PWM);
-     if ((Ch1_Off > 0) && (millis() - pwm1_timeStarted >= Ch1_On * 1000)) {
-      pwm1_paused = true;
-      pwm1_timeStopped = millis();
-    }
-  }  
-  else if ((pwm1_paused == true) && (Ch1_Enable == true))
-  {
-    ledcWrite(PWMOUT_1, 0);
-    if (millis() - pwm1_timeStopped >= Ch1_Off * 1000)
-    {
-      pwm1_paused = false;
-      pwm1_timeStarted = millis();
-    }
-  }
-  // Output 2
-  if ((pwm2_paused == false) && (Ch2_Enable == true))
-  {
-     int mapped_Ch2_PWM;
-     mapped_Ch2_PWM = map(Ch2_PWM, 0, 100, 0, 255);
-     ledcWrite(PWMOUT_2, mapped_Ch2_PWM);
-     if ((Ch2_Off > 0) && (millis() - pwm2_timeStarted >= Ch2_On * 1000)) {
-      pwm2_paused = true;
-      pwm2_timeStopped = millis();
-    }
-  }  
-  else if ((pwm2_paused == true) && (Ch2_Enable == true))
-  {
-    ledcWrite(PWMOUT_2, 0);
-    if (millis() - pwm2_timeStopped >= Ch2_Off * 1000)
-    {
-      pwm2_paused = false;
-      pwm2_timeStarted = millis();
-    }
-  }
-  // Output 3
-  if ((pwm3_paused == false) && (Ch3_Enable == true))
-  {
-     int mapped_Ch3_PWM;
-     mapped_Ch3_PWM = map(Ch3_PWM, 0, 100, 0, 255);
-     ledcWrite(PWMOUT_3, mapped_Ch3_PWM);
-     if ((Ch3_Off > 0) && (millis() - pwm4_timeStarted >= Ch3_On * 1000)) {
-      pwm3_paused = true;
-      pwm3_timeStopped = millis();
-    }
-  }  
-  else if ((pwm3_paused == true) && (Ch3_Enable == true))
-  {
-    ledcWrite(PWMOUT_3, 0);
-    if (millis() - pwm3_timeStopped >= Ch3_Off * 1000)
-    {
-      pwm3_paused = false;
-      pwm3_timeStarted = millis();
-    }
-  }
-  // Output 4
-  if ((pwm4_paused == false) && (Ch4_Enable == true))
-  {
-     int mapped_Ch4_PWM;
-     mapped_Ch4_PWM = map(Ch4_PWM, 0, 100, 0, 255);
-     ledcWrite(PWMOUT_4, mapped_Ch4_PWM);
-     if ((Ch4_Off > 0) && (millis() - pwm4_timeStarted >= Ch4_On * 1000)) {
-      pwm4_paused = true;
-      pwm4_timeStopped = millis();
-    }
-  }  
-  else if ((pwm4_paused == true) && (Ch4_Enable == true))
-  {
-    ledcWrite(PWMOUT_4, 0);
-    if (millis() - pwm4_timeStopped >= Ch4_Off * 1000)
-    {
-      pwm4_paused = false;
-      pwm4_timeStarted = millis();
-    }
-  }
-  // Pump Output 5
-  if (Pump_Enable == true)
-    {
-      int mapped_pump_PWM;
-      mapped_pump_PWM = map(pump_PWM, 0, 100, 0, 255);
-      ledcWrite(pumpOUT, mapped_pump_PWM);
-    }
-  else {
-    ledcWrite(pumpOUT, 0);
-    }
-}
-
-// control pwm outputs in bluetooth mode
-void bluetooth_write_pwm(int output, int mapped_PWM) {
-  switch (output) {
-    case 1:
-      ledcWrite(PWMOUT_1, mapped_PWM);
-      break;
-    case 2:
-      ledcWrite(PWMOUT_2, mapped_PWM);
-      break;
-    case 3:
-      ledcWrite(PWMOUT_3, mapped_PWM);
-      break;
-    case 4:
-      ledcWrite(PWMOUT_4, mapped_PWM);
-      break;
-    case 5:
-      ledcWrite(pumpOUT, mapped_PWM);
-      break;
-  }
-}
-
-void buzzer_Metronome (int buzzerBPM, int buzzerOnTimeMS, int buzzerVolume) {
-    beatInterval = 60000 / buzzerBPM;
-    int buzzerPWM = map(buzzerVolume, 0, 10, 0, 140);
-    if ((currentMillis - buzzerPreviousMillis >= beatInterval - buzzerOnTimeMS) && (!buzzerIsPlaying)) { // turn on
-        ledcWrite (buzzer, buzzerPWM);
-        buzzerIsPlaying = true;
-        buzzerPreviousMillis = currentMillis;
-  } else { // turn off
-    if (currentMillis - buzzerPreviousMillis >= buzzerOnTimeMS) {
-        ledcWrite (buzzer, 0);
-        buzzerIsPlaying = false;
-        buzzerPreviousMillis = currentMillis;
-        delay(beatInterval - buzzerOnTimeMS);
-    }
-  }
+// websocket failsafe: switch off everything the web interface controls
+  void ws_failsafe(){
+  debugln("websocket failsafe: web outputs off");
+  ws_failsafe_armed = false;
+  state_set(EV_ALL_OFF, 0, 0); // loop() context: applied at once, marks the UI dirty
 }
 
 void setup() {
+  state_init(); // event queue, remembers the loop task
   Serial.begin(115200);
+  Serial.printf("[fw] %s %s %s\n", __DATE__, __TIME__, GIT_HASH);
   debugln("setup started");
+  settings_load(); // persistent settings (NVS "cfg") into the state
 
-  // Pins
-  pinMode(buzzerPin, OUTPUT);
-  pinMode(wsLED, OUTPUT);
-  pinMode(CH1_5V, OUTPUT);
-  pinMode(CH2_5V, OUTPUT);
-  pinMode(CH1_30VMax, OUTPUT);
-  pinMode(CH2_30VMax, OUTPUT);
+  // Pins (outputs are set up in outputs_init())
   pinMode(PIR, INPUT);
-  pinMode(RF_433, OUTPUT); // uncomment if jtag debugging is used
   pinMode(button1, INPUT);
   pinMode(button2, INPUT);
-  pinMode(pumpPin, OUTPUT);
-  digitalWrite(RF_433, LOW);
-
-  // define PWM
-  ledcSetup(PWMOUT_1, freq, resolution);
-  ledcSetup(PWMOUT_2, freq, resolution);
-  ledcSetup(PWMOUT_3, freq, resolution);
-  ledcSetup(PWMOUT_4, freq, resolution);
-  ledcSetup(buzzer, buzzerFrequency, resolution);
-  ledcSetup(pumpOUT, 500, resolution);
-  ledcAttachPin(CH1_30VMax, PWMOUT_1);
-  ledcAttachPin(CH2_30VMax, PWMOUT_2);
-  ledcAttachPin(CH1_5V, PWMOUT_3);
-  ledcAttachPin(CH2_5V, PWMOUT_4);
-  ledcAttachPin(buzzerPin, buzzer);
-  ledcAttachPin(pumpPin, pumpOUT);
+  outputs_init();
 
   //Encoder
   //we must initialize rotary encoder
@@ -1774,59 +1376,181 @@ void setup() {
   u8g2.sendBuffer();
 
   initFS();
-  initWiFi();
+  wifi_manager_init();
   init_ws();
 
   // Websocket stuff
-  values["slider_a"] = 0;
-  values["slider_b"] = 0;
-  values["slider_c"] = 0;
-  values["slider_d"] = 0;
-  values["slider_e"] = 0;
-  values["slider_f"] = 0;
-  values["slider_g"] = 0;
-  values["slider_h"] = 0;
-  values["slider_i"] = 0;
-  values["slider_j"] = 0;
-  values["slider_k"] = 0;
-  values["slider_l"] = 0;
-  values["slider_m"] = 0; // pump
-  values["slider_n"] = 0; // collar strength
-  values["slider_o"] = 60; // Buzzer Metronome BPM
-  values["slider_p"] = 5; // Buzzer Metronome Volume
-  values["toggle_a"] = false;
-  values["toggle_b"] = false;
-  values["toggle_c"] = false;
-  values["toggle_d"] = false;
-  values["toggle_e"] = false; // pump
-  values["toggle_f"] = false; // collar
-  values["toggle_g"] = false; // Buzzer Metronome
-  values["buzzer"] = "off";
-  // values["lb1"] = "off";
-  // values["lb2"] = "off";
-
+  fill_values_from_state();
   json_string = JSON.stringify(values);
 
   // Web Server Root URL
-  server.on("/", HTTP_GET, [](AsyncWebServerRequest *request){
-    request->send(SPIFFS, "/index.html", "text/html");
-  });
-  
-  server.serveStatic("/", SPIFFS, "/");
+  wifi_manager_attach(server);
+  initWebServerRoot();
 
   // Start server
   server.begin();
+
+  // Bluetooth (Lovense emulation) runs in parallel to WiFi
+  turn_ON_Bluetooth();
+  heap_log("setup");
 }
 
+// serial terminal commands (line based, non-blocking): "reboot" restarts the ESP
+// as a replacement for the reset button, "wifi-reset" deletes the stored WiFi credentials
+void serial_commands() {
+  static char line[32];
+  static size_t len = 0;
+  while (Serial.available()) {
+    char c = Serial.read();
+    if (c == '\n' || c == '\r') {
+      line[len] = '\0';
+      len = 0;
+      if (strcmp(line, "reboot") == 0 || strcmp(line, "restart") == 0) {
+        settings_flush();
+        Serial.println("[cmd] restarting");
+        Serial.flush();
+        ESP.restart();
+      }
+      else if (strcmp(line, "wifi-reset") == 0) {
+        settings_flush();
+        wifi_forget();
+        Serial.println("[cmd] wifi credentials deleted, restarting");
+        Serial.flush();
+        ESP.restart();
+      }
+      else if (strcmp(line, "cfg") == 0) {
+        Serial.printf("[cfg] failsafe %d s, V1 out=%d %d-%d, V2 out=%d %d-%d, buzzer vol=%d bpm=%d, collar btOnlyChanges=%d (cfg failsafe <3-120>, cfg reset)\n",
+                      state.failsafeTimeoutS, state.ble.map[0].output, state.ble.map[0].minPwm, state.ble.map[0].maxPwm,
+                      state.ble.map[1].output, state.ble.map[1].minPwm, state.ble.map[1].maxPwm,
+                      state.buzzer.volume, state.buzzer.bpm, state.collar.btOnlyChanges ? 1 : 0);
+      }
+      else if (strncmp(line, "cfg failsafe ", 13) == 0) {
+        int sec = atoi(line + 13);
+        if (sec >= 3 && sec <= 120) {
+          state_set(EV_FAILSAFE_TO, 0, sec);
+          Serial.printf("[cfg] failsafe timeout %d s (saved after 5 s)\n", sec);
+        }
+        else {
+          Serial.println("[cfg] failsafe timeout must be 3-120 s");
+        }
+      }
+      else if (strcmp(line, "cfg reset") == 0) {
+        settings_reset();
+        Serial.println("[cmd] settings deleted (wifi untouched), restarting");
+        Serial.flush();
+        ESP.restart();
+      }
+      else if (line[0] != '\0') {
+        Serial.printf("[cmd] unknown command \"%s\" (available: reboot, wifi-reset, cfg, cfg failsafe <s>, cfg reset)\n", line);
+      }
+    }
+    else if (len < sizeof(line) - 1) {
+      line[len++] = c;
+    }
+  }
+}
+
+// Hold the encoder button for 3 s right after the boot (press within the first 3 s after
+// setup() has finished):
+// deletes the stored WiFi credentials and restarts, the portal opens then.
+void boot_wifi_reset_gesture(unsigned long nowMs) {
+  static bool finished = false;
+  static bool holding = false;
+  static unsigned long holdStart = 0;
+  static unsigned long windowStart = 0;
+  static bool started = false;
+  if (finished) return;
+  if (!started) { // setup() takes a while, the window starts with the first call
+    started = true;
+    windowStart = nowMs;
+  }
+  bool down = rotaryEncoder.isEncoderButtonDown();
+  if (!holding) {
+    if (nowMs - windowStart >= 3000) { // window over, the button was not pressed
+      finished = true;
+    }
+    else if (down) {
+      holding = true;
+      holdStart = nowMs;
+    }
+  }
+  else if (!down) {
+    holding = false;     // released too early, the window may still be open
+  }
+  else if (nowMs - holdStart >= 3000) {
+    finished = true;
+    wifi_forget();
+    Serial.println("[boot] wifi credentials deleted (encoder button), restarting");
+    u8g2.clearBuffer();
+    u8g2.setFont(font_status_messages);
+    u8g2.drawStr(8, 20, "WiFi data");
+    u8g2.drawStr(20, 45, "deleted");
+    u8g2.sendBuffer();
+    delay(1200);
+    ESP.restart();
+  }
+}
+
+volatile unsigned long loop_max_us = 0;
+
 void loop() {
+  const unsigned long loopStartUs = micros();
+  state_drain(); // apply queued events first (loop() is the only writer of the state)
   currentMillis = millis();
+#if DEBUG_LEDC == 1
+  static bool ledcLogged = false;
+  if (!ledcLogged && currentMillis >= 5000) { // once, so it shows up in an already open monitor
+    ledcLogged = true;
+    debug_ledc();
+  }
+#endif
+#if DEBUG_HEAP == 1
+  static unsigned long lastHeapLog = 0;
+  if (currentMillis - lastHeapLog >= 10000) {
+    lastHeapLog = currentMillis;
+    heap_log("loop");
+  }
+#endif
+  serial_commands();
+  boot_wifi_reset_gesture(currentMillis);
+  wifi_manager_update(currentMillis);
+  if (wifi_portal_take_show_request() && current_screen == 0) {
+    current_screen = 15; // show hotspot data once when the portal starts
+  }
   ws.cleanupClients();
   timer1.update(); // display blinking text timer
 
-  // controls pwm outputs if system isn't in bluetooth mode / sub menu
-  if (BT_Enabled == false) {
-  PWM_Output();
+#if WS_FAILSAFE == 1
+  if (currentMillis - ws_last_ping >= ws_ping_interval_ms()) {
+    ws_last_ping = currentMillis;
+    ws.pingAll();
   }
+  if (ws_failsafe_armed && (ws.count() == 0 || currentMillis - ws_last_seen >= (unsigned long)state.failsafeTimeoutS * 1000UL)) {
+    ws_failsafe();
+  }
+#endif
+
+  // state changes (web, BLE, device menu) go to the web clients, at most once per pass
+  if (state_ui_dirty || ws_broadcast_req) {
+    state_ui_dirty = false;
+    ws_broadcast_req = false;
+    if (ws.count() > 0 && protocol_v1_count() > 0) {
+      update_values_ws();
+    }
+  }
+
+  settings_update(currentMillis); // debounced NVS save of changed settings
+  // last web client gone (browser closed): save pending changes at once
+  static bool hadWsClient = false;
+  bool hasWsClient = ws.count() > 0;
+  if (hadWsClient && !hasWsClient) settings_flush();
+  hadWsClient = hasWsClient;
+
+  outputs_arbitrate();
+  protocol_loop(ws); // patches / state for the JSON clients (after the arbitration: ble.hold.*)
+
+  // controls pwm outputs (web / manual), skips outputs held by BLE
+  PWM_Output();
 
   // disable Outputs
   disable_Outputs();
@@ -1863,84 +1587,78 @@ void loop() {
   displayMainMenu();
 
   u8g2.sendBuffer();
-// switch from wifi to bluetooth
-  if ((current_screen == 12) && (WiFi_Enabled == true)){
-    turn_OFF_WIFI();
-    WiFi_Enabled = false;
-    debugln("disabling WiFi");
-    delay(2000);
-    debugln("trying to start bluetooth again");
-        turn_ON_Bluetooth();
-  }
-// switch from bluetooth to wifi
-  if ((WiFi_Enabled == false) && (current_screen != 12)) {
-    turn_OFF_Bluetooth();
-    debugln("enabling WiFi");
-    initWiFi();
-    reset_Outputs();
-    update_values_ws();
-    }
-
   // Bluetooth start
   // Bluetooth connection status
-  if (!deviceConnected && oldDeviceConnected && WiFi_Enabled == false) {
-        delay(500); // give the bluetooth stack the chance to get things ready
-        pServer->startAdvertising(); // restart advertising
-        debugln("start advertising");
-        oldDeviceConnected = deviceConnected;
+  static bool bleAdvRestartPending = false;
+  static unsigned long bleAdvRestartAt = 0;
+  if (!state.ble.in.connected && state.ble.wasConnected) {
+        // give the bluetooth stack the chance to get things ready (non-blocking)
+        bleAdvRestartPending = true;
+        bleAdvRestartAt = currentMillis + 500;
+        state.ble.wasConnected = state.ble.in.connected;
     }
     // connecting
-  if (deviceConnected && !oldDeviceConnected && WiFi_Enabled == false) {
+  if (state.ble.in.connected && !state.ble.wasConnected) {
         // do stuff here on connecting
-        oldDeviceConnected = deviceConnected;
+        state.ble.wasConnected = state.ble.in.connected;
+    }
+  if (bleAdvRestartPending && (long)(currentMillis - bleAdvRestartAt) >= 0) {
+        bleAdvRestartPending = false;
+        pServer->startAdvertising(); // restart advertising
+        debugln("start advertising");
     }
   // Bluetooth end
 
   //Bluetooth Output Control
   if (BT_Enabled == true) {
     int BT_mapped_PWM[2];
-    BT_mapped_PWM[0] = map(bt_vibration1, 1, 20, BT_V1_Min_PWM, BT_V1_Max_PWM);
-    BT_mapped_PWM[1] = map(bt_vibration2, 1, 20, BT_V2_Min_PWM, BT_V2_Max_PWM);
+    BT_mapped_PWM[0] = map(state.ble.in.vib[0], 1, 20, state.ble.map[0].minPwm, state.ble.map[0].maxPwm);
+    BT_mapped_PWM[1] = map(state.ble.in.vib[1], 1, 20, state.ble.map[1].minPwm, state.ble.map[1].maxPwm);
 
-    Ch1_Enable = (BT_V1_Output == 1 || BT_V2_Output == 1);
-    Ch2_Enable = (BT_V1_Output == 2 || BT_V2_Output == 2);
-    Ch3_Enable = (BT_V1_Output == 3 || BT_V2_Output == 3);
-    Ch4_Enable = (BT_V1_Output == 4 || BT_V2_Output == 4);
-    Pump_Enable = (BT_V1_Output == 5 || BT_V2_Output == 5);
+    if ((state.ble.map[0].output > 0) && (state.ble.in.vib[0] > 0)) {
+      state.ble.map[0].paused = false;
+      bluetooth_write_pwm(state.ble.map[0].output, BT_mapped_PWM[0]);
+    }
+    else if ((state.ble.map[0].output > 0) && (state.ble.in.vib[0] == 0) && (state.ble.map[0].paused == false)){
+      state.ble.map[0].paused = true;
+      bluetooth_write_pwm(state.ble.map[0].output, 0);
+    }
+    if ((state.ble.map[1].output > 0) && (state.ble.in.vib[1] > 0)) {
+      state.ble.map[1].paused = false;
+      bluetooth_write_pwm(state.ble.map[1].output, BT_mapped_PWM[1]);
+    }
+    else if ((state.ble.map[1].output > 0) && (state.ble.in.vib[1] == 0) && (state.ble.map[1].paused == false)) {
+      state.ble.map[1].paused = true;
+      bluetooth_write_pwm(state.ble.map[1].output, 0);
+    }
 
-    if ((BT_V1_Output > 0) && (bt_vibration1 > 0)) {
-      BT_V1_Paused = false;
-      bluetooth_write_pwm(BT_V1_Output, BT_mapped_PWM[0]);
-    }
-    else if ((BT_V1_Output > 0) && (bt_vibration1 == 0) && (BT_V1_Paused == false)){
-      BT_V1_Paused = true;
-      bluetooth_write_pwm(BT_V1_Output, 0);
-    }
-    if ((BT_V2_Output > 0) && (bt_vibration2 > 0)) {
-      BT_V2_Paused = false;
-      bluetooth_write_pwm(BT_V2_Output, BT_mapped_PWM[1]);
-    }
-    else if ((BT_V2_Output > 0) && (bt_vibration2 == 0) && (BT_V2_Paused == false)) {
-      BT_V2_Paused = true;
-      bluetooth_write_pwm(BT_V2_Output, 0);
-    }
   }
 
   // Keep collar awake if enabled
-  if ((currentMillis - previous_Collar_Wakeup >= keep_Collar_Awake_Interval) && (Collar_Enable == true)) {
+  if ((currentMillis - state.collar.lastWakeup >= state.collar.keepAwakeMs) && (state.collar.enabled == true || (state.ble.in.connected && state.ble.collarMapped))) {
     debugln("keeping collar awake");
-    previous_Collar_Wakeup = millis();
-    dg.sendCollar(CollarChannel::CH1, CollarMode::Blink, 100);
+    state.collar.lastWakeup = millis();
+    collar_send(CollarMode::Blink, 100);
   }
 
 // buzzer start
-  if (buzzer_Metronome_Enabled == true) {
-  buzzer_Metronome(buzzerBPM, buzzerOnTimeMS, buzzerVolume);
+  if (state.buzzer.enabled == true) {
+  buzzer_Metronome(currentMillis);
   }
-  else if (buzzer_Metronome_Enabled == false) {
+  else if (state.buzzer.enabled == false) {
     ledcWrite(buzzer, 0);
   }
 // buzzer end
+
+  // longest pass of the last 5 s, reported in the [heap] line
+  static unsigned long loopWindowStart = 0, loopWindowMax = 0;
+  unsigned long loopUs = micros() - loopStartUs;
+  if (loopUs > loopWindowMax) loopWindowMax = loopUs;
+  if (currentMillis - loopWindowStart >= 5000) {
+    loop_max_us = loopWindowMax;
+    loopWindowMax = 0;
+    loopWindowStart = currentMillis;
+  }
 
 } // Loop end
 
