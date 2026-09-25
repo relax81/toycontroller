@@ -189,20 +189,43 @@ stellen, `reboot` senden. Boot-Log und `[ledc]`-Diagnose ohne Reset-Knopf.
 - Testskripte schließen Verbindungen sauber per Close-Handshake (kein `process.exit` direkt nach `close()`),
   damit sie keine künstlichen RSTs erzeugen.
 
+## Block B, Teil 2: Bluetooth-Zuordnung und Live-Indikator im Web-UI (umgesetzt, Hardware-Test offen)
+
+| Commit | Inhalt |
+|---|---|
+| `5902cd4` | `script.js`/`style.css`: `data-hold` setzt die Klasse `ble-held`, editierbewusste Updates, `err` setzt den Serverwert zurück, `update_select()` |
+| `cca6027` | `index.html`: `data-hold` und Hinweistext an Ch1-4, Pump, Collar |
+| `66d02a8` | einklappbare Karte "Bluetooth-Zuordnung" (`<details>`), Platzhalter für das Toy-Modell |
+| `cfe0e28` | Firmware: Ping-Intervall = min(5000, Failsafe / 3) ms, bei jedem `loop()`-Durchlauf aus `state.failsafeTimeoutS` |
+
+- Die Karte enthält für V1/V2 je Ziel (Aus, Ch1-4, Pumpe, Halsband) und Min/Max, `collar.btonly` und
+  `sys.failsafe`. Alle Felder hängen wie die übrigen Regler an `data-key` und werden vom vorhandenen
+  `state`/`patch` befüllt (auch zugeklappt). Der Aufklappzustand liegt nur im `localStorage` des Browsers.
+- Jede Änderung ist genau ein `set`. Mehrere Änderungen nacheinander gehen als getrennte `set` in der
+  Reihenfolge `out`, `max`, `min` raus (verlustfrei geklemmt, wie `settings_load()`). Die geklemmten Werte
+  kommen per `patch` zurück. Beim Halsband hat der Max-Regler die Grenze 100, sonst 255.
+- Live-Indikator: Ch1-4, Pump und Collar werden bei `ble.hold.*` abgedunkelt und mit "BLE" markiert, mit
+  Hinweistext. Die Regler bleiben **bedienbar** (nur markiert, nicht gesperrt): Bei Level 0 endet der Latch
+  durch eine Änderung aus dem Web, bei Level > 0 ignoriert der Server Web-Werte für Ch1-4/Pumpe und
+  speichert sie. Der Halsband-Klick wird vom Server nicht durch `hold` blockiert.
+- `script.js`: Ein Element, das gerade gezogen oder getippt wird (`input` bis `change`/Loslassen), wird
+  nicht überschrieben, eingehende Werte warten. Ein nur fokussiertes Element wird wieder aktualisiert
+  (vorher blieb ein geklemmter Wert falsch stehen). Ein `err` setzt den letzten Serverwert zurück.
+- Ping-Intervall: Vorher fest 5 s, ein Failsafe unter etwa 5 s konnte bei einem ruhigen, gesunden Tab
+  zwischen zwei Pongs ablaufen. Bereich 3-120 s bleibt.
+- Nur lokal im Browser geprüft (Mock-WebSocket: Hold-Klasse, Editieren, `err`, Karte, Reihenfolge der `set`),
+  nicht auf der Hardware. `data/` braucht `uploadfs`, die Firmware einen Flash (COM5, nur auf Zuruf).
+- Bekannte Grenzen: V1 und V2 auf demselben Ausgang wird nur im UI angemerkt, der Server prüft nichts (beide
+  schreiben nacheinander, ein Kanal kann kurz auf 0 fallen). `hold` unterscheidet nicht "BLE aktiv (> 0)" von
+  "Latch bei 0". Beim Wechsel des Ziels weg vom Halsband während eines Levels > 0 wird am Halsband nichts
+  zurückgenommen (Verhalten ungetestet). Bei Queue-Überlauf wird ein Wert verworfen und trotzdem mit `ack`
+  bestätigt (nur `[evq]`-Log).
+
 ## Weitere Ideen (nicht begonnen)
 
 - Kanalfälle im Manuell-Menü tabellengetrieben machen.
-- Visueller Indikator in der Web-UI: zeigt pro Kanal, ob gerade BLE oder Web
-  den Ausgang steuert (BLE-Kanäle ausgegraut bzw. markiert), live ohne
-  Refresh. Zustand pro Kanal (BLE oder Web) kommt per WebSocket und gehört in
-  die JSON-Protokoll-Phase. Grundlage ist das Latch in `outputs_arbitrate()`
-  (`state.ble.latch[]`, `state.ble.hold[]`): BLE behält den Ausgang auch bei
-  Level 0, bis Web/Encoder ihn danach ändert oder BLE trennt. Die Lovense-App
-  hält die Verbindung nach dem Schließen lange offen, deshalb taugt "verbunden"
-  nicht als Kriterium. Der Server muss bei jeder Änderung des Zustands ein
-  Update senden.
-- JSON-Protokoll für den WebSocket und Migration von `data/script.js` (siehe Plan
-  in der Unterhaltung; nicht umgesetzt).
+- ~~Visueller Indikator in der Web-UI für BLE-gehaltene Kanäle~~ **Umgesetzt (Block B, Teil 2).**
+- ~~JSON-Protokoll für den WebSocket und Migration von `data/script.js`~~ **Umgesetzt (Block B, Teil 1).**
 - Optional: kleine WLAN-Diagnose (Status im Log, Neuverbinden). Einmal blieb
   das WLAN nach dem Start aus, bei erneutem Flashen desselben Stands war es
   wieder da (vermutlich Router/Koexistenz, nicht reproduzierbar).
