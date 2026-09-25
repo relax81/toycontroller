@@ -161,6 +161,34 @@ stellen, `reboot` senden. Boot-Log und `[ledc]`-Diagnose ohne Reset-Knopf.
   erst nach dem Hardware-Test in einem eigenen Commit entfernt.
 - `data/` ändert sich: dafür `uploadfs` (getrennt von der Firmware, nur auf Zuruf mit COM5).
 
+### Zustellung an die Clients und bekannte Grenzen
+
+- Pro Client merkt sich `protocol_loop()` das zuletzt eingereihte `n` (`syncedN`). Ein Client, der genau
+  einen Schritt zurückliegt, bekommt den `patch`, ein weiter zurückliegender den vollen `state`. Gesendet
+  wird nur, wenn seine Queue nicht voll ist (`queueIsFull()`), sonst wird er im nächsten Durchlauf bedient.
+  Grund: Die Bibliothek verwirft bei voller Queue still, ein verlorener letzter Patch blieb sonst unbemerkt.
+- Stall-Schutz: Ist die Queue eines Clients 2000 ms (`STALL_MS`) durchgehend voll, schließt das Gerät die
+  Verbindung (`client()->close(true)`, Log `[ws] client #N stalled ...`). `script.js` verbindet neu und holt
+  per `get` den Stand. Gemessen werden kann nur "voll", die Queue-Länge ist nicht öffentlich.
+- **Bekannte Grenze:** Ein Client, der stumm wird, dessen Queue aber nie voll wird (weniger als 32 offene
+  Nachrichten), wird nicht erkannt. Beobachtet nur bei sehr aggressivem, synthetischem Parallelaufbau
+  (Testskript), nicht mit zwei bedienten Browser-Tabs. Bewusst nicht behandelt (ein `n`-Heartbeat vom
+  Client wäre der Weg).
+- **Bekannter, seltener Absturz bei hartem Verbindungsabbruch (RST):** `Guru Meditation LoadProhibited`
+  in `AsyncServer::_accept` (`this == NULL`), gefolgt von einem Neustart. Wahrscheinliche Ursache
+  (aus Quelltext und Disassembly gelesen, nicht per Test bewiesen): Use-after-free in AsyncTCP 1.1.1.
+  Bei RST ruft lwIP den Fehler-Callback und gibt den `pcb` frei, `AsyncClient::_error()` läuft danach im
+  `async_tcp`-Task und ruft `tcp_arg(_pcb, NULL)` usw. auf dem freigegebenen `pcb` auf. Wird der Speicher
+  für eine neue Verbindung wiederverwendet, verliert deren Accept sein `callback_arg`. `_close()` hat dasselbe
+  Muster. Auslöser im Test: Verbindungen per RST beenden und sofort neu aufbauen (Node `process.exit`,
+  `rstchurn.py`). Im Alltag nur bei abrupten Abbrüchen zu erwarten (Tab-/App-Absturz, WLAN weg), nicht beim
+  normalen Schließen. Der Stall-Schutz war daran nicht beteiligt (im Absturzlauf keine `stalled`-Zeile).
+  **Bewusst nicht gepatcht** (Fremdcode, Plattform `espressif32 @ ~3.5.0` bleibt stabil). Folge ist ein Neustart
+  in den sicheren Zustand (Ausgänge aus, Failsafe, WLAN-Reconnect, Client-Resync). Nach dem Neustart
+  kann das WLAN-Connect in den Timeout laufen und das Portal starten, es verbindet sich später selbst.
+- Testskripte schließen Verbindungen sauber per Close-Handshake (kein `process.exit` direkt nach `close()`),
+  damit sie keine künstlichen RSTs erzeugen.
+
 ## Weitere Ideen (nicht begonnen)
 
 - Kanalfälle im Manuell-Menü tabellengetrieben machen.
