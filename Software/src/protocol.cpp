@@ -79,8 +79,12 @@ struct Slot {
   bool v2;            // has sent a "get"
   uint32_t id;
   uint64_t getMask;   // keys requested by a pending "get" (answered in loop())
+  bool hasState;      // has been sent a state (from then on it gets patches)
+  uint32_t syncedN;   // "n" of the last state / patch that was queued to this client
+  uint32_t fullSince; // millis() since when its send queue is full, 0 = not full (loop() only)
 };
 static const int MAX_SLOTS = 8;
+static const uint32_t STALL_MS = 2000; // send queue full this long -> the client is closed
 static Slot slots[MAX_SLOTS];
 static portMUX_TYPE slotMux = portMUX_INITIALIZER_UNLOCKED;
 static uint32_t stateSeq = 0; // "n" of state / patch messages (loop() only)
@@ -95,7 +99,7 @@ void protocol_client_connected(uint32_t id) {
   portENTER_CRITICAL(&slotMux);
   if (slot_find(id) == nullptr) {
     for (int i = 0; i < MAX_SLOTS; i++) {
-      if (!slots[i].used) { slots[i] = { true, false, id, 0 }; ok = true; break; }
+      if (!slots[i].used) { slots[i] = { true, false, id, 0, false, 0, 0 }; ok = true; break; }
     }
   }
   else ok = true;
@@ -343,34 +347,18 @@ static String build_patch(uint64_t mask) {
   return s;
 }
 
-// Call once per loop() pass after outputs_arbitrate() (the ble.hold.* keys are read-only state):
-//  1. keys changed since the last pass -> "patch" (new sequence number n) to all v2 clients
-//     that have already received a "state"
-//  2. pending "get" requests -> "state" (with the current n) to the requesting client
+// Call once per loop() pass after outputs_arbitrate() (the ble.hold.* keys are read-only state).
+// Every client has its own sync state (syncedN = "n" of the last message queued to it), so what a
+// client gets does not depend on who caused a change:
+//  - explicit "get"                                  -> "state" (with the current n)
+//  - has a state, exactly one n behind, keys changed -> "patch" (new sequence number n)
+//  - further behind (a message could not be queued)  -> full "state"
+// A message is only queued if the client's queue has room (the library drops silently when it is
+// full). Otherwise the client stays behind and is served again on the next pass, so a lost patch,
+// also the last one, is always made up for. A client whose queue stays full for STALL_MS is closed.
 // Everything is sent from this one place, so patch and state cannot overtake each other.
 void protocol_loop(AsyncWebSocket& ws) {
-  // pending get requests
-  uint32_t getId[MAX_SLOTS];
-  uint64_t getMask[MAX_SLOTS];
-  bool known[MAX_SLOTS];   // v2 client that already has a state (it gets patches)
-  uint32_t ids[MAX_SLOTS];
-  int nGet = 0, nKnown = 0;
-  portENTER_CRITICAL(&slotMux);
-  for (int i = 0; i < MAX_SLOTS; i++) {
-    if (!slots[i].used || !slots[i].v2) continue;
-    if (slots[i].getMask != 0) {
-      getId[nGet] = slots[i].id;
-      getMask[nGet++] = slots[i].getMask;
-      slots[i].getMask = 0;
-    }
-    else {
-      ids[nKnown++] = slots[i].id;
-    }
-  }
-  portEXIT_CRITICAL(&slotMux);
-  (void)known;
-
-  // changes
+  // changes since the last pass
   uint64_t changed = 0;
   for (int i = 0; i < NKEYS; i++) {
     int32_t v = key_value(KEYS[i]);
@@ -380,28 +368,70 @@ void protocol_loop(AsyncWebSocket& ws) {
     }
   }
   haveSnapshot = true;
-  if (changed != 0) {
-    stateSeq++;
-    String p = build_patch(changed);
-    for (int i = 0; i < nKnown; i++) {
-      AsyncWebSocketClient* c = ws.client(ids[i]);
-      if (c == nullptr || c->status() != WS_CONNECTED) continue;
-      if (c->canSend()) {
-        c->text(p);
-      }
-      else { // the client is behind: it gets the full state as soon as possible
-        portENTER_CRITICAL(&slotMux);
-        Slot* s = slot_find(ids[i]);
-        if (s) s->getMask = ALL_KEYS;
-        portEXIT_CRITICAL(&slotMux);
-      }
-    }
-  }
+  if (changed != 0) stateSeq++;
 
-  // state for the requesting clients (n = current sequence number)
-  for (int i = 0; i < nGet; i++) {
-    AsyncWebSocketClient* c = ws.client(getId[i]);
-    if (c && c->status() == WS_CONNECTED) c->text(build_state(getMask[i]));
+  // the v2 clients (copied, the sends happen without the lock)
+  uint32_t ids[MAX_SLOTS];
+  uint64_t masks[MAX_SLOTS];
+  bool hasState[MAX_SLOTS];
+  uint32_t synced[MAX_SLOTS];
+  uint32_t fullSince[MAX_SLOTS];
+  int n = 0;
+  portENTER_CRITICAL(&slotMux);
+  for (int i = 0; i < MAX_SLOTS; i++) {
+    if (!slots[i].used || !slots[i].v2) continue;
+    ids[n] = slots[i].id;
+    masks[n] = slots[i].getMask;
+    hasState[n] = slots[i].hasState;
+    synced[n] = slots[i].syncedN;
+    fullSince[n] = slots[i].fullSince;
+    n++;
+  }
+  portEXIT_CRITICAL(&slotMux);
+
+  String patch;
+  bool patchBuilt = false;
+  uint32_t now = millis();
+  for (int i = 0; i < n; i++) {
+    AsyncWebSocketClient* c = ws.client(ids[i]);
+    if (c == nullptr || c->status() != WS_CONNECTED) continue;
+
+    // A queue that stays full is a stalled client (does not read, dead link): the library drops
+    // silently from then on and never recovers it. Close the connection; the page reconnects and asks
+    // for "get". Only "full" can be measured (the queue length is not public).
+    bool isFull = c->queueIsFull();
+    uint32_t since = isFull ? (fullSince[i] != 0 ? fullSince[i] : (now != 0 ? now : 1)) : 0;
+    if (since != 0 && now - since >= STALL_MS) {
+      Serial.printf("[ws] client #%u stalled (send queue full for %u ms), closing\n", (unsigned)ids[i], (unsigned)(now - since));
+      c->client()->close(true);
+      continue;
+    }
+    if (since != fullSince[i]) {
+      portENTER_CRITICAL(&slotMux);
+      Slot* s = slot_find(ids[i]);
+      if (s) s->fullSince = since;
+      portEXIT_CRITICAL(&slotMux);
+    }
+
+    uint32_t behind = stateSeq - synced[i];
+    bool sendState = masks[i] != 0 || !hasState[i] || behind > 1 || (behind == 1 && changed == 0);
+    if (!sendState && behind == 0) continue; // up to date
+    if (isFull) continue; // stays behind, next pass
+    if (sendState) {
+      c->text(build_state(masks[i] != 0 ? masks[i] : ALL_KEYS));
+    }
+    else {
+      if (!patchBuilt) { patch = build_patch(changed); patchBuilt = true; }
+      c->text(patch);
+    }
+    portENTER_CRITICAL(&slotMux);
+    Slot* s = slot_find(ids[i]);
+    if (s) {
+      s->hasState = true;
+      s->syncedN = stateSeq;
+      s->getMask &= ~masks[i]; // only what was answered, a newer "get" stays pending
+    }
+    portEXIT_CRITICAL(&slotMux);
   }
 }
 
