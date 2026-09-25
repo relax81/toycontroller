@@ -18,6 +18,7 @@ extern volatile unsigned long loop_max_us; // longest loop() pass of the last fu
 #include "state.h"
 #include "outputs.h"
 #include "settings.h"
+#include "toy_models.h"
 #include "protocol.h"
 #include <DNSServer.h>
 #include <WiFi.h>
@@ -83,9 +84,8 @@ void update_values_ws();
   // String bleAddress = "C0:42:3D:01:28:34"; // CONFIGURATION: < Use the real device BLE address here.
   String bleAddress = "FF:FF:FF:FF:FF:FF"; // CONFIGURATION: < Use the real device BLE address here.
   uint32_t value = 0;
-  #define SERVICE_UUID           "6e400001-b5a3-f393-e0a9-e50e24dcca9e"
-  #define CHARACTERISTIC_RX_UUID "6e400002-b5a3-f393-e0a9-e50e24dcca9e"
-  #define CHARACTERISTIC_TX_UUID "6e400003-b5a3-f393-e0a9-e50e24dcca9e"
+  // UUIDs, name and DeviceType answer come from the selected toy model (toy_models.cpp).
+  // Naming: RX = the characteristic the app writes to, TX = the one the toy notifies on.
   // CONFIGURATION:                           ^ Replace X and Y with values that suit you.
   // BLE callbacks run in the NimBLE task and must not write the state: they queue events.
   // bleVib[] is the last vibration pair queued by this task (both values travel in one
@@ -128,10 +128,11 @@ void update_values_ws();
         // }
         if (rxValue == "DeviceType;") {
           // debugln("$Responding to Device Enquiry");
-          memmove(messageBuf, "J:40:C0423D012834;", 18);
-          // memmove(messageBuf, "EI:40:C0FFFFFFFFFF;", 18);
-          // CONFIGURATION:               ^ Use a BLE address of the Lovense device you're cloning.
-          pTxCharacteristic->setValue(messageBuf, 18);
+          // "<letter>:<firmware>:<BLE address>;" of the selected toy model
+          const ToyModel& tm = TOY_MODELS[state.ble.toyModel];
+          String resp = String(tm.letter) + ":" + tm.fw + ":C0423D012834;";
+          // CONFIGURATION:                       ^ Use a BLE address of the Lovense device you're cloning.
+          pTxCharacteristic->setValue((uint8_t*)resp.c_str(), resp.length());
           pTxCharacteristic->notify();
         } else if (rxValue == "Battery;") {
           memmove(messageBuf, "90;", 3);
@@ -235,23 +236,25 @@ void update_values_ws();
     // Bluetooth
     // Create the BLE Device
   debugln("ble init");  
-  NimBLEDevice::init("LVS-Z001"); // CONFIGURATION: The name doesn't actually matter, The app identifies it by the reported id.
+  const ToyModel& toy = TOY_MODELS[state.ble.toyModel];
+  Serial.printf("[ble] toy model %s (%s, type letter %s)\n", toy.label, toy.bleName, toy.letter);
+  NimBLEDevice::init(toy.bleName); // The name doesn't actually matter, the app identifies the toy by the reported id.
   // Create the BLE Server
   debugln("create ble server");
   pServer = NimBLEDevice::createServer();
   pServer->setCallbacks(new MyServerCallbacks());
   debugln("create ble service");
   // Create the BLE Service
-  NimBLEService *pService = pServer->createService(SERVICE_UUID);
+  NimBLEService *pService = pServer->createService(toy.svc);
   debugln("create ble characteristics");
     // Create a BLE Characteristics
   pTxCharacteristic = pService->createCharacteristic(
-                      CHARACTERISTIC_TX_UUID,
+                      toy.rx,
                       NIMBLE_PROPERTY::NOTIFY
                     );
 
   pRxCharacteristic = pService->createCharacteristic(
-                      CHARACTERISTIC_RX_UUID,
+                      toy.tx,
                       NIMBLE_PROPERTY::WRITE  |
                       NIMBLE_PROPERTY::WRITE_NR
                     );
@@ -263,7 +266,7 @@ void update_values_ws();
   debugln("bt start advertising");
   // Start advertising
   NimBLEAdvertising *pAdvertising = NimBLEDevice::getAdvertising();
-  pAdvertising->addServiceUUID(SERVICE_UUID);
+  pAdvertising->addServiceUUID(toy.svc);
   pAdvertising->setScanResponse(false);
   pAdvertising->setMinPreferred(0x0);  // set value to 0x00 to not advertise this parameter
   NimBLEDevice::startAdvertising();
@@ -1540,6 +1543,13 @@ void loop() {
   }
 
   settings_update(currentMillis); // debounced NVS save of changed settings
+  if (state.ble.toyRestartPending && currentMillis - state.ble.toyChangedMs >= 2000) {
+    // new toy model: save it and restart, the BLE identity is only set in the BLE init
+    settings_flush();
+    Serial.println("[toy] model changed, restarting");
+    delay(100);
+    ESP.restart();
+  }
   // last web client gone (browser closed): save pending changes at once
   static bool hadWsClient = false;
   bool hasWsClient = ws.count() > 0;

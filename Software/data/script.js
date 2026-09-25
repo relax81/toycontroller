@@ -308,6 +308,25 @@ function v2SetElement(el, value)
     }
 }
 
+// Toy model info (same order as the options of #bt_toy and TOY_MODELS in the firmware)
+var TOY_INFO = [
+    "1 Kanal: Vibrate (Kennung J, wie bisher)",
+    "1 Kanal: Vibrate",
+    "1 Kanal: Vibrate",
+    "1 Kanal: Vibrate (Zusatzbefehle wie GetLevel noch nicht umgesetzt)",
+    "2 Kan\u00e4le: Vibrate + Rotate",
+    "2 Kan\u00e4le: Vibrate + Air",
+    "2 Kan\u00e4le: Vibrate1 + Vibrate2"
+];
+function toyInfoUpdate()
+{
+    var sel = document.getElementById("bt_toy");
+    var info = document.getElementById("bt_toy_info");
+    if (!sel || !info)
+        return;
+    info.textContent = (TOY_INFO[sel.value] || "") + " \u2013 Modellwechsel startet das Ger\u00e4t neu, danach in der Lovense-App neu koppeln.";
+}
+
 function v2Apply(d)
 {
     if (v2Keys === null)
@@ -330,6 +349,7 @@ function v2Apply(d)
                 v2SetElement(el, d[key]);
         });
     }
+    toyInfoUpdate();
 }
 
 // The server confirms a change with a patch. If none comes (it clamped the value to what it already

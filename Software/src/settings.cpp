@@ -2,6 +2,7 @@
 #include <Preferences.h>
 #include "state.h"
 #include "settings.h"
+#include "toy_models.h"
 
 static const char* const NS = "cfg";
 static const unsigned long SETTINGS_SAVE_DELAY_MS = 5000;
@@ -56,6 +57,9 @@ void settings_load() {
   if (in_range(bpm, BPM_MIN, BPM_MAX)) state_apply({ EV_BUZZ_BPM, 0, bpm });
   if (in_range(on, ON_MIN_MS, ON_MAX_MS)) state.buzzer.onTimeMs = on;
 
+  int toy = prefs.getUChar("toy", state.ble.toyModel);
+  if (in_range(toy, 0, TOY_MODEL_COUNT - 1)) state.ble.toyModel = toy; // directly: a change event would trigger the restart
+
   state_apply({ EV_COLLAR_BTONLY, 0, prefs.getUChar("co_chg", state.collar.btOnlyChanges ? 1 : 0) ? 1 : 0 });
   prefs.end();
 
@@ -102,6 +106,7 @@ static void settings_save() {
   put_u8(prefs, "bz_bpm", (uint8_t)state.buzzer.bpm);
   put_u16(prefs, "bz_on", (uint16_t)state.buzzer.onTimeMs);
   put_u8(prefs, "co_chg", state.collar.btOnlyChanges ? 1 : 0);
+  put_u8(prefs, "toy", (uint8_t)state.ble.toyModel);
   prefs.end();
   Serial.printf("[cfg] saved (%d keys written)\n", written);
 }

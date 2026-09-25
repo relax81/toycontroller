@@ -5,6 +5,7 @@
 #include "state.h"
 #include "outputs.h"
 #include "protocol.h"
+#include "toy_models.h"
 
 // ---------------------------------------------------------------------------
 // Key table: name -> event, range, pointer to the state field (for reading)
@@ -49,6 +50,7 @@ static const KeyDef KEYS[] = {
   RW_I("buzzer.bpm", EV_BUZZ_BPM, 0, 1, 255, &state.buzzer.bpm),
   RW_I("buzzer.vol", EV_BUZZ_VOL, 0, 0, 10, &state.buzzer.volume),
   BLEMAP(0), BLEMAP(1),
+  RW_I("ble.toy", EV_BLE_TOY, 0, 0, TOY_MODEL_COUNT - 1, &state.ble.toyModel),
   RW_I("sys.failsafe", EV_FAILSAFE_TO, 0, 3, 120, &state.failsafeTimeoutS),
   RO_B("ble.connected",   &state.ble.in.connected),
   RO_B("ble.hold.ch1",    &state.ble.hold[OUT_PWM1]),

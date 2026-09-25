@@ -1,5 +1,6 @@
 #include <Arduino.h>
 #include "state.h"
+#include "toy_models.h"
 #include "settings.h"
 #include <type_traits>
 
@@ -112,6 +113,15 @@ void state_apply(const Event& e) {
         bt_clamp(m);
         if (m.output != before.output || m.minPwm != before.minPwm || m.maxPwm != before.maxPwm) settings_mark_dirty();
       }
+      break;
+    case EV_BLE_TOY:
+      if (e.val >= 0 && e.val < TOY_MODEL_COUNT && state.ble.toyModel != e.val) {
+        state.ble.toyModel = e.val;
+        state.ble.toyChangedMs = millis();
+        state.ble.toyRestartPending = true; // the new identity applies after a restart (loop())
+        settings_mark_dirty();
+      }
+      state_ui_dirty = true;
       break;
     case EV_FAILSAFE_TO:
       if (e.val >= 3 && e.val <= 120 && state.failsafeTimeoutS != e.val) { state.failsafeTimeoutS = e.val; settings_mark_dirty(); }

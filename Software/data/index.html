@@ -221,7 +221,19 @@
                 </div>
                 </div>
                 <p id="bt_same_warn" class="bt-warn" hidden>V1 und V2 steuern denselben Ausgang: der zuletzt geschriebene Wert gewinnt.</p>
-                <div class="bt-placeholder" id="bt-toy-model">Toy-Modell (folgt): Name, UUID, Antwortkennung, Motorenanzahl</div>
+                <p class="bt-row">
+                    <label for="bt_toy">Toy-Modell</label>
+                    <select id="bt_toy" data-key="ble.toy" onchange="update_select(this); toyInfoUpdate()" class="bt-select">
+                        <option value="0">Dolce</option>
+                        <option value="1">Lush</option>
+                        <option value="2">Hush</option>
+                        <option value="3">Domi</option>
+                        <option value="4">Nora</option>
+                        <option value="5">Max</option>
+                        <option value="6">Edge</option>
+                    </select>
+                </p>
+                <p class="state small" id="bt_toy_info"></p>
             </details>
 
             <!-- General settings (collapsible) -->

@@ -94,6 +94,9 @@ struct BleState {
   BleLatch latch[2];                     // per vibration channel
   bool hold[OUT_ID_COUNT] = {};          // BLE holds this output id (loop() only)
   bool collarMapped = false;
+  int  toyModel = 0;                     // index into TOY_MODELS (0 = Dolce), applied at the next start
+  bool toyRestartPending = false;        // a model change restarts the device (loop())
+  unsigned long toyChangedMs = 0;
 };
 
 struct AppState {
@@ -139,6 +142,7 @@ enum EventType : uint8_t {
   EV_BT_MAX,          // idx, val
   EV_FAILSAFE_TO,     // val = seconds (3-120)
   EV_ALL_OFF,         // Ch1-4, pump and collar disabled
+  EV_BLE_TOY,         // val = index into TOY_MODELS (device restarts)
   EV_TYPE_COUNT
 };
 
