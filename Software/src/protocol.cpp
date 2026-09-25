@@ -256,6 +256,11 @@ static const char* apply_key(int ki, double num, SetResult& r) {
     }
   }
   if (def.restart && snap_value(ki, -1) != (int32_t)num) r.restart = true;
+  r.appliedMask |= (uint64_t)1 << ki;
+  if (def.kind == K_BOOL) {
+    if (num != 0) r.onMask |= (uint64_t)1 << ki;
+    else r.offMask |= (uint64_t)1 << ki;
+  }
   return nullptr;
 }
 
@@ -266,10 +271,12 @@ static void note_error(SetResult& r, const char* k, const char* code, const KeyD
 }
 
 // keys of a JSON object -> values (booleans and numbers)
-void protocol_apply_object(JSONVar& d, SetResult& r) {
+void protocol_apply_object(JSONVar& d, SetResult& r, const char* skip) {
+  if (JSON.stringify(d).length() <= 2) return; // "{}": JSONVar::keys() of an empty object crashes (null pointer in cJSON)
   JSONVar keys = d.keys();
   for (int i = 0; i < keys.length(); i++) {
     String k = (const char*)keys[i];
+    if (skip && k == skip) continue;
     JSONVar v = d[k];
     int ki = key_find(k.c_str());
     if (ki < 0) { note_error(r, k.c_str(), "unknown", nullptr); continue; }
@@ -304,6 +311,30 @@ void protocol_apply_text(const char* key, const char* val, SetResult& r) {
   const char* err = apply_key(ki, num, r);
   if (err) { note_error(r, key, err, &def); return; }
   r.applied++;
+}
+
+// Key table access for the HTTP API (names, ranges, texts are constants)
+bool protocol_key_info(int i, KeyInfo& out) {
+  if (i < 0 || i >= NKEYS) return false;
+  const KeyDef& k = KEYS[i];
+  out.name = k.name;
+  out.unit = k.unit;
+  out.desc = k.desc;
+  out.isBool = (k.kind == K_BOOL);
+  out.writable = (k.ev != EV_NONE);
+  out.lo = k.lo;
+  out.hi = k.hi;
+  out.restart = k.restart;
+  int hk = k.hold != 0 ? hold_key_index(k.hold) : -1;
+  out.heldBy = hk >= 0 ? KEYS[hk].name : nullptr;
+  return true;
+}
+
+int protocol_key_index(const char* name) { return key_find(name); }
+
+void protocol_error(SetResult& r, const char* key, const char* code) {
+  int ki = key_find(key);
+  note_error(r, key, code, ki >= 0 ? &KEYS[ki] : nullptr);
 }
 
 static void handle_set(AsyncWebSocketClient* c, JSONVar& m) {
@@ -350,10 +381,11 @@ const char* protocol_run_cmd(const char* cmd) {
     return nullptr;
   }
   if (strcmp(cmd, "collar.beep") == 0 || strcmp(cmd, "collar.vibe") == 0 || strcmp(cmd, "collar.shock") == 0) {
-    static int kEn = key_find("collar.en"), kStr = key_find("collar.strength");
-    if (!snap_value(kEn, state.collar.enabled ? 1 : 0)) return "disabled";
+    // the live values, as the WebSocket always did: a set that loop() has just applied counts at once
+    // (the snapshot is one loop() pass older); one bool / one int are read atomically
+    if (!state.collar.enabled) return "disabled";
     CollarMode mode = (strcmp(cmd, "collar.beep") == 0) ? CollarMode::Beep : (strcmp(cmd, "collar.vibe") == 0) ? CollarMode::Vibe : CollarMode::Shock;
-    collar_send(mode, snap_value(kStr, state.collar.strength));
+    collar_send(mode, state.collar.strength);
     debugln(cmd);
     return nullptr;
   }

@@ -20,6 +20,7 @@ extern volatile unsigned long loop_max_us; // longest loop() pass of the last fu
 #include "settings.h"
 #include "toy_models.h"
 #include "protocol.h"
+#include "api.h"
 #include <DNSServer.h>
 #include <WiFi.h>
 #include <AsyncTCP.h>
@@ -1331,6 +1332,7 @@ void displayBluetoothMenu(){
   void init_ws() {
   ws.onEvent(onEvent_ws);
   server.addHandler(&ws);
+  api_setup(server); // HTTP API (docs/API.md)
 }
 
 // websocket failsafe: switch off everything the web interface controls
@@ -1562,6 +1564,7 @@ void loop() {
 
   outputs_arbitrate();
   protocol_loop(ws); // patches / state for the JSON clients (after the arbitration: ble.hold.*)
+  api_loop();        // expires the for= timers of the HTTP API
 
   // controls pwm outputs (web / manual), skips outputs held by BLE
   PWM_Output();

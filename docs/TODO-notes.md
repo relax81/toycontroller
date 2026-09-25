@@ -99,3 +99,19 @@ Nur Notizen, kein Code. Bewusst verschobene Punkte aus dem Umbau
 - **Nicht in der Auswahl:** Max (Air-Level 0-5 zu grob, entfernt), Modelle mit `Mply:` (Solace, Flexer, Lapis, Gemini
   u. a.). Vor deren Einbau: Format und Kanalzuordnung per echtem Mitschnitt klären.
 - `RotateChange;` (Nora) wird nur mit `OK;` beantwortet, die Drehrichtung geht an keinen Ausgang.
+
+## HTTP-API
+
+- **`held` (BLE-Hold) ist nur im Code geprüft.** Test mit einem echten BLE-Client (Level > 0 auf einem Ziel, dann
+  `POST /api/set` auf einen Schlüssel dieses Ziels) steht aus.
+- **Schlüssel nachrüsten:** die API hat keinen Schutz. Ein Schlüssel (Header oder Query-Parameter) ließe sich zentral in
+  `api.cpp` prüfen, zum Beispiel in `check_body()` und den GET-Handlern. Risiko und CSRF stehen in `docs/API.md`.
+- **`timer_full` ist praktisch nicht erreichbar** (8 Timer, 7 `*.en`-Schlüssel). Die Rücknahme des Schlüssels ist trotzdem
+  eingebaut. Ändert sich die Zahl der `*.en`-Schlüssel, `MAX_TIMERS` prüfen.
+- **Der Collar-Befehl liest den Live-Wert** (`state.collar.enabled`), der Snapshot wäre einen Durchlauf zu alt. Ein `cmd` direkt
+  nach `set collar.en` kann daher kurz `disabled` melden (in `docs/API.md` beschrieben). Sauberer wäre, das Collar-Senden als
+  Ereignis nach `loop()` zu verlagern (siehe Abschnitt 433-MHz-Halsband).
+- **WebSocket-Test einmal fehlgeschlagen:** `ws_regress.py` direkt nach dem Lasttest von `api_test.py` hatte einmal 9 Zeitüberschreitungen
+  (Gerät lief weiter, kein Absturz, alle Nachrichten im Serial-Log angekommen), in fünf weiteren Läufen (auch nach dem Lasttest)
+  21/21. Die Ursache ist nicht geklärt. Auffällig: der Stall-Schutz schließt Testverbindungen, die nicht mehr lesen.
+- **Arduino_JSON:** `keys()` auf ein leeres Objekt stürzt ab. Andere Stellen, die `keys()` aufrufen, brauchen denselben Guard.

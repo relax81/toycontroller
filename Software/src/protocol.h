@@ -45,8 +45,24 @@ struct SetResult {
   String held;           // JSON list of names: stored, but a BLE hold overrides the output right now
   bool restart = false;  // the change restarts the device (ble.toy)
   bool queueFull = false;// at least one event did not fit into the queue
+  uint64_t appliedMask = 0; // bit per key index: keys that were queued
+  uint64_t onMask = 0;      // ... of those the boolean keys set to true
+  uint64_t offMask = 0;     // ... and set to false
 };
-void protocol_apply_object(JSONVar& d, SetResult& r);                  // key -> boolean / number
+struct KeyInfo {
+  const char* name;
+  const char* unit;
+  const char* desc;
+  bool isBool;
+  bool writable;
+  int32_t lo, hi;
+  bool restart;            // a changed value restarts the device
+  const char* heldBy;      // name of the ble.hold.* key that overrides this key's output, or nullptr
+};
+bool protocol_key_info(int i, KeyInfo& out);
+int  protocol_key_index(const char* name);      // -1 if unknown
+void protocol_error(SetResult& r, const char* key, const char* code); // adds an error entry (with range for "range")
+void protocol_apply_object(JSONVar& d, SetResult& r, const char* skip = nullptr); // key -> boolean / number
 void protocol_apply_text(const char* key, const char* val, SetResult& r); // one key from a query string
 const char* protocol_run_cmd(const char* cmd);  // nullptr = done, else "disabled" / "unknown_cmd"
 int  protocol_key_count();
