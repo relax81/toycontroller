@@ -92,6 +92,7 @@ void update_values_ws();
   // event, so V1/V2 are always applied together).
   static int bleVib[2] = {0, 0};
   static void ble_queue_vib(int v1, int v2) {
+    if (TOY_MODELS[state.ble.toyModel].vibChannels < 2) v2 = 0; // one-channel model: V2 stays unused
     bleVib[0] = v1;
     bleVib[1] = v2;
     state_set(EV_BLE_VIB, 0, (int32_t)((uint32_t)(v1 & 0xFFFF) | ((uint32_t)(v2 & 0xFFFF) << 16)));

@@ -1,6 +1,8 @@
 #ifndef TOY_MODELS_H
 #define TOY_MODELS_H
 
+#include <stdint.h>
+
 // Selectable Lovense toy models for the BLE emulation. The list index is stored in the NVS
 // ("toy") and used as value of the key "ble.toy". Changing the model restarts the device,
 // the BLE identity (name, DeviceType answer, UUIDs) is set once in the BLE init.
@@ -19,6 +21,7 @@ struct ToyModel {
   const char* svc;      // service UUID
   const char* tx;       // characteristic the app writes to
   const char* rx;       // characteristic the toy notifies on
+  uint8_t vibChannels;  // vibration channels the app can address (1 = only V1, V2 stays 0)
 };
 
 extern const ToyModel TOY_MODELS[TOY_MODEL_COUNT];

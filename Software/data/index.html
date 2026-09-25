@@ -3,6 +3,7 @@
 <!DOCTYPE html>
 <html>
 <head>
+    <meta charset="utf-8">
     <title>Toycontroller Dashboard</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link rel="icon" type="image/png" href="favicon.png">
@@ -198,7 +199,7 @@
                         <input type="range" onchange="update_slider(this)" id="bt_max0" data-key="ble.map0.max" min="0" max="255" step="1" value="0" class="slider">
                     </p>
                 </div>
-                <div class="bt-channel">
+                <div class="bt-channel" id="bt_channel1">
                     <p class="card-title">V2 (Vibrate 2)</p>
                     <label for="bt_out1">Ziel</label>
                     <select id="bt_out1" data-key="ble.map1.out" onchange="update_select(this)" class="bt-select">
@@ -224,13 +225,13 @@
                 <p class="bt-row">
                     <label for="bt_toy">Toy-Modell</label>
                     <select id="bt_toy" data-key="ble.toy" onchange="update_select(this); toyInfoUpdate()" class="bt-select">
-                        <option value="0">Dolce</option>
-                        <option value="1">Lush</option>
-                        <option value="2">Hush</option>
-                        <option value="3">Domi</option>
-                        <option value="4">Nora</option>
-                        <option value="5">Max</option>
-                        <option value="6">Edge</option>
+                        <option value="0">Dolce (2 Kanäle)</option>
+                        <option value="1">Lush (1 Kanal)</option>
+                        <option value="2">Hush (1 Kanal)</option>
+                        <option value="3">Domi (1 Kanal)</option>
+                        <option value="4">Nora (1 Kanal + Rotate)</option>
+                        <option value="5">Max (1 Kanal + Air)</option>
+                        <option value="6">Edge (2 Kanäle)</option>
                     </select>
                 </p>
                 <p class="state small" id="bt_toy_info"></p>

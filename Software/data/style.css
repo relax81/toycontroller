@@ -359,3 +359,10 @@ input:checked + .slider2:before {
 .bt-select, .bt-number { font-size: 1rem; padding: 2px 6px; margin: 2px 0 4px; }
 .bt-row { font-size: 1rem; }
 .bt-placeholder { margin-top: 8px; padding: 6px; font-size: .85rem; }
+
+/* one vibration channel: hide V2 and center V1 */
+.bt-channel[hidden] { display: none; }
+.bt-body:has(.bt-channel[hidden]) {
+  grid-template-columns: minmax(220px, 480px);
+  justify-content: center;
+}
