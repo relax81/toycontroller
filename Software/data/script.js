@@ -38,7 +38,10 @@ function update_slider(element) {
         label.innerHTML = value;
     var key = element.getAttribute("data-key");
     if (key)
+    {
         send({ t: "set", d: { [key]: Number(value) } });
+        v2Verify(element);
+    }
     else
         websocket.send(element.id + "?" + value.toString());
 }
@@ -46,7 +49,10 @@ function update_slider(element) {
 function update_select(element) {
     var key = element.getAttribute("data-key");
     if (key)
+    {
         send({ t: "set", d: { [key]: Number(element.value) } });
+        v2Verify(element);
+    }
 }
 
 function update_radio(element) {
@@ -308,6 +314,20 @@ function v2Apply(d)
     }
 }
 
+// The server confirms a change with a patch. If none comes (it clamped the value to what it already
+// had, or dropped it) the element would keep showing a wrong value: put the server value back.
+function v2Verify(el)
+{
+    clearTimeout(el._verifyTimer); // only the newest change of an element counts
+    el._verifyTimer = setTimeout(function () {
+        var key = el.getAttribute('data-key');
+        if (el === v2Editing || !v2State.hasState || v2State.store[key] === undefined)
+            return;
+        if (String(v2State.store[key]) !== String(el.value))
+            v2SetElement(el, v2State.store[key]);
+    }, 800);
+}
+
 // put the last known server value back (the server rejected the value the user sent)
 function v2Restore(key)
 {
@@ -365,11 +385,21 @@ function btCardUpdate()
     {
         // the collar takes 0-100, everything else 0-255 (the server clamps the same way)
         var limit = (st['ble.map' + k + '.out'] === BT_OUT_COLLAR) ? 100 : 255;
-        ['min', 'max'].forEach(function (which) {
-            var el = document.getElementById('bt_' + which + k);
-            if (el)
-                el.max = limit;
-        });
+        var curMin = st['ble.map' + k + '.min'], curMax = st['ble.map' + k + '.max'];
+        var minEl = document.getElementById('bt_min' + k);
+        var maxEl = document.getElementById('bt_max' + k);
+        // Min cannot be dragged above max and max not below min (the server would clamp the value, and
+        // if that changes nothing there is no patch and the slider would show a wrong value)
+        if (minEl)
+        {
+            minEl.min = 0;
+            minEl.max = (curMax !== undefined) ? curMax : limit;
+        }
+        if (maxEl)
+        {
+            maxEl.min = (curMin !== undefined) ? curMin : 0;
+            maxEl.max = limit;
+        }
     }
     var out0 = st['ble.map0.out'], out1 = st['ble.map1.out'];
     var warn = document.getElementById('bt_same_warn');
