@@ -1,22 +1,22 @@
-# Stand des Umbaus (Branch `dev-wifi-ble-parallel`)
+# Projektstand ToyController (Arbeitsverlauf, Branch `main`)
 
-Stand: 2026-09-24, Schritt 4, `outputs.h/.cpp` und das WLAN-Einrichtungsportal (Stufe 1-3) umgesetzt. Zum Weitermachen morgen: erst
-diese Datei und `docs/TODO-notes.md` lesen.
+Stand: nach Commit `594be56` auf `main`. Die früheren Feature-Branches (`dev-webserver`, `dev-wifi-ble-parallel`)
+sind in `main` gemergt und gelöscht; die Abschnitte unten sind der Arbeitsverlauf und behalten ihre alten Commit-Hashes.
+Neu seit dem Merge: Zeiten in Zehntelsekunden, Pumpen-Timer, Web-Layout, Toy-Modellauswahl und Metronom als BT-Ziel
+(Abschnitt "Seit dem Merge nach `main`"). Zum Weitermachen: erst diese Datei und `docs/TODO-notes.md` lesen.
 
 ## Arbeitsregeln (kurz)
 
 - Repo-Root `toycontroller`, Code in `Software/`, Build: `pio run -d Software`.
-- Nur auf `dev-wifi-ble-parallel` arbeiten, nie auf `main`. Push/Merge nur
-  auf Zuruf; vor dem Push das Diff auf Zugangsdaten prüfen
-  (`true-credentials.h` ist nicht getrackt und darf nie committet werden).
+- Alles liegt auf `main`. Kleine Änderungen gehen direkt auf `main`, für größere Umbauten wird ein
+  Feature-Branch angelegt (Entscheidung des Nutzers, Ein-Personen-Projekt). Push nur auf Zuruf; vor dem
+  Push das Diff auf Zugangsdaten prüfen (`true-credentials.h` ist nicht getrackt und darf nie committet werden).
 - Flashen nur auf Zuruf und immer mit `--upload-port COM5`; `upload_port` /
   `monitor_port` (COM7) in der `platformio.ini` nicht ändern. Plattform
   `espressif32 @ ~3.5.0` bleibt.
 - CRLF-Zeilenenden erhalten. Dateien einzeln mit `git add` hinzufügen.
-- Nur die Pumpe ist derzeit nicht testbar (Hardware fehlt), in Testlisten nur
-  als "später" führen. Das 433-MHz-Halsband ist am 2026-09-24 auf der Hardware
-  bestätigt. Der Metronom-Buzzer ist bewusst
-  nicht Teil des Failsafes.
+- Die Pumpe ist getestet (Steuersignal 0-3,3 V PWM, kein Leistungsausgang). Das 433-MHz-Halsband ist
+  auf der Hardware bestätigt. Der Metronom-Buzzer ist bewusst nicht Teil des Failsafes.
 - HTerm muss getrennt sein, wenn geflasht wird. Beim Öffnen von COM5 aus
   Python gibt es keinen Reset; Boot-Log nur per EN-Taste sichtbar. Ein
   fehlgeschlagener Upload (`Timed out waiting for packet header`) klappt
@@ -132,10 +132,10 @@ stellen, `reboot` senden. Boot-Log und `[ledc]`-Diagnose ohne Reset-Knopf.
   immer den aktuellen State (auch uncommittete Encoder-Werte im Manuell-Menü).
 - NVS `cfg` (Version 1): `ver`, `b0_out`/`b1_out` (u8), `b0_min`/`b0_max`/
   `b1_min`/`b1_max` (u16), `fs_to` (u16, s), `bz_vol`/`bz_bpm` (u8), `bz_on` (u16, ms),
-  `co_chg` (u8). Nie gespeichert: Enable-Flags und Laufzeitwerte. Grenzen (min <= max,
+  `co_chg` (u8), `toy` (u8, Toy-Modell-Index, seit `70c9a97`). Nie gespeichert: Enable-Flags und Laufzeitwerte. Grenzen (min <= max,
   Ausgang 6 max <= 100) setzt `state_apply()` immer, auch zur Laufzeit.
 - Collar-Klicks (`sendCollar`, blockierend) laufen unverändert aus dem `async_tcp`-Task.
-- Toy-Modell kommt in Block B.
+- Toy-Modell: umgesetzt, siehe "Seit dem Merge nach `main`".
 
 ## Block B, Teil 1: JSON-Protokoll für den WebSocket (umgesetzt, Hardware-Test offen)
 
@@ -262,15 +262,71 @@ stellen, `reboot` senden. Boot-Log und `[ledc]`-Diagnose ohne Reset-Knopf.
 - Testskripte schließen Verbindungen sauber per Close-Handshake (kein `process.exit` direkt nach `close()`),
   damit sie keine künstlichen RSTs erzeugen.
 
+## Seit dem Merge nach `main` (Zeiten, Pumpe, Web-UI, Toy-Modelle, Metronom)
+
+| Commit | Inhalt |
+|---|---|
+| `c9de902` | `ch1..4.on/off` in Zehntelsekunden (0-900 = 0-90 s), Zeit-Slider mit 0,1-s-Schritten bis 2 s |
+| `d22b65f` | Pumpe mit On/Off-Zyklus (`pump.on/off`), Collar-Checkbox in der Collar-Karte, Karte "Allgemeine Einstellungen" |
+| `9d03d25`, `ba36552` | Collar-Buttons untereinander (mittig, gleich breit), schmalere Klappkarten |
+| `70c9a97` | wählbares Toy-Modell (Tabelle Name/UUID/Kennung), NVS `toy`, Neustart nach Wechsel |
+| `e3647db` | `vibChannels` je Modell (V2 bei Ein-Kanal-Modellen unbenutzt und ausgeblendet), `<meta charset>` in `index.html` |
+| `90f342a` | Max entfernt, Nora nutzt V2 für Rotate (0-20), Edge ist Modell 5 |
+| `594be56` | Ausgang 7 "Metronom (BPM)" als Bluetooth-Ziel, Halte-Markierung an der Buzzer-Karte |
+
+**Zeiten in Zehntelsekunden.** `state.out[i].on/off` und `state.pump.on/off` sind Zehntelsekunden, die
+Schlüssel `ch1..4.on/off` und `pump.on/off` haben den Bereich 0-900 (`protocol.cpp`), `outputs.cpp` rechnet
+`* 100`. OLED zeigt eine Nachkommastelle, der Encoder stellt ganze Sekunden (0-90, intern `* 10`). Die Zeiten
+werden nicht im NVS gespeichert. Alte Clients (Legacy-Pfad) bekommen jetzt Zehntelsekunden statt Sekunden. Im Web
+haben die Zeit-Slider `data-scale="time"`: Position 0-20 = 0,0-2,0 s in 0,1-s-Schritten, 21-108 = 3-90 s in
+1-s-Schritten, dazu -/+ Buttons (eine Position). Die Umrechnung liegt in `script.js` (`posToTenths`/`tenthsToPos`).
+
+**Pumpe mit On/Off-Zyklus.** Eigener Laufzeitzustand `state.pumpRt` wie `state.rt[i]`. Off = 0: Dauerlauf, sonst
+On-Phase, dann Pause. Beim Einschalten startet der Zyklus mit der On-Phase, unter BLE-Hold zählt er nicht mit.
+On = 0 mit Off > 0 lässt die Pumpe (wie bei Ch1-4) sofort in die Pause fallen.
+
+**Web-UI.** Bis zu 7 Kacheln in einer Zeile (`max-width` 1600 px). Die Bluetooth-Karte enthält nur noch die
+Zuordnung und das Toy-Modell; `collar.btonly` sitzt in der Collar-Karte, `sys.failsafe` in der neuen klappbaren
+Karte "Allgemeine Einstellungen". `<meta charset="utf-8">` fehlt sonst, der Server sendet `text/html` ohne Zeichensatz.
+
+**Toy-Modellauswahl** (`toy_models.h/.cpp`, Schlüssel `ble.toy` 0-5, NVS `toy`).
+
+| Index | Modell | Kennung | Kanäle |
+|---|---|---|---|
+| 0 | Dolce | J | V1 + V2 (Vibrate1/2), bisherige Identität `J:40:C0423D012834;`, Name `LVS-Z001` |
+| 1 | Lush | S | V1 |
+| 2 | Hush | Z | V1 |
+| 3 | Domi | W | V1 |
+| 4 | Nora | C | V1 + V2 = Rotate (0-20) |
+| 5 | Edge | P | V1 + V2 (Vibrate1/2) |
+
+- Die BLE-Identität (Name, Service, DeviceType-Antwort `<Kennung>:<Firmware>:<Adresse>;`) wird nur beim BLE-Init
+  gesetzt. Ein Wechsel speichert und startet das Gerät 2 s nach der letzten Änderung neu; die Lovense-App muss
+  neu koppeln. Ein ungültiger gespeicherter Wert fällt auf Dolce zurück (so nach dem Entfernen von Max, Edge war
+  vorher 6).
+- Ein-Kanal-Modelle: V2 bleibt immer 0, `Vibrate2` wird ignoriert, `Vibrate:` setzt nur V1 (bei Dolce/Edge beide).
+  Das Web-UI blendet V2 in der Zuordnung dann aus. Nora setzt bei `Rotate:` den Wert 0-20 nach V2.
+- Max ist nicht enthalten (der Air-Kanal hat nur 0-5); Modelle mit `Mply:` (Solace, Flexer, Lapis, ...) ebenfalls nicht.
+- Quelle: Lovense-Protokollseite auf buttplug.io. **Nicht gegen einen echten Mitschnitt geprüft:** Namen
+  (`LVS-<Buchstabe>001`, Dolce und Hush teilen `LVS-Z001`), Firmware-Zahl `40` und die Gen-2-UUID für alle Modelle.
+  Mit der Lovense-App am Gerät wurde die Auswahl bestätigt ("läuft alles").
+
+**Metronom als Bluetooth-Ziel (Ausgang 7).** `OUT_BPM`, `OUT_ID_COUNT` = 8, `OutputNumItems` = 8. Der BLE-Wert 1-20
+wird auf Min...Max abgebildet, hier sind Min/Max BPM (1-255, im UI "Min BPM"/"Max BPM"). Das Metronom spielt nur bei
+Wert > 0, unabhängig vom Ein/Aus-Schalter, mit der Lautstärke aus dem Web. Solange BLE hält (`hold[OUT_BPM]`, Schlüssel
+`ble.hold.buzzer`), spielt es nur mit BLE-Wert; eine Änderung von BPM, Volume oder Schalter im Web beendet den
+Level-0-Latch (`webSettings` für Id 7). OLED zeigt "BPM". Getestet nur im Browser (Attrappe) und im Code, ein Test mit
+der App am Gerät steht aus.
+
 ## Weitere Ideen (nicht begonnen)
 
 - Kanalfälle im Manuell-Menü tabellengetrieben machen.
+- Weitere Toy-Modelle und die fehlenden BLE-Befehle: siehe `TODO-notes.md`, Abschnitt "Toy-Modelle".
 - ~~Visueller Indikator in der Web-UI für BLE-gehaltene Kanäle~~ **Umgesetzt (Block B, Teil 2).**
 - ~~JSON-Protokoll für den WebSocket und Migration von `data/script.js`~~ **Umgesetzt (Block B, Teil 1).**
 - Optional: kleine WLAN-Diagnose (Status im Log, Neuverbinden). Einmal blieb
   das WLAN nach dem Start aus, bei erneutem Flashen desselben Stands war es
   wieder da (vermutlich Router/Koexistenz, nicht reproduzierbar).
-- Merge nach `dev-webserver` erst nach ausdrücklicher Freigabe.
 
 ## Hinweise zur Skript-Methode
 

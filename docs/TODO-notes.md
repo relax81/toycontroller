@@ -82,3 +82,20 @@ Nur Notizen, kein Code. Bewusst verschobene Punkte aus dem Umbau
   `delayMicroseconds` in `DogCollar3`).
 - Debug-Makros (`DEBUG`, `DEBUG_LEDC`, `DEBUG_HEAP`) stehen noch in
   `main.cpp`, später nach `config.h`.
+
+## Toy-Modelle und BLE-Protokoll
+
+- **Nicht verifiziert:** Namen (`LVS-<Buchstabe>001`), Firmware-Zahl `40` und die Gen-2-UUID (`6e400001-...`) für alle
+  Modelle in `toy_models.cpp`. Sicher ist nur Dolce (bisherige Identität). Zum Prüfen: Mitschnitt an einem echten Toy
+  (z. B. nRF Connect: Name, Service-UUID, Antwort auf `DeviceType;`).
+- **Falls die App ein Modell nicht erkennt:** Gen-3-UUIDs (`XY300001-002Z-4bd4-bbd5-a6920e4c5653`, laut buttplug.io
+  X = 0x4/0x5, Y = 0x0-0xf, Z = 0x3/0x4) als Tabellenfeld je Modell. Beobachtung (nicht bestätigt): das erste Byte
+  entspricht dem ASCII-Buchstaben des Modells (0x53 = S, 0x5a = Z, 0x57 = W, 0x50 = P, 0x43 = C), welches Suffix
+  (`0023`/`0024`) zu welchem Modell gehört, ist unbekannt.
+- **Nicht umgesetzt, antwortet mit `ERR;`:** `Mply:a:b:c;` (Mehrfunktionsgeräte, `-1` = unverändert), `Air:In`/`Air:Out`,
+  `Preset:n;`, `GetBatch;`, `GetPatten;`, `GetAS;`/`AutoSwith`, `GetLight;`/`Light`, `GetAlight;`/`ALight`,
+  `GetLevel;`/`SetLevel` (Domi), `StartMove:1;`/`StopMove:1;`. Für Domi wären harmlose Antworten auf `GetLevel`,
+  `Light` und `AutoSwith` nötig. Mögliche Idee: unbekannte Abfragen mit einem Standardwert statt `ERR;` beantworten.
+- **Nicht in der Auswahl:** Max (Air-Level 0-5 zu grob, entfernt), Modelle mit `Mply:` (Solace, Flexer, Lapis, Gemini
+  u. a.). Vor deren Einbau: Format und Kanalzuordnung per echtem Mitschnitt klären.
+- `RotateChange;` (Nora) wird nur mit `OK;` beantwortet, die Drehrichtung geht an keinen Ausgang.
