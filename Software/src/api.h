@@ -13,7 +13,7 @@
 //   GET  /api/toggle?k=ch1.en[&for=<s>]
 //   OPTIONS on all of them (CORS preflight)
 //
-// for=<1-3600> (seconds) applies to the "*.en" keys that this call switches on: after that time
+// for=<1-3600> (seconds) or for_ms=<100-3600000> (milliseconds, not both) applies to the "*.en" keys that this call switches on: after that time
 // they are set to 0 again (only if still 1). Max. 8 timers, a new call for the same key replaces it.
 
 class AsyncWebServer;

@@ -4,6 +4,7 @@
 # Do not run it with a pump or other loads connected.
 # Everything that sends 433 MHz signals (collar.beep / collar.vibe with collar.en on) only runs with --collar;
 # without it those checks are reported as SKIP. Only use --collar with the collar out of reach or switched off.
+# for= (seconds) and for_ms= (milliseconds) timers are covered, including short values, replacing, cancelling and errors.
 # Not covered (needs a Bluetooth client): the "held" list while Bluetooth holds an output; ble.toy with a new value.
 import http.client, json, socket, sys, time, threading
 
@@ -178,7 +179,7 @@ check('ble.toy out of range', s == 400 and j['errors'][0]['code'] == 'range', (s
 s, j, _ = req('GET', '/api/set?ch1.en=1&for=2')
 check('for=2: timer reported', s == 200 and j['timers'] == [{'k': 'ch1.en', 'for_s': 2}], (s, j))
 settle(); st = state()
-check('timer listed in state, key on', st['d']['ch1.en'] is True and st['timers'] and st['timers'][0]['k'] == 'ch1.en' and 1 <= st['timers'][0]['left_s'] <= 2, st)
+check('timer listed in state, key on', st['d']['ch1.en'] is True and st['timers'] and st['timers'][0]['k'] == 'ch1.en' and 1 <= st['timers'][0]['left_s'] <= 2 and 0 < st['timers'][0]['left_ms'] <= 2000, st)
 time.sleep(2.3); st = state()
 check('timer expired: key off, list empty', st['d']['ch1.en'] is False and st['timers'] == [], st)
 
@@ -213,6 +214,85 @@ for bad in ('0', '3601', 'abc', '-5', '1.5'):
 settle(); check('rejected for= did not switch anything on', state()['d']['ch1.en'] is False)
 s, j, _ = req('GET', '/api/set?ch1.en=1&for=3600')
 check('for=3600 accepted', s == 200, (s, j))
+req('GET', '/api/cmd?c=all_off'); settle()
+
+# ---------------------------------------------------------------- for_ms= (milliseconds)
+def off_now(key):
+    req('GET', '/api/set?%s=0' % key); settle()
+
+s, j, _ = req('GET', '/api/set?ch1.en=1&for_ms=300')
+check('for_ms=300: timer reported in ms', s == 200 and j['timers'] == [{'k': 'ch1.en', 'for_ms': 300}], (s, j))
+time.sleep(1.0); st = state()
+check('for_ms=300 expired: key off, list empty', st['d']['ch1.en'] is False and st['timers'] == [], (st['d']['ch1.en'], st['timers']))
+
+s, j, _ = req('GET', '/api/set?ch1.en=1&for_ms=100')
+check('for_ms=100 (minimum) accepted', s == 200 and j['timers'][0]['for_ms'] == 100, (s, j))
+time.sleep(0.8); check('for_ms=100 expired', state()['d']['ch1.en'] is False)
+
+s, j, _ = req('GET', '/api/set?ch1.en=1&for_ms=5000')
+settle(); tl = state()['timers']
+check('state shows left_s and left_ms', len(tl) == 1 and 3000 < tl[0]['left_ms'] <= 5000 and tl[0]['left_s'] == -(-tl[0]['left_ms'] // 1000), tl)
+off_now('ch1.en'); check('set to 0 cancels a for_ms timer', state()['timers'] == [])
+
+req('GET', '/api/set?ch1.en=1&for_ms=1200'); time.sleep(0.6)
+s, j, _ = req('GET', '/api/set?ch1.en=1&for_ms=1200')
+check('for_ms: second call replaces the timer', s == 200 and j['timers'] == [{'k': 'ch1.en', 'for_ms': 1200}], (s, j))
+time.sleep(0.8); check('for_ms: still on after the first would have expired', state()['d']['ch1.en'] is True)
+time.sleep(1.4); check('for_ms: off after the replaced timer', state()['d']['ch1.en'] is False)
+
+req('GET', '/api/set?ch1.en=1&for=30'); settle()
+s, j, _ = req('GET', '/api/set?ch1.en=1&for_ms=400')
+check('for_ms replaces a for= timer (and the other way round)', s == 200 and j['timers'] == [{'k': 'ch1.en', 'for_ms': 400}] and len(state()['timers']) == 1, (s, j))
+time.sleep(1.0); check('...expires after 400 ms', state()['d']['ch1.en'] is False)
+req('GET', '/api/set?ch1.en=1&for_ms=400')
+s, j, _ = req('GET', '/api/set?ch1.en=1&for=30')
+check('for= replaces a for_ms timer', s == 200 and j['timers'] == [{'k': 'ch1.en', 'for_s': 30}], (s, j))
+off_now('ch1.en')
+
+s, j, _ = req('GET', '/api/toggle?k=ch2.en&for_ms=5000')
+check('toggle with for_ms=', s == 200 and j['value'] is True and j['timers'] == [{'k': 'ch2.en', 'for_ms': 5000}], (s, j))
+settle()
+s, j, _ = req('GET', '/api/toggle?k=ch2.en'); settle()
+check('toggle off cancels the timer', s == 200 and j['value'] is False and state()['timers'] == [], (s, j))
+req('GET', '/api/set?ch2.en=1&for_ms=5000'); settle()
+req('GET', '/api/cmd?c=all_off'); settle()
+check('all_off clears for_ms timers', state()['timers'] == [] and state()['d']['ch2.en'] is False)
+req('GET', '/api/set?ch1.en=1&for_ms=5000'); settle()
+req('GET', '/api/set?ch1.en=1'); settle()
+check('explicit set without for_ms cancels the timer', state()['timers'] == [])
+off_now('ch1.en')
+
+s, j, _ = req('POST', '/api/set', {'ch3.en': True, 'ch3.pwm': 10, 'for_ms': 400})
+check('for_ms as JSON member (and for_ignored)', s == 200 and j['timers'] == [{'k': 'ch3.en', 'for_ms': 400}] and j['for_ignored'] == ['ch3.pwm'], (s, j))
+time.sleep(1.0); check('...timer expired', state()['d']['ch3.en'] is False)
+s, j, _ = req('POST', '/api/set', 'ch3.en=1&for_ms=300', headers={'Content-Type': 'application/x-www-form-urlencoded'})
+check('for_ms as form field', s == 200 and j['timers'] == [{'k': 'ch3.en', 'for_ms': 300}], (s, j))
+time.sleep(1.0)
+s, j, _ = req('GET', '/api/set?pump.pwm=30&pump.en=1&buzzer.en=1&for_ms=400')
+check('several en keys share the for_ms', s == 200 and sorted(t['k'] for t in j['timers']) == ['buzzer.en', 'pump.en'], (s, j))
+time.sleep(1.0); st = state()
+check('...all expired', st['d']['pump.en'] is False and st['d']['buzzer.en'] is False and st['timers'] == [], st['timers'])
+
+for bad, code in (('99', 'range'), ('3600001', 'range'), ('0', 'range'), ('-5', 'range'), ('abc', 'type'), ('1.5', 'type')):
+    s, j, _ = req('GET', '/api/set?ch1.en=1&for_ms=' + bad)
+    e = (j or {}).get('errors', [{}])[0] if isinstance(j, dict) else {}
+    check('for_ms=%s -> %s, nothing applied' % (bad, code), s == 400 and j['applied'] == 0 and e.get('k') == 'for_ms' and e.get('code') == code, (s, j))
+    if code == 'range':
+        check('for_ms=%s carries min/max' % bad, e.get('min') == 100 and e.get('max') == 3600000, e)
+settle(); check('rejected for_ms did not switch anything on', state()['d']['ch1.en'] is False)
+s, j, _ = req('GET', '/api/set?ch1.en=1&for=5&for_ms=500')
+check('for + for_ms together -> conflict', s == 400 and j['applied'] == 0 and j['errors'][0] == {'k': 'for', 'code': 'conflict'}, (s, j))
+s, j, _ = req('POST', '/api/set', {'ch1.en': True, 'for': 5, 'for_ms': 500})
+check('for + for_ms in the JSON body -> conflict', s == 400 and j['errors'][0]['code'] == 'conflict', (s, j))
+s, j, _ = req('POST', '/api/set?for=5', {'ch1.en': True, 'for_ms': 500})
+check('for (query) + for_ms (JSON) -> conflict', s == 400 and j['errors'][0]['code'] == 'conflict', (s, j))
+s, j, _ = req('GET', '/api/toggle?k=ch1.en&for=5&for_ms=500')
+check('toggle: for + for_ms -> conflict', s == 400 and j['errors'][0]['code'] == 'conflict', (s, j))
+settle(); check('conflict switched nothing on', state()['d']['ch1.en'] is False and state()['timers'] == [])
+s, j, _ = req('GET', '/api/set?ch1.en=1&for_ms=3600000')
+check('for_ms=3600000 accepted', s == 200 and j['timers'][0]['for_ms'] == 3600000, (s, j))
+settle(); tl = state()['timers']
+check('long timer: left_ms close to 3600000', len(tl) == 1 and 3590000 < tl[0]['left_ms'] <= 3600000 and tl[0]['left_s'] in (3599, 3600), tl)
 req('GET', '/api/cmd?c=all_off'); settle()
 
 # ---------------------------------------------------------------- 30 keys, 512 B (stack measurement)

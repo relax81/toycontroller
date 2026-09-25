@@ -271,12 +271,12 @@ static void note_error(SetResult& r, const char* k, const char* code, const KeyD
 }
 
 // keys of a JSON object -> values (booleans and numbers)
-void protocol_apply_object(JSONVar& d, SetResult& r, const char* skip) {
+void protocol_apply_object(JSONVar& d, SetResult& r, const char* skip, const char* skip2) {
   if (JSON.stringify(d).length() <= 2) return; // "{}": JSONVar::keys() of an empty object crashes (null pointer in cJSON)
   JSONVar keys = d.keys();
   for (int i = 0; i < keys.length(); i++) {
     String k = (const char*)keys[i];
-    if (skip && k == skip) continue;
+    if ((skip && k == skip) || (skip2 && k == skip2)) continue;
     JSONVar v = d[k];
     int ki = key_find(k.c_str());
     if (ki < 0) { note_error(r, k.c_str(), "unknown", nullptr); continue; }

@@ -62,7 +62,7 @@ struct KeyInfo {
 bool protocol_key_info(int i, KeyInfo& out);
 int  protocol_key_index(const char* name);      // -1 if unknown
 void protocol_error(SetResult& r, const char* key, const char* code); // adds an error entry (with range for "range")
-void protocol_apply_object(JSONVar& d, SetResult& r, const char* skip = nullptr); // key -> boolean / number
+void protocol_apply_object(JSONVar& d, SetResult& r, const char* skip = nullptr, const char* skip2 = nullptr); // key -> boolean / number
 void protocol_apply_text(const char* key, const char* val, SetResult& r); // one key from a query string
 const char* protocol_run_cmd(const char* cmd);  // nullptr = done, else "disabled" / "unknown_cmd"
 int  protocol_key_count();

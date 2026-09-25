@@ -14,7 +14,7 @@ wie das WebSocket-Protokoll der Web-UI (`Software/src/protocol.cpp`), es gibt ke
 
 | Route | Methode | Zweck |
 |---|---|---|
-| `/api/state` | GET | gesamter Zustand (aus einer in `loop()` vorbereiteten Kopie) und laufende `for=`-Timer |
+| `/api/state` | GET | gesamter Zustand (aus einer in `loop()` vorbereiteten Kopie) und laufende `for=`/`for_ms=`-Timer |
 | `/api/keys` | GET | Selbstbeschreibung aller Schlüssel, Kommandos und Parameter |
 | `/api/set` | GET, POST | einen oder mehrere Schlüssel setzen |
 | `/api/cmd` | GET, POST | Kommando ausführen (`collar.beep`, `collar.vibe`, `collar.shock`, `all_off`) |
@@ -24,7 +24,7 @@ wie das WebSocket-Protokoll der Web-UI (`Software/src/protocol.cpp`), es gibt ke
 ### GET /api/state
 
 ```
-{"ok":true,"n":41,"d":{"ch1.en":false,"ch1.on":0,...},"timers":[{"k":"ch1.en","left_s":12}]}
+{"ok":true,"n":41,"d":{"ch1.en":false,"ch1.on":0,...},"timers":[{"k":"ch1.en","left_s":12,"left_ms":11840}]}
 ```
 `n` zählt bei jeder Änderung hoch (wie beim WebSocket). Der Zustand ist höchstens einen `loop()`-Durchlauf alt,
 also einige Millisekunden bis Zehntelsekunden. Direkt nach einem `set` kann er noch den alten Wert zeigen.
@@ -60,8 +60,8 @@ Zusätzliche Felder in der Antwort:
 |---|---|
 | `held` | Liste von Schlüsseln, die gespeichert wurden, deren Ausgang aber gerade von Bluetooth gehalten wird (siehe "BLE-Hold") |
 | `restart_in_s` | das Gerät startet in dieser Zeit neu (nur `ble.toy` mit geändertem Wert) |
-| `timers` | für `*.en`-Schlüssel gestartete `for=`-Timer |
-| `for_ignored` | Schlüssel, für die `for=` nicht gilt |
+| `timers` | für `*.en`-Schlüssel gestartete Timer (`for_s` bei `for=`, `for_ms` bei `for_ms=`) |
+| `for_ignored` | Schlüssel, für die `for=`/`for_ms=` nicht gilt |
 
 ### POST /api/cmd
 
@@ -92,7 +92,8 @@ curl "http://toycontroller.local/api/cmd?c=all_off"
 | 400 | `parse` | Body ist kein JSON-Objekt |
 | 400 | `empty` | keine Schlüssel im Aufruf |
 | 400 | `missing_c`, `missing_k`, `unknown_cmd` | Parameter fehlt oder unbekanntes Kommando |
-| 400 | `for` (in `errors`) | `for=` außerhalb 1-3600 oder keine Zahl, es wird nichts angewendet |
+| 400 | `for` / `for_ms` (in `errors`) | `for=` außerhalb 1-3600, `for_ms=` außerhalb 100-3600000 (mit `min`/`max`) oder keine ganze Zahl (`type`), es wird nichts angewendet |
+| 400 | `conflict` (in `errors`, `k` = `for`) | `for` und `for_ms` im selben Aufruf, es wird nichts angewendet |
 | 400 | `timer_full` (in `errors`) | kein freier Timer, der Schlüssel wurde wieder auf 0 gesetzt (bei 8 Timern und 7 `*.en`-Schlüsseln praktisch nicht erreichbar) |
 | 409 | `disabled` | `collar.en` ist aus |
 | 411 | `length_required` | Body mit `Transfer-Encoding: chunked` (nicht unterstützt) |
@@ -101,24 +102,33 @@ curl "http://toycontroller.local/api/cmd?c=all_off"
 | 503 | `queue_full` (in `errors`) | die Ereignis-Queue war voll, nochmal versuchen |
 | 503 | `not_ready` / `no_memory` | Zustand noch nicht bereit (kurz nach dem Start) / Body konnte nicht gepuffert werden |
 
-## Zeitgesteuert: `for=<Sekunden>`
+## Zeitgesteuert: `for=<Sekunden>` und `for_ms=<Millisekunden>`
 
-`for` gilt bei `set` und `toggle` (als Query-Parameter, bei `set` auch als Mitglied im JSON-Body:
-`{"ch1.en":true,"for":30}`) und wirkt auf die **`*.en`-Schlüssel, die dieser Aufruf auf 1 setzt**:
-nach Ablauf setzt das Gerät sie wieder auf 0.
+`for` und `for_ms` gelten bei `set` und `toggle` (als Query-Parameter, als Formularfeld, bei `set` auch als Mitglied im
+JSON-Body: `{"ch1.en":true,"for":30}` oder `{"ch1.en":true,"for_ms":300}`) und wirken auf die **`*.en`-Schlüssel, die dieser
+Aufruf auf 1 setzt**: nach Ablauf setzt das Gerät sie wieder auf 0.
 
-- Bereich 1 bis **3600** s. Ungültig: 400, nichts wird angewendet.
+- Bereich: `for` 1 bis **3600** s, `for_ms` **100 bis 3 600 000** ms. Außerhalb: 400 `range` mit `min`/`max`, keine ganze Zahl:
+  `type`. Es wird dann nichts angewendet.
+- **`for` und `for_ms` zusammen** in einem Aufruf (auch gemischt, etwa `for` in der Query und `for_ms` im Body) ergeben 400
+  `conflict`, es wird nichts angewendet.
 - Maximal 8 Timer gleichzeitig, ein Timer je Schlüssel. Ein neuer Aufruf für denselben Schlüssel **ersetzt** den
-  Timer (Restzeit beginnt neu, "letzter Aufruf gewinnt").
-- Ein Setzen desselben Schlüssels **ohne** `for=` oder auf 0 **bricht** den Timer ab. `all_off` löscht alle.
+  Timer (Restzeit beginnt neu, "letzter Aufruf gewinnt"), auch wenn der alte mit der anderen Einheit gestartet wurde.
+- Ein Setzen desselben Schlüssels **ohne** `for`/`for_ms` oder auf 0 (auch per `toggle` auf aus) **bricht** den Timer ab.
+  `all_off` löscht alle.
 - Ablauf nur, wenn der Schlüssel dann noch 1 ist. War er inzwischen aus (Web-UI, Menü, `all_off`), passiert nichts.
 - Andere Schlüssel im Aufruf (`ch1.pwm` usw.) werden normal angewendet und stehen in `for_ignored`.
-- Laufende Timer siehst du in `GET /api/state` unter `timers` (`left_s`) und in der Antwort unter `timers`.
+- Laufende Timer siehst du in `GET /api/state` unter `timers` (`left_s`, aufgerundet, und `left_ms`) und in der Antwort
+  unter `timers`.
+- **Genauigkeit:** Die Timer werden in `loop()` geprüft, der Ablauf kommt also mit der Verzögerung eines
+  Durchlaufs (meist einige Millisekunden, unter Last einige zehn bis wenige hundert). Für Zeiten unter etwa 100 ms ist das
+  keine Zeitsteuerung mehr. Dazu kommen die Netzwerkzeit des Aufrufs und (bei den Ausgängen) die PWM-Ansteuerung.
 - Timer liegen nur im RAM und sind nach einem Neustart weg.
 
-Beispiel: Kanal 1 für 20 s einschalten.
+Beispiele: Kanal 1 für 20 s einschalten, und einen kurzen Impuls von 300 ms auf Kanal 2.
 ```
 curl "http://toycontroller.local/api/set?ch1.pwm=70&ch1.en=1&for=20"
+curl "http://toycontroller.local/api/set?ch2.pwm=100&ch2.en=1&for_ms=300"
 ```
 
 ## BLE-Hold (Bluetooth hat Vorrang)
@@ -137,7 +147,7 @@ in `/api/keys`, gilt das für ihn. Die Angabe stützt sich auf die Kopie in `loo
 
 Ein **geänderter** Wert startet das Gerät nach etwa 2 Sekunden neu (die Identität wird nur beim BLE-Start gesetzt),
 die Antwort enthält `restart_in_s`. Ein Wert, der dem aktuellen entspricht, ändert nichts. Nach dem Neustart sind
-alle `for=`-Timer weg, das Gerät ist einige Sekunden nicht erreichbar, und die Lovense-App muss neu koppeln.
+alle `for=`/`for_ms=`-Timer weg, das Gerät ist einige Sekunden nicht erreichbar, und die Lovense-App muss neu koppeln.
 
 ## Schlüssel
 

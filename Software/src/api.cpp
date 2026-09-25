@@ -9,6 +9,8 @@
 
 static const size_t   BODY_MAX = 512;       // same limit as a WebSocket message
 static const uint32_t FOR_MAX_S = 3600;
+static const uint32_t FOR_MS_MIN = 100;      // for_ms=<100 - 3600000>
+static const uint32_t FOR_MS_MAX = 3600000;
 static const int      MAX_TIMERS = 8;
 static const uint32_t COLLAR_GAP_MS = 300;  // minimum gap between two collar.* commands
 static const int      RESTART_IN_S = 2;     // loop() restarts 2 s after a toy model change
@@ -53,9 +55,9 @@ struct ApiTimer {
 static ApiTimer timers[MAX_TIMERS];
 static portMUX_TYPE timerMux = portMUX_INITIALIZER_UNLOCKED;
 
-static bool timer_set(int ki, uint32_t sec) {
+static bool timer_set(int ki, uint32_t ms) {
   bool ok = false;
-  uint32_t end = millis() + sec * 1000UL;
+  uint32_t end = millis() + ms;
   portENTER_CRITICAL(&timerMux);
   int slot = -1;
   for (int i = 0; i < MAX_TIMERS; i++) {
@@ -161,38 +163,65 @@ static bool check_body(AsyncWebServerRequest* req) {
   return true;
 }
 
-// parses for=... (query, else the JSON member); returns false with a reply sent on a bad value
-static bool parse_for(AsyncWebServerRequest* req, JSONVar* root, bool& have, uint32_t& sec) {
-  have = false;
-  sec = 0;
-  const char* text = nullptr;
-  AsyncWebParameter* p = req->getParam("for");
-  if (!p) p = req->getParam("for", true); // form-typed POST body: for=5
-  if (p) text = p->value().c_str();
-  double num = 0;
-  bool numeric = false;
-  if (text) {
+// One numeric parameter: query string, form field or (with a JSON body) a top-level member.
+// present: the parameter exists; numeric: it is a number (not necessarily an integer in range).
+static void get_number(AsyncWebServerRequest* req, JSONVar* root, const char* name, bool& present, bool& numeric, double& num) {
+  present = false;
+  numeric = false;
+  num = 0;
+  AsyncWebParameter* p = req->getParam(name);
+  if (!p) p = req->getParam(name, true); // form-typed POST body: for=5
+  if (p) {
+    present = true;
+    const char* text = p->value().c_str();
     char* endp = nullptr;
     long n = strtol(text, &endp, 10);
-    if (text[0] == 0 || *endp != 0) numeric = false;
-    else { num = (double)n; numeric = true; }
-    have = true;
+    if (text[0] != 0 && *endp == 0) { num = (double)n; numeric = true; }
+    return;
   }
-  else if (root && root->hasOwnProperty("for")) {
-    have = true;
-    JSONVar f = (*root)["for"];
+  if (root && root->hasOwnProperty(name)) {
+    present = true;
+    JSONVar f = (*root)[name];
     if (JSONVar::typeof_(f) == "number") { num = (double)f; numeric = true; }
   }
-  if (!have) return true;
-  if (!numeric || num != (double)(long)num) {
-    reply(req, 400, "{\"ok\":false,\"applied\":0,\"errors\":[{\"k\":\"for\",\"code\":\"type\"}]}");
+}
+
+static void reply_for_error(AsyncWebServerRequest* req, const char* k, const char* code, uint32_t lo, uint32_t hi) {
+  String b = String("{\"ok\":false,\"applied\":0,\"errors\":[{\"k\":\"") + k + "\",\"code\":\"" + code + "\"";
+  if (strcmp(code, "range") == 0) b += String(",\"min\":") + (unsigned)lo + ",\"max\":" + (unsigned)hi;
+  b += "}]}";
+  reply(req, 400, b);
+}
+
+// Parses for=<s> / for_ms=<ms>. On success have tells whether one was given and ms is the duration in
+// milliseconds; on a bad value a 400 has been sent and false is returned (nothing is applied then).
+// kind: 'S' for for=, 'M' for for_ms=
+static bool parse_for(AsyncWebServerRequest* req, JSONVar* root, bool& have, uint32_t& ms, char& kind) {
+  have = false;
+  ms = 0;
+  kind = 0;
+  bool presS, numS, presM, numM;
+  double s, m;
+  get_number(req, root, "for", presS, numS, s);
+  get_number(req, root, "for_ms", presM, numM, m);
+  if (presS && presM) {
+    reply_for_error(req, "for", "conflict", 0, 0); // for and for_ms in one call
     return false;
   }
-  if (num < 1 || num > FOR_MAX_S) {
-    reply(req, 400, String("{\"ok\":false,\"applied\":0,\"errors\":[{\"k\":\"for\",\"code\":\"range\",\"min\":1,\"max\":") + (int)FOR_MAX_S + "}]}");
-    return false;
+  if (!presS && !presM) return true;
+  if (presS) {
+    if (!numS || s != (double)(long)s) { reply_for_error(req, "for", "type", 0, 0); return false; }
+    if (s < 1 || s > FOR_MAX_S) { reply_for_error(req, "for", "range", 1, FOR_MAX_S); return false; }
+    ms = (uint32_t)s * 1000UL;
+    kind = 'S';
   }
-  sec = (uint32_t)num;
+  else {
+    if (!numM || m != (double)(long)m) { reply_for_error(req, "for_ms", "type", 0, 0); return false; }
+    if (m < FOR_MS_MIN || m > FOR_MS_MAX) { reply_for_error(req, "for_ms", "range", FOR_MS_MIN, FOR_MS_MAX); return false; }
+    ms = (uint32_t)m;
+    kind = 'M';
+  }
+  have = true;
   return true;
 }
 
@@ -201,7 +230,7 @@ static bool parse_for(AsyncWebServerRequest* req, JSONVar* root, bool& have, uin
 // ---------------------------------------------------------------------------
 // Timers for the switched-on *.en keys (with for=), cancel timers of keys that were set explicitly,
 // then send the answer: 200 all applied, 503 queue full, 400 otherwise (applied + errors in the body).
-static void finish_set(AsyncWebServerRequest* req, SetResult& r, bool haveFor, uint32_t forS, const String& extra) {
+static void finish_set(AsyncWebServerRequest* req, SetResult& r, bool haveFor, uint32_t forMs, char forKind, const String& extra) {
   uint64_t en = enable_mask();
   String timerList, ignored;
   for (int i = 0; i < protocol_key_count() && i < MAX_KEYS; i++) {
@@ -211,9 +240,10 @@ static void finish_set(AsyncWebServerRequest* req, SetResult& r, bool haveFor, u
     if ((r.offMask & bit) && (en & bit)) timer_cancel(i);
     if ((r.onMask & bit) && (en & bit)) {
       if (!haveFor) { timer_cancel(i); continue; } // set explicitly without for=: no timer any more
-      if (timer_set(i, forS)) {
+      if (timer_set(i, forMs)) {
         if (timerList.length() > 0) timerList += ',';
-        timerList += String("{\"k\":\"") + k.name + "\",\"for_s\":" + (int)forS + "}";
+        if (forKind == 'M') timerList += String("{\"k\":\"") + k.name + "\",\"for_ms\":" + (unsigned)forMs + "}";
+        else timerList += String("{\"k\":\"") + k.name + "\",\"for_s\":" + (unsigned)(forMs / 1000) + "}";
       }
       else { // no free timer: do not leave the key on without an end
         SetResult rb;
@@ -257,8 +287,9 @@ static void handle_set(AsyncWebServerRequest* req) {
     haveRoot = true;
   }
   bool haveFor;
-  uint32_t forS;
-  if (!parse_for(req, haveRoot ? &root : nullptr, haveFor, forS)) return;
+  uint32_t forMs;
+  char forKind;
+  if (!parse_for(req, haveRoot ? &root : nullptr, haveFor, forMs, forKind)) return;
 
   SetResult r;
   if (haveRoot) {
@@ -266,18 +297,18 @@ static void handle_set(AsyncWebServerRequest* req) {
       JSONVar d = root["d"];
       protocol_apply_object(d, r);
     }
-    else protocol_apply_object(root, r, "for");
+    else protocol_apply_object(root, r, "for", "for_ms");
   }
   for (int i = 0; i < req->params(); i++) { // query string keys, also form fields of a POST (ch1.en=1&for=5)
     AsyncWebParameter* p = req->getParam(i);
-    if (p->isFile() || p->name() == "for" || (p->isPost() && p->name() == "body" && haveRoot)) continue;
+    if (p->isFile() || p->name() == "for" || p->name() == "for_ms" || (p->isPost() && p->name() == "body" && haveRoot)) continue;
     protocol_apply_text(p->name().c_str(), p->value().c_str(), r);
   }
   if (r.applied + r.errors == 0) {
     reply_err(req, 400, "empty", "no keys: send a JSON object or query parameters like ?ch1.en=1");
     return;
   }
-  finish_set(req, r, haveFor, forS, "");
+  finish_set(req, r, haveFor, forMs, forKind, "");
 }
 
 // ---------------------------------------------------------------------------
@@ -291,8 +322,9 @@ static void handle_toggle(AsyncWebServerRequest* req) {
   }
   String k = kp->value();
   bool haveFor;
-  uint32_t forS;
-  if (!parse_for(req, nullptr, haveFor, forS)) return;
+  uint32_t forMs;
+  char forKind;
+  if (!parse_for(req, nullptr, haveFor, forMs, forKind)) return;
 
   SetResult r;
   String extra;
@@ -314,7 +346,7 @@ static void handle_toggle(AsyncWebServerRequest* req) {
       if (r.errors == 0) extra = String(",\"k\":\"") + info.name + "\",\"value\":" + (now ? "false" : "true");
     }
   }
-  finish_set(req, r, haveFor, forS, extra);
+  finish_set(req, r, haveFor, forMs, forKind, extra);
 }
 
 // ---------------------------------------------------------------------------
@@ -404,7 +436,7 @@ static void handle_state(AsyncWebServerRequest* req) {
     if (left < 0) left = 0;
     if (!first) s += ',';
     first = false;
-    s += String("{\"k\":\"") + k.name + "\",\"left_s\":" + (int)((left + 999) / 1000) + "}";
+    s += String("{\"k\":\"") + k.name + "\",\"left_s\":" + (int)((left + 999) / 1000) + ",\"left_ms\":" + (int)left + "}";
   }
   s += "]}";
   reply(req, 200, s);
@@ -438,7 +470,8 @@ static void handle_keys(AsyncWebServerRequest* req) {
            "{\"c\":\"collar.shock\",\"desc\":\"collar shock with collar.strength\"},"
            "{\"c\":\"all_off\",\"desc\":\"switch every output off and cancel all for= timers\"}],"
            "\"params\":{\"for\":\"1-3600 seconds, with set and toggle: the *.en keys switched on by the call are set to 0 again "
-           "after that time (max. 8 timers, a new call for the same key restarts its timer, an explicit set of the key cancels it)\"},"
+           "after that time (max. 8 timers, a new call for the same key restarts its timer, an explicit set of the key cancels it)\","
+           "\"for_ms\":\"same as for, in milliseconds (100-3600000); for and for_ms in one call is an error (conflict)\"},"
            "\"routes\":[\"GET /api/state\",\"GET /api/keys\",\"GET|POST /api/set\",\"GET|POST /api/cmd\",\"GET /api/toggle?k=<bool key>\"]}");
   req->send(r);
 }
