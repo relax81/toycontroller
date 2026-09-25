@@ -340,3 +340,22 @@ input:checked + .slider2:before {
   width: 80%;
   margin: 0;
 }
+
+/* collapsible cards: as wide as the tile row (7 tiles), V1/V2 max. 2 tiles wide each */
+@media (min-width: 1300px) {
+  .card-grid { grid-template-columns: repeat(7, minmax(0, 1fr)); }
+}
+.bt-card { padding: 0 12px 10px; }
+.bt-card summary { padding: 8px 0; }
+.bt-body {
+  grid-gap: .5rem 1rem;
+  grid-template-columns: repeat(2, minmax(0, 28.5%));
+  justify-content: center;
+}
+@media (max-width: 700px) {
+  .bt-body { grid-template-columns: minmax(0, 1fr); }
+}
+.bt-channel .card-title { font-size: .95rem; }
+.bt-select, .bt-number { font-size: 1rem; padding: 2px 6px; margin: 2px 0 4px; }
+.bt-row { font-size: 1rem; }
+.bt-placeholder { margin-top: 8px; padding: 6px; font-size: .85rem; }
