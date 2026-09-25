@@ -189,7 +189,7 @@ stellen, `reboot` senden. Boot-Log und `[ledc]`-Diagnose ohne Reset-Knopf.
 - Testskripte schließen Verbindungen sauber per Close-Handshake (kein `process.exit` direkt nach `close()`),
   damit sie keine künstlichen RSTs erzeugen.
 
-## Block B, Teil 2: Bluetooth-Zuordnung und Live-Indikator im Web-UI (umgesetzt, Hardware-Test offen)
+## Block B, Teil 2: Bluetooth-Zuordnung und Live-Indikator im Web-UI (umgesetzt, auf der Hardware getestet 2026-09-25)
 
 | Commit | Inhalt |
 |---|---|
@@ -197,13 +197,16 @@ stellen, `reboot` senden. Boot-Log und `[ledc]`-Diagnose ohne Reset-Knopf.
 | `cca6027` | `index.html`: `data-hold` und Hinweistext an Ch1-4, Pump, Collar |
 | `66d02a8` | einklappbare Karte "Bluetooth-Zuordnung" (`<details>`), Platzhalter für das Toy-Modell |
 | `cfe0e28` | Firmware: Ping-Intervall = min(5000, Failsafe / 3) ms, bei jedem `loop()`-Durchlauf aus `state.failsafeTimeoutS` |
+| `3c6c307` | Nacharbeit aus dem Hardware-Test (Min über Max ziehen): 800-ms-Rückstellung bei ausbleibendem Patch |
+| `1e0bbbe` | Korrektur dazu: feste Regler-Bereiche, Anhalten von Min/Max per Skript |
 
 - Die Karte enthält für V1/V2 je Ziel (Aus, Ch1-4, Pumpe, Halsband) und Min/Max, `collar.btonly` und
   `sys.failsafe`. Alle Felder hängen wie die übrigen Regler an `data-key` und werden vom vorhandenen
   `state`/`patch` befüllt (auch zugeklappt). Der Aufklappzustand liegt nur im `localStorage` des Browsers.
 - Jede Änderung ist genau ein `set`. Mehrere Änderungen nacheinander gehen als getrennte `set` in der
   Reihenfolge `out`, `max`, `min` raus (verlustfrei geklemmt, wie `settings_load()`). Die geklemmten Werte
-  kommen per `patch` zurück. Beim Halsband hat der Max-Regler die Grenze 100, sonst 255.
+  kommen per `patch` zurück. Die Regler haben feste Bereiche: 0-255, beim Halsband 0-100 (beide Regler
+  des Kanals).
 - Live-Indikator: Ch1-4, Pump und Collar werden bei `ble.hold.*` abgedunkelt und mit "BLE" markiert, mit
   Hinweistext. Die Regler bleiben **bedienbar** (nur markiert, nicht gesperrt): Bei Level 0 endet der Latch
   durch eine Änderung aus dem Web, bei Level > 0 ignoriert der Server Web-Werte für Ch1-4/Pumpe und
@@ -213,8 +216,18 @@ stellen, `reboot` senden. Boot-Log und `[ledc]`-Diagnose ohne Reset-Knopf.
   (vorher blieb ein geklemmter Wert falsch stehen). Ein `err` setzt den letzten Serverwert zurück.
 - Ping-Intervall: Vorher fest 5 s, ein Failsafe unter etwa 5 s konnte bei einem ruhigen, gesunden Tab
   zwischen zwei Pongs ablaufen. Bereich 3-120 s bleibt.
-- Nur lokal im Browser geprüft (Mock-WebSocket: Hold-Klasse, Editieren, `err`, Karte, Reihenfolge der `set`),
-  nicht auf der Hardware. `data/` braucht `uploadfs`, die Firmware einen Flash (COM5, nur auf Zuruf).
+- Min/Max (`3c6c307`, `1e0bbbe`): Der Server klemmt `min <= max`. Ändert die Klemmung nichts (z. B. zweimal
+  `min=220` bei `max=100`), kommt kein Patch und der Regler zeigte einen falschen Wert. Deshalb hält
+  `btClampInput()` Min beim Ziehen (`input`, auch bei Klick auf die Leiste) an Max an und Max an Min.
+  Die Bereiche bleiben dabei fest: Ein Bereich, der dem anderen Regler folgt (erster Versuch in `3c6c307`),
+  skaliert die Leiste um und der andere Regler springt optisch.
+- Rückstellung bei ausbleibendem Patch (`v2Verify()`, gilt für **alle** `data-key`-Regler und -Dropdowns):
+  Kommt 800 ms nach einer Änderung kein Patch, der den Wert bestätigt, wird der letzte Serverwert wieder
+  angezeigt. Es zählt nur die neueste Änderung eines Elements, nicht während es gezogen oder getippt wird.
+- Auf der Hardware bestätigt (Testpunkte 1-11): Karte auf/zu, Werte, Ziel-Wechsel mit laufendem BLE, Min/Max,
+  Halte-Anzeige, Bedienung bei gehaltenem Kanal, V1=V2-Hinweis, Failsafe-Feld (auch ruhiger Tab bei 3-4 s),
+  Persistenz nach Reboot, zwei Tabs gleichzeitig, Halsband als Trockentest. Die Pumpe bleibt ohne Hardware
+  ungetestet. `data/` braucht `uploadfs`, die Firmware einen Flash (nur auf Zuruf).
 - Bekannte Grenzen: V1 und V2 auf demselben Ausgang wird nur im UI angemerkt, der Server prüft nichts (beide
   schreiben nacheinander, ein Kanal kann kurz auf 0 fallen). `hold` unterscheidet nicht "BLE aktiv (> 0)" von
   "Latch bei 0". Beim Wechsel des Ziels weg vom Halsband während eines Levels > 0 wird am Halsband nichts
