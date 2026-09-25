@@ -327,3 +327,16 @@ input:checked + .slider2:before {
 
 .state.small { font-size: .85rem; }
 .state.small .bt-check { cursor: pointer; }
+
+/* Collar buttons: stacked, centered, equal width */
+.collar-buttons {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+}
+.collar-buttons .button {
+  width: 80%;
+  margin: 0;
+}

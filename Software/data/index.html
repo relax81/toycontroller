@@ -140,9 +140,11 @@
                         </p>
                         <p class="state">Level: <span id="slider_n_value"></span></p>
                         <p class="state small"><label class="bt-check"><input type="checkbox" onclick="update_switch(this)" id="bt_btonly" data-key="collar.btonly"> BT: nur bei Level-&Auml;nderung senden</label></p>                           
-                            <input type="button" onclick="update_button(this)" name="Collar Beep" id="click_b" data-cmd="collar.beep" value="Beep" class="button"></button>
-                            <input type="button" onclick="update_button(this)" name="Collar Vibrate" id="click_v" data-cmd="collar.vibe" value="Vib" class="button"></button>
-                            <input type="button" onclick="update_button(this)" name="Collar Shock" id="click_s" data-cmd="collar.shock" value="Shock" class="button"></button>
+                        <div class="collar-buttons">
+                            <input type="button" onclick="update_button(this)" name="Collar Beep" id="click_b" data-cmd="collar.beep" value="Beep" class="button">
+                            <input type="button" onclick="update_button(this)" name="Collar Vibrate" id="click_v" data-cmd="collar.vibe" value="Vib" class="button">
+                            <input type="button" onclick="update_button(this)" name="Collar Shock" id="click_s" data-cmd="collar.shock" value="Shock" class="button">
+                        </div>
                     </div>
           
                     <!-- <div class="card">
