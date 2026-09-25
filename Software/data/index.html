@@ -195,6 +195,65 @@
                       </div> -->
 
 
+
+            <!-- Bluetooth mapping (collapsible, filled from ble.map0/1.*, collar.btonly, sys.failsafe) -->
+            <details class="card bt-card" id="bt-card">
+                <summary class="card-title">Bluetooth-Zuordnung <span id="bt_status" class="bt-status"></span></summary>
+                <div class="bt-body">
+                <div class="bt-channel">
+                    <p class="card-title">V1 (Vibrate 1)</p>
+                    <label for="bt_out0">Ziel</label>
+                    <select id="bt_out0" data-key="ble.map0.out" onchange="update_select(this)" class="bt-select">
+                        <option value="0">Aus</option>
+                        <option value="1">Ch1</option>
+                        <option value="2">Ch2</option>
+                        <option value="3">Ch3</option>
+                        <option value="4">Ch4</option>
+                        <option value="5">Pumpe</option>
+                        <option value="6">Halsband</option>
+                    </select>
+                    <p class="state">Min: <span id="bt_min0_value"></span></p>
+                    <p class="switch">
+                        <input type="range" onchange="update_slider(this)" id="bt_min0" data-key="ble.map0.min" min="0" max="255" step="1" value="0" class="slider">
+                    </p>
+                    <p class="state">Max: <span id="bt_max0_value"></span></p>
+                    <p class="switch">
+                        <input type="range" onchange="update_slider(this)" id="bt_max0" data-key="ble.map0.max" min="0" max="255" step="1" value="0" class="slider">
+                    </p>
+                </div>
+                <div class="bt-channel">
+                    <p class="card-title">V2 (Vibrate 2)</p>
+                    <label for="bt_out1">Ziel</label>
+                    <select id="bt_out1" data-key="ble.map1.out" onchange="update_select(this)" class="bt-select">
+                        <option value="0">Aus</option>
+                        <option value="1">Ch1</option>
+                        <option value="2">Ch2</option>
+                        <option value="3">Ch3</option>
+                        <option value="4">Ch4</option>
+                        <option value="5">Pumpe</option>
+                        <option value="6">Halsband</option>
+                    </select>
+                    <p class="state">Min: <span id="bt_min1_value"></span></p>
+                    <p class="switch">
+                        <input type="range" onchange="update_slider(this)" id="bt_min1" data-key="ble.map1.min" min="0" max="255" step="1" value="0" class="slider">
+                    </p>
+                    <p class="state">Max: <span id="bt_max1_value"></span></p>
+                    <p class="switch">
+                        <input type="range" onchange="update_slider(this)" id="bt_max1" data-key="ble.map1.max" min="0" max="255" step="1" value="0" class="slider">
+                    </p>
+                </div>
+                </div>
+                <p id="bt_same_warn" class="bt-warn" hidden>V1 und V2 steuern denselben Ausgang: der zuletzt geschriebene Wert gewinnt.</p>
+                <p class="bt-row">
+                    <label class="bt-check"><input type="checkbox" onclick="update_switch(this)" id="bt_btonly" data-key="collar.btonly"> Halsband: nur bei Level-&Auml;nderung senden</label>
+                </p>
+                <p class="bt-row">
+                    <label for="bt_failsafe">Failsafe nach</label>
+                    <input type="number" id="bt_failsafe" data-key="sys.failsafe" min="3" max="120" step="1" onchange="update_slider(this)" class="bt-number">
+                    <span>Sekunden ohne Web-Verbindung (3-120)</span>
+                </p>
+                <div class="bt-placeholder" id="bt-toy-model">Toy-Modell (folgt): Name, UUID, Antwortkennung, Motorenanzahl</div>
+            </details>
         </div>
     </div>
     <script src="script.js"></script>

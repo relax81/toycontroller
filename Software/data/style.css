@@ -251,3 +251,52 @@ input:checked + .slider2:before {
   .card.ble-held .hold-hint {
     display: block;
   }
+
+  /* Bluetooth mapping card (collapsible) */
+  .bt-card {
+    grid-column: 1 / -1;
+    padding: 0 16px 16px;
+  }
+  .bt-card summary {
+    cursor: pointer;
+    padding: 12px 0;
+  }
+  .bt-status {
+    font-size: .9rem;
+    font-weight: normal;
+    color: #1282A2;
+  }
+  .bt-body {
+    display: grid;
+    grid-gap: 1rem 2rem;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  }
+  .bt-select, .bt-number {
+    font-size: 1.1rem;
+    padding: 4px 8px;
+    margin: 4px 0 8px;
+  }
+  .bt-number {
+    width: 5em;
+    text-align: center;
+  }
+  .bt-row {
+    font-size: 1.1rem;
+  }
+  .bt-check {
+    cursor: pointer;
+  }
+  .bt-warn {
+    font-size: 1rem;
+    color: #b3261e;
+  }
+  .bt-warn[hidden] {
+    display: none;
+  }
+  .bt-placeholder {
+    margin-top: 12px;
+    padding: 10px;
+    border: 1px dashed #b0b0b0;
+    font-size: .95rem;
+    color: #777;
+  }

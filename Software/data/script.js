@@ -6,6 +6,7 @@ var websocket;
 window.addEventListener('load', onload);
 
 function onload(event) {
+    btCardRestoreOpen();
     initWebSocket();
 }
 
@@ -288,8 +289,10 @@ function v2Apply(d)
     if (v2Keys === null)
         v2BuildKeyMap();
     for (const key in d)
+        v2State.store[key] = d[key]; // keys without an element are kept for later pages
+    btCardUpdate(); // before the values are set: the collar limit of the max sliders depends on the target
+    for (const key in d)
     {
-        v2State.store[key] = d[key]; // keys without an element (ble.connected, ...) are kept for later pages
         var holds = v2Holds[key];
         if (holds)
             holds.forEach(function (el) { el.classList.toggle('ble-held', !!d[key]); });
@@ -348,4 +351,49 @@ function onV2Message(m)
                 m.errors.forEach(function (e) { v2Restore(e.k); });
             break;
     }
+}
+
+// ---------------------------------------------------------------------------
+// Bluetooth mapping card: derived display only, the values themselves are plain data-key elements
+// ---------------------------------------------------------------------------
+var BT_OUT_COLLAR = 6;
+
+function btCardUpdate()
+{
+    var st = v2State.store;
+    for (var k = 0; k < 2; k++)
+    {
+        // the collar takes 0-100, everything else 0-255 (the server clamps the same way)
+        var limit = (st['ble.map' + k + '.out'] === BT_OUT_COLLAR) ? 100 : 255;
+        ['min', 'max'].forEach(function (which) {
+            var el = document.getElementById('bt_' + which + k);
+            if (el)
+                el.max = limit;
+        });
+    }
+    var out0 = st['ble.map0.out'], out1 = st['ble.map1.out'];
+    var warn = document.getElementById('bt_same_warn');
+    if (warn)
+        warn.hidden = !(out0 > 0 && out0 === out1);
+    var status = document.getElementById('bt_status');
+    if (status && st['ble.connected'] !== undefined)
+        status.textContent = st['ble.connected'] ? '(verbunden)' : '(nicht verbunden)';
+}
+
+// open / closed state of the card, only kept in this browser
+function btCardRestoreOpen()
+{
+    var card = document.getElementById('bt-card');
+    if (!card)
+        return;
+    try
+    {
+        if (localStorage.getItem('btCardOpen') === '1')
+            card.open = true;
+    }
+    catch (e) { }
+    card.addEventListener('toggle', function () {
+        try { localStorage.setItem('btCardOpen', card.open ? '1' : '0'); }
+        catch (e) { }
+    });
 }
