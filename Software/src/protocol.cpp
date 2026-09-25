@@ -8,7 +8,7 @@
 #include "toy_models.h"
 
 // ---------------------------------------------------------------------------
-// Key table: name -> event, range, pointer to the state field (for reading)
+// Key table: name -> event, range, pointer to the state field (for reading), metadata
 // ---------------------------------------------------------------------------
 static const uint8_t EV_NONE = 0xFF; // read-only key
 enum KeyKind : uint8_t { K_BOOL, K_INT };
@@ -20,46 +20,50 @@ struct KeyDef {
   int32_t lo, hi;
   KeyKind kind;
   const void* ptr;  // field in `state`
+  const char* unit;   // "" if none ("0.1 s", "%", "BPM", ...)
+  const char* desc;   // short meaning (served by GET /api/keys)
+  uint8_t hold;       // OutputId whose BLE hold overrides the output of this key (0 = none)
+  bool restart;       // a changed value restarts the device
 };
 
-#define RW_B(name, ev, idx, p)         { name, ev, idx, 0, 1, K_BOOL, p }
-#define RW_I(name, ev, idx, lo, hi, p) { name, ev, idx, lo, hi, K_INT, p }
-#define RO_B(name, p)                  { name, EV_NONE, 0, 0, 1, K_BOOL, p }
+#define RW_B(name, ev, idx, p, desc, hold)               { name, ev, idx, 0, 1, K_BOOL, p, "", desc, hold, false }
+#define RW_I(name, ev, idx, lo, hi, p, unit, desc, hold) { name, ev, idx, lo, hi, K_INT, p, unit, desc, hold, false }
+#define RO_B(name, p, desc)                              { name, EV_NONE, 0, 0, 1, K_BOOL, p, "", desc, 0, false }
 
 #define CHANNEL(n, i) \
-  RW_B("ch" #n ".en",  EV_OUT_ENABLE, i, &state.out[i].enabled), \
-  RW_I("ch" #n ".on",  EV_OUT_ON,  i, 0, 900, &state.out[i].on), \
-  RW_I("ch" #n ".off", EV_OUT_OFF, i, 0, 900, &state.out[i].off), \
-  RW_I("ch" #n ".pwm", EV_OUT_PWM, i, 0, 100, &state.out[i].pwm)
+  RW_B("ch" #n ".en",  EV_OUT_ENABLE, i, &state.out[i].enabled, "channel " #n " enabled", OUT_PWM##n), \
+  RW_I("ch" #n ".on",  EV_OUT_ON,  i, 0, 900, &state.out[i].on,  "0.1 s", "channel " #n " on time (0-90 s)", OUT_PWM##n), \
+  RW_I("ch" #n ".off", EV_OUT_OFF, i, 0, 900, &state.out[i].off, "0.1 s", "channel " #n " off time, 0 = runs continuously", OUT_PWM##n), \
+  RW_I("ch" #n ".pwm", EV_OUT_PWM, i, 0, 100, &state.out[i].pwm, "%", "channel " #n " power", OUT_PWM##n)
 
 #define BLEMAP(k) \
-  RW_I("ble.map" #k ".out", EV_BT_OUT, k, 0, OUT_ID_COUNT - 1, &state.ble.map[k].output), \
-  RW_I("ble.map" #k ".min", EV_BT_MIN, k, 0, 255, &state.ble.map[k].minPwm), \
-  RW_I("ble.map" #k ".max", EV_BT_MAX, k, 0, 255, &state.ble.map[k].maxPwm)
+  RW_I("ble.map" #k ".out", EV_BT_OUT, k, 0, OUT_ID_COUNT - 1, &state.ble.map[k].output, "", "Bluetooth map " #k " target: 0 off, 1-4 Ch1-4, 5 pump, 6 collar, 7 metronome", 0), \
+  RW_I("ble.map" #k ".min", EV_BT_MIN, k, 0, 255, &state.ble.map[k].minPwm, "", "Bluetooth map " #k " minimum output (BPM for the metronome)", 0), \
+  RW_I("ble.map" #k ".max", EV_BT_MAX, k, 0, 255, &state.ble.map[k].maxPwm, "", "Bluetooth map " #k " maximum output (BPM for the metronome, collar max 100)", 0)
 
 static const KeyDef KEYS[] = {
   CHANNEL(1, 0), CHANNEL(2, 1), CHANNEL(3, 2), CHANNEL(4, 3),
-  RW_B("pump.en",  EV_PUMP_ENABLE, 0, &state.pump.enabled),
-  RW_I("pump.on",  EV_PUMP_ON,  0, 0, 900, &state.pump.on),
-  RW_I("pump.off", EV_PUMP_OFF, 0, 0, 900, &state.pump.off),
-  RW_I("pump.pwm", EV_PUMP_PWM, 0, 0, 100, &state.pump.pwm),
-  RW_B("collar.en",       EV_COLLAR_ENABLE,   0, &state.collar.enabled),
-  RW_I("collar.strength", EV_COLLAR_STRENGTH, 0, 0, 100, &state.collar.strength),
-  RW_B("collar.btonly",   EV_COLLAR_BTONLY,   0, &state.collar.btOnlyChanges),
-  RW_B("buzzer.en",  EV_BUZZ_ENABLE, 0, &state.buzzer.enabled),
-  RW_I("buzzer.bpm", EV_BUZZ_BPM, 0, 1, 255, &state.buzzer.bpm),
-  RW_I("buzzer.vol", EV_BUZZ_VOL, 0, 0, 10, &state.buzzer.volume),
+  RW_B("pump.en",  EV_PUMP_ENABLE, 0, &state.pump.enabled, "pump enabled", OUT_PUMP),
+  RW_I("pump.on",  EV_PUMP_ON,  0, 0, 900, &state.pump.on,  "0.1 s", "pump on time (0-90 s)", OUT_PUMP),
+  RW_I("pump.off", EV_PUMP_OFF, 0, 0, 900, &state.pump.off, "0.1 s", "pump off time, 0 = runs continuously", OUT_PUMP),
+  RW_I("pump.pwm", EV_PUMP_PWM, 0, 0, 100, &state.pump.pwm, "%", "pump power", OUT_PUMP),
+  RW_B("collar.en",       EV_COLLAR_ENABLE,   0, &state.collar.enabled, "collar enabled (needed for the collar.* commands)", OUT_COLLAR),
+  RW_I("collar.strength", EV_COLLAR_STRENGTH, 0, 0, 100, &state.collar.strength, "%", "collar strength used by the collar.* commands", OUT_COLLAR),
+  RW_B("collar.btonly",   EV_COLLAR_BTONLY,   0, &state.collar.btOnlyChanges, "send the collar shock via Bluetooth only when the level changes", OUT_COLLAR),
+  RW_B("buzzer.en",  EV_BUZZ_ENABLE, 0, &state.buzzer.enabled, "buzzer metronome enabled", OUT_BPM),
+  RW_I("buzzer.bpm", EV_BUZZ_BPM, 0, 1, 255, &state.buzzer.bpm, "BPM", "metronome speed", OUT_BPM),
+  RW_I("buzzer.vol", EV_BUZZ_VOL, 0, 0, 10, &state.buzzer.volume, "", "metronome volume", 0),
   BLEMAP(0), BLEMAP(1),
-  RW_I("ble.toy", EV_BLE_TOY, 0, 0, TOY_MODEL_COUNT - 1, &state.ble.toyModel),
-  RW_I("sys.failsafe", EV_FAILSAFE_TO, 0, 3, 120, &state.failsafeTimeoutS),
-  RO_B("ble.connected",   &state.ble.in.connected),
-  RO_B("ble.hold.ch1",    &state.ble.hold[OUT_PWM1]),
-  RO_B("ble.hold.ch2",    &state.ble.hold[OUT_PWM2]),
-  RO_B("ble.hold.ch3",    &state.ble.hold[OUT_PWM3]),
-  RO_B("ble.hold.ch4",    &state.ble.hold[OUT_PWM4]),
-  RO_B("ble.hold.pump",   &state.ble.hold[OUT_PUMP]),
-  RO_B("ble.hold.collar", &state.ble.hold[OUT_COLLAR]),
-  RO_B("ble.hold.buzzer", &state.ble.hold[OUT_BPM]),
+  { "ble.toy", EV_BLE_TOY, 0, 0, TOY_MODEL_COUNT - 1, K_INT, &state.ble.toyModel, "", "Bluetooth toy model: 0 Dolce, 1 Lush, 2 Hush, 3 Domi, 4 Nora, 5 Edge. A change restarts the device", 0, true },
+  RW_I("sys.failsafe", EV_FAILSAFE_TO, 0, 3, 120, &state.failsafeTimeoutS, "s", "web failsafe: no WebSocket traffic for this long switches everything off", 0),
+  RO_B("ble.connected",   &state.ble.in.connected, "a Bluetooth app is connected"),
+  RO_B("ble.hold.ch1",    &state.ble.hold[OUT_PWM1], "Bluetooth controls channel 1 (level > 0)"),
+  RO_B("ble.hold.ch2",    &state.ble.hold[OUT_PWM2], "Bluetooth controls channel 2 (level > 0)"),
+  RO_B("ble.hold.ch3",    &state.ble.hold[OUT_PWM3], "Bluetooth controls channel 3 (level > 0)"),
+  RO_B("ble.hold.ch4",    &state.ble.hold[OUT_PWM4], "Bluetooth controls channel 4 (level > 0)"),
+  RO_B("ble.hold.pump",   &state.ble.hold[OUT_PUMP], "Bluetooth controls the pump (level > 0)"),
+  RO_B("ble.hold.collar", &state.ble.hold[OUT_COLLAR], "Bluetooth controls the collar (level > 0)"),
+  RO_B("ble.hold.buzzer", &state.ble.hold[OUT_BPM], "Bluetooth controls the metronome (level > 0)"),
 };
 static const int NKEYS = sizeof(KEYS) / sizeof(KEYS[0]);
 static_assert(sizeof(KEYS) / sizeof(KEYS[0]) <= 64, "key masks are 64 bit");
@@ -74,6 +78,45 @@ static int key_find(const char* name) {
 // current value of a key; only call from loop() (or the loop task)
 static int32_t key_value(const KeyDef& k) {
   return k.kind == K_BOOL ? (int32_t)(*(const bool*)k.ptr ? 1 : 0) : (int32_t)*(const int*)k.ptr;
+}
+
+// ---------------------------------------------------------------------------
+// Snapshot of all key values, refreshed by protocol_loop() once per loop() pass. Everything that runs
+// in the async_tcp task (HTTP API, checks in the handlers) reads this copy, never the live state.
+// ---------------------------------------------------------------------------
+static int32_t snapVals[NKEYS];
+static uint32_t snapN = 0;
+static bool snapValid = false;
+static portMUX_TYPE snapMux = portMUX_INITIALIZER_UNLOCKED;
+
+int protocol_key_count() { return NKEYS; }
+
+bool protocol_snapshot(int32_t* vals, uint32_t* n) {
+  bool ok;
+  portENTER_CRITICAL(&snapMux);
+  ok = snapValid;
+  if (ok) {
+    memcpy(vals, snapVals, sizeof(snapVals));
+    if (n) *n = snapN;
+  }
+  portEXIT_CRITICAL(&snapMux);
+  return ok;
+}
+
+// value of one key from the snapshot; `fallback` while there is none yet
+static int32_t snap_value(int ki, int32_t fallback) {
+  int32_t v = fallback;
+  portENTER_CRITICAL(&snapMux);
+  if (snapValid) v = snapVals[ki];
+  portEXIT_CRITICAL(&snapMux);
+  return v;
+}
+
+// index of the read-only key "ble.hold.*" that belongs to an output id, -1 if none
+static int hold_key_index(uint8_t outId) {
+  for (int i = 0; i < NKEYS; i++)
+    if (KEYS[i].ev == EV_NONE && KEYS[i].ptr == (const void*)&state.ble.hold[outId]) return i;
+  return -1;
 }
 
 // ---------------------------------------------------------------------------
@@ -178,7 +221,7 @@ static void send_key_errors(AsyncWebSocketClient* c, JSONVar& m, int applied, co
 }
 
 // Check a numeric value against the key definition and queue the event.
-// Returns nullptr on success, otherwise the error code ("type" or "range").
+// Returns nullptr on success, otherwise the error code ("type", "range" or "queue_full").
 static const char* set_number(const KeyDef& def, double num) {
   if (num != (double)(long)num) return "type"; // integers only
   if (def.kind == K_BOOL && num != 0 && num != 1) return "range";
@@ -186,7 +229,7 @@ static const char* set_number(const KeyDef& def, double num) {
     Serial.printf("[ws] set %s=%ld rejected (range %ld-%ld)\n", def.name, (long)num, (long)def.lo, (long)def.hi);
     return "range";
   }
-  state_set((EventType)def.ev, def.idx, (int32_t)num);
+  if (!state_set((EventType)def.ev, def.idx, (int32_t)num)) return "queue_full";
   return nullptr;
 }
 
@@ -197,33 +240,82 @@ bool protocol_legacy_set(const char* key, long value) {
   return set_number(KEYS[ki], (double)value) == nullptr;
 }
 
+// One key of a set: checks the key and the value, queues the event and notes what the caller should
+// know (BLE hold, restart). Returns the error code or nullptr.
+static const char* apply_key(int ki, double num, SetResult& r) {
+  const KeyDef& def = KEYS[ki];
+  const char* err = set_number(def, num);
+  if (err) return err;
+  if (def.hold != 0) { // stored, but a BLE hold (level > 0) overrides the output meanwhile
+    int hk = hold_key_index(def.hold);
+    if (hk >= 0 && snap_value(hk, 0) != 0) {
+      if (r.held.length() > 0) r.held += ',';
+      r.held += '"';
+      r.held += def.name;
+      r.held += '"';
+    }
+  }
+  if (def.restart && snap_value(ki, -1) != (int32_t)num) r.restart = true;
+  return nullptr;
+}
+
+static void note_error(SetResult& r, const char* k, const char* code, const KeyDef* def) {
+  add_key_error(r.errList, k, code, def);
+  r.errors++;
+  if (strcmp(code, "queue_full") == 0) r.queueFull = true;
+}
+
+// keys of a JSON object -> values (booleans and numbers)
+void protocol_apply_object(JSONVar& d, SetResult& r) {
+  JSONVar keys = d.keys();
+  for (int i = 0; i < keys.length(); i++) {
+    String k = (const char*)keys[i];
+    JSONVar v = d[k];
+    int ki = key_find(k.c_str());
+    if (ki < 0) { note_error(r, k.c_str(), "unknown", nullptr); continue; }
+    const KeyDef& def = KEYS[ki];
+    if (def.ev == EV_NONE) { note_error(r, k.c_str(), "readonly", &def); continue; }
+    String ty = JSONVar::typeof_(v);
+    double num;
+    if (def.kind == K_BOOL && ty == "boolean") num = ((bool)v) ? 1 : 0;
+    else if (ty == "number") num = (double)v;
+    else { note_error(r, k.c_str(), "type", &def); continue; }
+    const char* err = apply_key(ki, num, r);
+    if (err) { note_error(r, k.c_str(), err, &def); continue; }
+    r.applied++;
+  }
+}
+
+// one key with its value as text (query strings): true/false/1/0 or an integer
+void protocol_apply_text(const char* key, const char* val, SetResult& r) {
+  int ki = key_find(key);
+  if (ki < 0) { note_error(r, key, "unknown", nullptr); return; }
+  const KeyDef& def = KEYS[ki];
+  if (def.ev == EV_NONE) { note_error(r, key, "readonly", &def); return; }
+  double num;
+  if (strcmp(val, "true") == 0) num = 1;
+  else if (strcmp(val, "false") == 0) num = 0;
+  else {
+    char* endp = nullptr;
+    long n = strtol(val, &endp, 10);
+    if (val[0] == 0 || endp == nullptr || *endp != 0) { note_error(r, key, "type", &def); return; }
+    num = (double)n;
+  }
+  const char* err = apply_key(ki, num, r);
+  if (err) { note_error(r, key, err, &def); return; }
+  r.applied++;
+}
+
 static void handle_set(AsyncWebSocketClient* c, JSONVar& m) {
   if (!m.hasOwnProperty("d") || JSONVar::typeof_(m["d"]) != "object") {
     send_err(c, m, "type", "set needs a \"d\" object");
     return;
   }
   JSONVar d = m["d"];
-  JSONVar keys = d.keys();
-  String errs;
-  int nerr = 0, applied = 0;
-  for (int i = 0; i < keys.length(); i++) {
-    String k = (const char*)keys[i];
-    JSONVar v = d[k];
-    int ki = key_find(k.c_str());
-    if (ki < 0) { add_key_error(errs, k.c_str(), "unknown", nullptr); nerr++; continue; }
-    const KeyDef& def = KEYS[ki];
-    if (def.ev == EV_NONE) { add_key_error(errs, k.c_str(), "readonly", &def); nerr++; continue; }
-    String ty = JSONVar::typeof_(v);
-    double num;
-    if (def.kind == K_BOOL && ty == "boolean") num = ((bool)v) ? 1 : 0;
-    else if (ty == "number") num = (double)v;
-    else { add_key_error(errs, k.c_str(), "type", &def); nerr++; continue; }
-    const char* err = set_number(def, num);
-    if (err) { add_key_error(errs, k.c_str(), err, &def); nerr++; continue; }
-    applied++;
-  }
-  if (nerr == 0) send_ack(c, m);
-  else send_key_errors(c, m, applied, errs);
+  SetResult r;
+  protocol_apply_object(d, r);
+  if (r.errors == 0) send_ack(c, m);
+  else send_key_errors(c, m, r.applied, r.errList);
 }
 
 static void handle_get(AsyncWebSocketClient* c, JSONVar& m) {
@@ -250,28 +342,33 @@ static void handle_get(AsyncWebSocketClient* c, JSONVar& m) {
   if (nerr > 0) send_key_errors(c, m, 0, errs);
 }
 
-// Commands. The collar sends run here in the async_tcp task, exactly like the old click_* messages
-// (the blocking sender is not moved into loop()).
+// Commands. The collar sends run in the calling task (async_tcp), exactly like the old click_* messages
+// (the blocking sender is not moved into loop()). Returns nullptr on success, otherwise the error code.
+const char* protocol_run_cmd(const char* cmd) {
+  if (strcmp(cmd, "all_off") == 0) {
+    state_set(EV_ALL_OFF, 0, 0);
+    return nullptr;
+  }
+  if (strcmp(cmd, "collar.beep") == 0 || strcmp(cmd, "collar.vibe") == 0 || strcmp(cmd, "collar.shock") == 0) {
+    static int kEn = key_find("collar.en"), kStr = key_find("collar.strength");
+    if (!snap_value(kEn, state.collar.enabled ? 1 : 0)) return "disabled";
+    CollarMode mode = (strcmp(cmd, "collar.beep") == 0) ? CollarMode::Beep : (strcmp(cmd, "collar.vibe") == 0) ? CollarMode::Vibe : CollarMode::Shock;
+    collar_send(mode, snap_value(kStr, state.collar.strength));
+    debugln(cmd);
+    return nullptr;
+  }
+  return "unknown_cmd";
+}
+
 static void handle_cmd(AsyncWebSocketClient* c, JSONVar& m) {
   if (!m.hasOwnProperty("c") || JSONVar::typeof_(m["c"]) != "string") {
     send_err(c, m, "type", "cmd needs a \"c\" string");
     return;
   }
   String cmd = (const char*)m["c"];
-  if (cmd == "all_off") {
-    state_set(EV_ALL_OFF, 0, 0);
-  }
-  else if (cmd == "collar.beep" || cmd == "collar.vibe" || cmd == "collar.shock") {
-    if (!state.collar.enabled) {
-      send_err(c, m, "disabled", "collar is not enabled");
-      return;
-    }
-    CollarMode mode = (cmd == "collar.beep") ? CollarMode::Beep : (cmd == "collar.vibe") ? CollarMode::Vibe : CollarMode::Shock;
-    collar_send(mode, state.collar.strength);
-    debugln(cmd);
-  }
-  else {
-    send_err(c, m, "unknown_cmd", "unknown command");
+  const char* err = protocol_run_cmd(cmd.c_str());
+  if (err) {
+    send_err(c, m, err, strcmp(err, "disabled") == 0 ? "collar is not enabled" : "unknown command");
     return;
   }
   send_ack(c, m);
@@ -374,6 +471,11 @@ void protocol_loop(AsyncWebSocket& ws) {
   }
   haveSnapshot = true;
   if (changed != 0) stateSeq++;
+  portENTER_CRITICAL(&snapMux);
+  memcpy(snapVals, lastSent, sizeof(snapVals));
+  snapN = stateSeq;
+  snapValid = true;
+  portEXIT_CRITICAL(&snapMux);
 
   // the v2 clients (copied, the sends happen without the lock)
   uint32_t ids[MAX_SLOTS];
